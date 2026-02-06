@@ -27,7 +27,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
    * If playingHandicap >= 18 + holeHandicapIndex, player gets 2 strokes, etc.
    * Negative handicaps give strokes back on hardest holes.
    */
-  protected strokesReceivedOnHole(
+  public strokesReceivedOnHole(
     playingHandicap: number,
     holeHandicapIndex: number
   ): number {
@@ -54,7 +54,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
   /**
    * Extract a player's scores for specified holes, sorted by hole number.
    */
-  protected getPlayerScores(
+  public getPlayerScores(
     scores: HoleScore[],
     playerId: string,
     holes?: number[]
@@ -69,7 +69,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
   /**
    * Calculate net score for a hole.
    */
-  protected calculateNetScore(
+  public calculateNetScore(
     gross: number | null,
     strokesReceived: number
   ): number | null {
@@ -80,7 +80,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
   /**
    * Build hole results for a player across specified holes.
    */
-  protected buildHoleResults(
+  public buildHoleResults(
     scores: HoleScore[],
     holes: HoleInfo[],
     playerId: string,
@@ -122,7 +122,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
   /**
    * Sort standings by position, handling ties.
    */
-  protected sortStandings(
+  public sortStandings(
     standings: PlayerStanding[],
     scoreFn: (s: PlayerStanding) => number,
     lowerIsBetter = true
@@ -151,7 +151,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
    * Parse hole range from the holes config string.
    * Supports: 'all', 'front', 'back', '1-9', '10-18', or custom like '1,3,5,7'
    */
-  protected parseHoleRange(
+  public parseHoleRange(
     holesConfig: string,
     totalHoles: number
   ): number[] {
@@ -177,7 +177,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
   /**
    * Create an empty game result structure.
    */
-  protected emptyResult(gameId: string): GameResult {
+  public emptyResult(gameId: string): GameResult {
     return {
       gameId,
       format: this.formatId,
@@ -192,7 +192,7 @@ export abstract class BaseGameFormatEngine implements IGameFormatEngine {
   /**
    * Create a base player standing.
    */
-  protected createPlayerStanding(
+  public createPlayerStanding(
     playerId: string,
     holeResults: HoleResult[]
   ): PlayerStanding {
