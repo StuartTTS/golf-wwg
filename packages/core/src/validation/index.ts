@@ -1,0 +1,140 @@
+import { z } from 'zod';
+
+// ---------- Auth ----------
+export const registerSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  displayName: z
+    .string()
+    .min(2, 'Display name must be at least 2 characters')
+    .max(50, 'Display name must be under 50 characters'),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+// ---------- Profile ----------
+export const updateProfileSchema = z.object({
+  displayName: z.string().min(2).max(50).optional(),
+  defaultTeePreference: z.string().optional(),
+  avatarUrl: z.string().url().optional().nullable(),
+});
+
+// ---------- Course ----------
+export const courseSchema = z.object({
+  name: z.string().min(2, 'Course name is required').max(100),
+  city: z.string().max(100).optional(),
+  state: z.string().max(50).optional(),
+  country: z.string().max(50).default('US'),
+  numHoles: z.number().int().min(9).max(36).default(18),
+});
+
+export const teeBoxSchema = z.object({
+  name: z.string().min(1, 'Tee name is required').max(30),
+  color: z.string().optional(),
+  slopeRating: z.number().min(55).max(155),
+  courseRating: z.number().min(55).max(85),
+  totalYardage: z.number().int().min(1000).max(9000).optional(),
+});
+
+export const holeSchema = z.object({
+  holeNumber: z.number().int().min(1).max(36),
+  par: z.number().int().min(3).max(6),
+  yardage: z.number().int().min(50).max(700).optional(),
+  handicapIndex: z.number().int().min(1).max(18),
+});
+
+// ---------- Group ----------
+export const createGroupSchema = z.object({
+  name: z.string().min(2, 'Group name is required').max(100),
+  description: z.string().max(500).optional(),
+  defaultCourseId: z.string().uuid().optional(),
+});
+
+export const inviteMemberSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['admin', 'member']).default('member'),
+});
+
+// ---------- Round ----------
+export const createRoundSchema = z.object({
+  groupId: z.string().uuid(),
+  courseId: z.string().uuid(),
+  teeBoxId: z.string().uuid(),
+  roundDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
+  teeTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)')
+    .optional(),
+  scoringMode: z.enum(['shared', 'scorekeeper']),
+  scorekeeperId: z.string().uuid().optional(),
+});
+
+// ---------- Score ----------
+export const scoreEntrySchema = z.object({
+  roundId: z.string().uuid(),
+  playerId: z.string().uuid(),
+  holeNumber: z.number().int().min(1).max(36),
+  strokes: z.number().int().min(1).max(20).nullable(),
+  putts: z.number().int().min(0).max(10).nullable().optional(),
+  fairwayHit: z.boolean().nullable().optional(),
+  gir: z.boolean().nullable().optional(),
+  upAndDown: z.boolean().nullable().optional(),
+});
+
+// ---------- Game ----------
+export const createGameSchema = z.object({
+  roundId: z.string().uuid(),
+  format: z.string().min(1),
+  name: z.string().max(100).optional(),
+  config: z.record(z.unknown()).default({}),
+  moneyPerUnit: z.number().min(0).optional(),
+  holes: z.string().default('all'),
+  playerIds: z.array(z.string().uuid()).min(2),
+  teams: z
+    .array(
+      z.object({
+        teamName: z.string(),
+        playerIds: z.array(z.string().uuid()),
+      })
+    )
+    .optional(),
+});
+
+// ---------- Settlement ----------
+export const settlementSchema = z.object({
+  roundId: z.string().uuid(),
+  payerId: z.string().uuid(),
+  payeeId: z.string().uuid(),
+  amount: z.number().min(0.01),
+});
+
+// Export types
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type CourseInput = z.infer<typeof courseSchema>;
+export type TeeBoxInput = z.infer<typeof teeBoxSchema>;
+export type HoleInput = z.infer<typeof holeSchema>;
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+export type CreateRoundInput = z.infer<typeof createRoundSchema>;
+export type ScoreEntryInput = z.infer<typeof scoreEntrySchema>;
+export type CreateGameInput = z.infer<typeof createGameSchema>;
+export type SettlementInput = z.infer<typeof settlementSchema>;
