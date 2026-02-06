@@ -41,7 +41,7 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
       user_id,
       role,
       joined_at,
-      profile:profiles (id, full_name, email, avatar_url, handicap)
+      profile:profiles (id, display_name, email, avatar_url, current_handicap_index)
     `)
     .eq('group_id', groupId)
     .order('role', { ascending: true })
@@ -49,7 +49,7 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
 
   // Fetch pending invitations
   const { data: invitations } = await supabase
-    .from('group_invitations')
+    .from('invitations')
     .select('id, email, status, created_at')
     .eq('group_id', groupId)
     .eq('status', 'pending');

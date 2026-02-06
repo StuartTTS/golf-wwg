@@ -50,7 +50,7 @@ export default function ProfilePage() {
         // Fetch profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, display_name, email, handicap, handicap_updated_at, avatar_url, created_at')
+          .select('id, display_name, email, current_handicap_index, updated_at, avatar_url, created_at')
           .eq('id', user.id)
           .single();
 
@@ -60,8 +60,8 @@ export default function ProfilePage() {
           id: profileData.id,
           displayName: profileData.display_name,
           email: profileData.email,
-          handicap: profileData.handicap,
-          handicapUpdatedAt: profileData.handicap_updated_at,
+          handicap: profileData.current_handicap_index,
+          handicapUpdatedAt: profileData.updated_at,
           avatarUrl: profileData.avatar_url,
           createdAt: profileData.created_at,
         });

@@ -12,7 +12,7 @@ import {
   CardDescription,
   Button,
   Input,
-  Select,
+  SimpleSelect,
 } from '@/components/ui';
 
 interface Course {
@@ -121,7 +121,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
     setError(null);
 
     try {
-      const result = await deleteGroup({ groupId });
+      const result = await deleteGroup(groupId);
 
       if (result.error) {
         setError(result.error);
@@ -245,20 +245,13 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
             >
               Default Course
             </label>
-            <Select
+            <SimpleSelect
               id="defaultCourse"
               value={defaultCourseId}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                setDefaultCourseId(e.target.value)
-              }
-            >
-              <option value="">No default course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.name}
-                </option>
-              ))}
-            </Select>
+              onChange={(e) => setDefaultCourseId(e.target.value)}
+              options={courses.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="No default course"
+            />
             <p className="text-xs text-gray-500">
               Pre-selected when creating new rounds.
             </p>

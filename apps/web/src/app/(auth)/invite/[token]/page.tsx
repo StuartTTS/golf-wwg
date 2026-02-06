@@ -12,11 +12,24 @@ export default async function InvitePage({ params }: InvitePageProps) {
   const supabase = await createServerSupabaseClient();
 
   // Fetch the invite details
-  const { data: invite, error } = await supabase
-    .from('invites')
-    .select('*, groups(name)')
+  const { data, error } = await supabase
+    .from('invitations')
+    .select('*')
     .eq('token', token)
     .single();
+
+  const invite = data as {
+    id: string;
+    status: string;
+    group_id: string;
+    email: string;
+    type: string;
+    token: string;
+    invited_by: string;
+    round_id: string | null;
+    created_at: string;
+    expires_at: string;
+  } | null;
 
   // If the invite doesn't exist or has already been used, show an error
   if (error || !invite) {
@@ -62,8 +75,12 @@ export default async function InvitePage({ params }: InvitePageProps) {
     redirect(`/login?returnTo=/invite/${token}`);
   }
 
-  const groupName =
-    (invite.groups as { name: string } | null)?.name ?? 'a group';
+  const { data: groupData } = await supabase
+    .from('groups')
+    .select('name')
+    .eq('id', invite.group_id)
+    .single();
+  const groupName = (groupData as { name: string } | null)?.name ?? 'a group';
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -80,13 +97,13 @@ export default async function InvitePage({ params }: InvitePageProps) {
       {/* Invite details card */}
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <dl className="space-y-4">
-          {invite.invited_email && (
+          {invite.email && (
             <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 Invited email
               </dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {invite.invited_email}
+                {invite.email}
               </dd>
             </div>
           )}
@@ -96,13 +113,13 @@ export default async function InvitePage({ params }: InvitePageProps) {
             </dt>
             <dd className="mt-1 text-sm text-gray-900">{groupName}</dd>
           </div>
-          {invite.role && (
+          {invite.type && (
             <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Role
+                Invite type
               </dt>
               <dd className="mt-1 text-sm capitalize text-gray-900">
-                {invite.role}
+                {invite.type}
               </dd>
             </div>
           )}

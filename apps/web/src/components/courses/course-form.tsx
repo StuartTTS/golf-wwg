@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
+import { SimpleSelect } from '@/components/ui/select';
 
 interface CourseFormProps {
   initialData?: {
@@ -57,7 +58,7 @@ export function CourseForm({ initialData, onSubmit, submitLabel = 'Create Course
           defaultValue={initialData?.city}
           placeholder="City"
         />
-        <Select
+        <SimpleSelect
           id="state"
           name="state"
           label="State"
@@ -73,7 +74,7 @@ export function CourseForm({ initialData, onSubmit, submitLabel = 'Create Course
           label="Country"
           defaultValue={initialData?.country || 'US'}
         />
-        <Select
+        <SimpleSelect
           id="numHoles"
           name="numHoles"
           label="Number of Holes"

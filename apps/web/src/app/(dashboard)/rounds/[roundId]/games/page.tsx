@@ -78,9 +78,9 @@ function AddGameModal({
       setCreating(true);
       const { error } = await supabase.from('games').insert({
         round_id: roundId,
-        type: gameType,
+        format: gameType,
         name: GAME_TYPE_LABELS[gameType] ?? gameType,
-        buy_in: parseFloat(buyIn) || 0,
+        money_per_unit: parseFloat(buyIn) || 0,
         status: 'active',
       });
 

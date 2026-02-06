@@ -25,7 +25,7 @@ export default function AuthLayout({
             <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
             <path d="M2 12h20" />
           </svg>
-          <span className="text-2xl font-bold text-gray-900">GolfScore</span>
+          <span className="text-2xl font-bold text-gray-900">WWG</span>
         </Link>
       </div>
 

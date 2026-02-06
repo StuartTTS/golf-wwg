@@ -2,6 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createGameSchema } from '@golf/core';
+import type { Json } from '@/lib/supabase/database.types';
 
 export async function createGame(input: {
   roundId: string;
@@ -29,7 +30,7 @@ export async function createGame(input: {
       round_id: input.roundId,
       format: input.format,
       name: input.name ?? null,
-      config: input.config,
+      config: input.config as Json,
       money_per_unit: input.moneyPerUnit ?? null,
       status: 'active',
       holes: input.holes ?? 'all',
@@ -84,7 +85,7 @@ export async function finalizeGame(gameId: string, results: Record<string, unkno
   const { error } = await supabase
     .from('games')
     .update({
-      results,
+      results: results as Json,
       status: 'finalized',
     })
     .eq('id', gameId);

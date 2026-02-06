@@ -9,12 +9,12 @@ interface Course {
   name: string;
   city: string | null;
   state: string | null;
-  holes_count: number;
+  num_holes: number;
   tee_boxes: {
     id: string;
     name: string;
-    rating: number;
-    slope: number;
+    course_rating: number;
+    slope_rating: number;
   }[];
 }
 
@@ -40,15 +40,15 @@ export default async function CoursesPage() {
       name,
       city,
       state,
-      holes_count,
+      num_holes,
       tee_boxes (
         id,
         name,
-        rating,
-        slope
+        course_rating,
+        slope_rating
       )
     `)
-    .or(`created_by.eq.${user.id},is_public.eq.true`)
+    .eq('created_by', user.id)
     .order('name');
 
   if (error) {
@@ -137,7 +137,7 @@ export default async function CoursesPage() {
                       )}
                     </div>
                     <Badge variant="secondary">
-                      {course.holes_count} holes
+                      {course.num_holes} holes
                     </Badge>
                   </div>
 
@@ -153,7 +153,7 @@ export default async function CoursesPage() {
                             {tee.name}
                           </span>
                           <span className="text-gray-500 ml-1">
-                            {tee.rating}/{tee.slope}
+                            {tee.course_rating}/{tee.slope_rating}
                           </span>
                         </div>
                       ))}

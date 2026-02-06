@@ -7,7 +7,7 @@ export default function LandingPage() {
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
         <div className="flex items-center space-x-2">
           <span className="text-2xl">&#9971;</span>
-          <span className="text-xl font-bold text-slate-900">GolfApp</span>
+          <span className="text-xl font-bold text-slate-900">WWG</span>
         </div>
         <div className="flex items-center gap-4">
           <Link

@@ -42,10 +42,10 @@ interface CourseDetail {
 export default async function CourseDetailPage({
   params,
 }: {
-  params: { courseId: string };
+  params: Promise<{ courseId: string }>;
 }) {
   const supabase = await createServerSupabaseClient();
-  const { courseId } = params;
+  const { courseId } = await params;
 
   const {
     data: { user },
@@ -263,7 +263,7 @@ export default async function CourseDetailPage({
                         {tee.slope}
                       </td>
                       <td className="py-3 px-3 text-center text-gray-700">
-                        {tee.yardage ?? totalYardage || '-'}
+                        {(tee.yardage ?? totalYardage) || '-'}
                       </td>
                       <td className="py-3 px-3 text-center font-medium text-gray-900">
                         {teePar}

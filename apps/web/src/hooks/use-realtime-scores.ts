@@ -19,7 +19,7 @@ export function useRealtimeScores({
   userId,
   displayName,
 }: UseRealtimeScoresOptions) {
-  const supabase = useSupabase();
+  const { supabase } = useSupabase();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {

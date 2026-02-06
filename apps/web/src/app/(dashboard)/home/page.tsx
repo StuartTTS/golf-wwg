@@ -22,17 +22,17 @@ export default async function DashboardHomePage() {
 
   const { data: recentRounds } = await supabase
     .from('rounds')
-    .select('id, date, course:courses(name), total_score, status')
+    .select('id, round_date, course:courses(name), status')
     .eq('created_by', user?.id ?? '')
-    .order('date', { ascending: false })
+    .order('round_date', { ascending: false })
     .limit(5);
 
   const { data: upcomingRounds } = await supabase
     .from('rounds')
-    .select('id, date, course:courses(name), status, group:groups(name)')
-    .gte('date', new Date().toISOString())
-    .eq('status', 'scheduled')
-    .order('date', { ascending: true })
+    .select('id, round_date, course:courses(name), status, group:groups(name)')
+    .gte('round_date', new Date().toISOString())
+    .eq('status', 'upcoming')
+    .order('round_date', { ascending: true })
     .limit(5);
 
   const displayName = user?.user_metadata?.full_name ?? user?.email ?? 'Golfer';
@@ -110,7 +110,7 @@ export default async function DashboardHomePage() {
                         {(round.course as any)?.name ?? 'Unknown Course'}
                       </CardTitle>
                       <CardDescription>
-                        {new Date(round.date).toLocaleDateString('en-US', {
+                        {new Date(round.round_date).toLocaleDateString('en-US', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
@@ -119,11 +119,6 @@ export default async function DashboardHomePage() {
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-3">
-                      {round.total_score && (
-                        <span className="text-2xl font-bold text-gray-900">
-                          {round.total_score}
-                        </span>
-                      )}
                       <Badge
                         variant={round.status === 'completed' ? 'default' : 'secondary'}
                       >
@@ -164,13 +159,13 @@ export default async function DashboardHomePage() {
                       </CardTitle>
                       <CardDescription>
                         {(round.group as any)?.name ?? ''} &middot;{' '}
-                        {new Date(round.date).toLocaleDateString('en-US', {
+                        {new Date(round.round_date).toLocaleDateString('en-US', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
                         })}{' '}
                         at{' '}
-                        {new Date(round.date).toLocaleTimeString('en-US', {
+                        {new Date(round.round_date).toLocaleTimeString('en-US', {
                           hour: 'numeric',
                           minute: '2-digit',
                         })}

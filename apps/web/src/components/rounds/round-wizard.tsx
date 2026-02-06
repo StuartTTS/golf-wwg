@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input, SimpleSelect } from '@/components/ui';
 
 interface Course {
   id: string;
@@ -98,24 +98,24 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
       {step === 'course' && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Select Course</h2>
-          <Select
+          <SimpleSelect
             id="courseId"
             label="Course"
             options={courses.map((c) => ({ value: c.id, label: c.name }))}
             value={courseId}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
               setCourseId(e.target.value);
               setTeeBoxId('');
             }}
             placeholder="Choose a course"
           />
           {courseId && (
-            <Select
+            <SimpleSelect
               id="teeBoxId"
               label="Tee Box"
               options={teeBoxOptions}
               value={teeBoxId}
-              onChange={(e) => setTeeBoxId(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTeeBoxId(e.target.value)}
               placeholder="Choose tees"
             />
           )}
@@ -148,7 +148,7 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
             value={teeTime}
             onChange={(e) => setTeeTime(e.target.value)}
           />
-          <Select
+          <SimpleSelect
             id="scoringMode"
             label="Scoring Mode"
             options={[
@@ -156,7 +156,7 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
               { value: 'scorekeeper', label: 'Scorekeeper - One person enters all scores' },
             ]}
             value={scoringMode}
-            onChange={(e) => setScoringMode(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setScoringMode(e.target.value)}
           />
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep('course')}>

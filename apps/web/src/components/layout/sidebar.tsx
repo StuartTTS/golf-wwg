@@ -19,7 +19,7 @@ export function Sidebar() {
       <div className="flex h-16 items-center px-6 border-b border-slate-200">
         <Link href="/home" className="flex items-center space-x-2">
           <span className="text-2xl">&#9971;</span>
-          <span className="text-lg font-bold text-slate-900">GolfApp</span>
+          <span className="text-lg font-bold text-slate-900">WWG</span>
         </Link>
       </div>
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">

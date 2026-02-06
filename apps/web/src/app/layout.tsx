@@ -4,7 +4,7 @@ import { AuthProvider } from '@/providers/auth-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GolfApp - Group Golf Scoring',
+  title: 'WWG - Group Golf Scoring',
   description: 'Record group golf scores, manage games, and track handicaps.',
 };
 

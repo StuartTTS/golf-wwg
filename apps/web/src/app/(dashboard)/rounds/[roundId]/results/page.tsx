@@ -77,12 +77,12 @@ export default function ResultsPage() {
           .select(`
             id,
             status,
-            date,
+            round_date,
             courses ( name ),
             round_players (
-              player_id,
+              user_id,
               tee_box_id,
-              profiles ( id, display_name, handicap )
+              profiles:profiles!round_players_user_id_fkey ( id, display_name, current_handicap_index )
             )
           `)
           .eq('id', roundId)
@@ -102,17 +102,17 @@ export default function ResultsPage() {
         const teeBoxId = roundData.round_players[0]?.tee_box_id;
         const { data: holesData } = await supabase
           .from('holes')
-          .select('number, par')
+          .select('hole_number, par')
           .eq('tee_box_id', teeBoxId)
-          .order('number');
+          .order('hole_number');
 
         const holes = holesData ?? [];
         const totalPar = holes.reduce((sum: number, h: any) => sum + h.par, 0);
         const frontPar = holes
-          .filter((h: any) => h.number <= 9)
+          .filter((h: any) => h.hole_number <= 9)
           .reduce((sum: number, h: any) => sum + h.par, 0);
         const backPar = holes
-          .filter((h: any) => h.number > 9)
+          .filter((h: any) => h.hole_number > 9)
           .reduce((sum: number, h: any) => sum + h.par, 0);
 
         // Build player results
@@ -240,7 +240,7 @@ export default function ResultsPage() {
         setResults({
           roundId,
           courseName: roundData.courses?.name ?? 'Unknown Course',
-          date: roundData.date,
+          date: roundData.round_date,
           status: roundData.status,
           players: playerResults,
           games: gameResults,

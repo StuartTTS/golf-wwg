@@ -12,7 +12,7 @@ import {
   CardDescription,
   Button,
   Input,
-  Select,
+  SimpleSelect,
   Badge,
 } from '@/components/ui';
 
@@ -24,9 +24,9 @@ interface Course {
 interface TeeBox {
   id: string;
   name: string;
-  color: string;
-  rating: number;
-  slope: number;
+  color: string | null;
+  course_rating: number;
+  slope_rating: number;
 }
 
 interface GroupMember {
@@ -127,9 +127,9 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
     async function fetchTeeBoxes() {
       const { data } = await supabase
         .from('tee_boxes')
-        .select('id, name, color, rating, slope')
+        .select('id, name, color, course_rating, slope_rating')
         .eq('course_id', selectedCourseId)
-        .order('rating', { ascending: true });
+        .order('course_rating', { ascending: true });
       if (data) {
         setTeeBoxes(data);
         if (data.length > 0) {
@@ -218,14 +218,15 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
     try {
       const dateTime = new Date(`${date}T${time}`).toISOString();
 
-      const result = await createRound({
-        groupId,
-        courseId: selectedCourseId,
-        teeBoxId: selectedTeeBoxId,
-        date: dateTime,
-        scoringMode,
-        playerIds: selectedPlayerIds,
-      });
+      const formData = new FormData();
+      formData.set('groupId', groupId);
+      formData.set('courseId', selectedCourseId);
+      formData.set('teeBoxId', selectedTeeBoxId);
+      formData.set('roundDate', dateTime);
+      formData.set('scoringMode', scoringMode);
+      selectedPlayerIds.forEach((id) => formData.append('playerIds', id));
+
+      const result = await createRound(formData);
 
       if (result.error) {
         setError(result.error);
@@ -321,19 +322,12 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
               </CardDescription>
             </CardHeader>
             <div className="px-6 pb-6 space-y-4">
-              <Select
+              <SimpleSelect
                 value={selectedCourseId}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setSelectedCourseId(e.target.value)
-                }
-              >
-                <option value="">Choose a course...</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.name}
-                  </option>
-                ))}
-              </Select>
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                options={courses.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Choose a course..."
+              />
               {courses.length === 0 && (
                 <p className="text-sm text-gray-500">
                   No courses available. Please add a course first.
@@ -385,7 +379,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                           {tee.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Rating: {tee.rating} / Slope: {tee.slope}
+                          Rating: {tee.course_rating} / Slope: {tee.slope_rating}
                         </p>
                       </div>
                     </div>

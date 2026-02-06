@@ -1,8 +1,11 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Database } from '@golf/core';
+import type { Database } from './database.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export async function createServerSupabaseClient() {
+export type TypedSupabaseClient = SupabaseClient<Database, 'public'>;
+
+export async function createServerSupabaseClient(): Promise<TypedSupabaseClient> {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
@@ -13,7 +16,7 @@ export async function createServerSupabaseClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
@@ -25,5 +28,5 @@ export async function createServerSupabaseClient() {
         },
       },
     }
-  );
+  ) as unknown as TypedSupabaseClient;
 }

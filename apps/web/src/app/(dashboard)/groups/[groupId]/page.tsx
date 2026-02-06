@@ -57,13 +57,13 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
     .from('rounds')
     .select(`
       id,
-      date,
+      round_date,
       status,
       scoring_mode,
       course:courses (name)
     `)
     .eq('group_id', groupId)
-    .order('date', { ascending: false })
+    .order('round_date', { ascending: false })
     .limit(5);
 
   // Determine current user's role
@@ -225,7 +225,7 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
                           {(round.course as any)?.name ?? 'Unknown Course'}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {new Date(round.date).toLocaleDateString('en-US', {
+                          {new Date(round.round_date).toLocaleDateString('en-US', {
                             weekday: 'short',
                             month: 'short',
                             day: 'numeric',

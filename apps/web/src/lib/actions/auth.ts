@@ -201,8 +201,8 @@ export async function acceptInvite(token: string): Promise<AuthActionResult> {
 
   // Mark the invite as accepted
   const { error } = await supabase
-    .from('invites')
-    .update({ status: 'accepted', accepted_by: userId })
+    .from('invitations')
+    .update({ status: 'accepted' })
     .eq('token', token)
     .eq('status', 'pending');
 
@@ -225,7 +225,7 @@ export async function declineInvite(token: string): Promise<AuthActionResult> {
   const supabase = await createServerSupabaseClient();
 
   const { error } = await supabase
-    .from('invites')
+    .from('invitations')
     .update({ status: 'declined' })
     .eq('token', token)
     .eq('status', 'pending');

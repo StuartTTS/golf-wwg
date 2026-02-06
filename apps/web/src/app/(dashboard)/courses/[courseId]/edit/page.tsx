@@ -108,26 +108,25 @@ export default function EditCoursePage() {
             city,
             state,
             country,
-            holes_count,
-            is_public,
+            num_holes,
             created_by,
             tee_boxes (
               id,
               name,
               color,
-              rating,
-              slope,
-              yardage,
+              course_rating,
+              slope_rating,
+              total_yardage,
               holes (
-                number,
+                hole_number,
                 par,
                 yardage,
-                stroke_index
+                handicap_index
               )
             )
           `)
           .eq('id', courseId)
-          .single();
+          .single() as { data: any; error: any };
 
         if (courseError) throw courseError;
 
@@ -136,8 +135,8 @@ export default function EditCoursePage() {
           city: course.city ?? '',
           state: course.state ?? '',
           country: course.country ?? 'US',
-          holesCount: course.holes_count.toString() as '9' | '18',
-          isPublic: course.is_public,
+          holesCount: course.num_holes.toString() as '9' | '18',
+          isPublic: false,
         });
 
         const loadedTeeBoxes: TeeBox[] = (course.tee_boxes ?? []).map(
@@ -236,8 +235,7 @@ export default function EditCoursePage() {
           city: details.city.trim() || null,
           state: details.state || null,
           country: details.country,
-          holes_count: parseInt(details.holesCount),
-          is_public: details.isPublic,
+          num_holes: parseInt(details.holesCount),
         })
         .eq('id', courseId);
 
@@ -260,9 +258,9 @@ export default function EditCoursePage() {
             course_id: courseId,
             name: tb.name.trim(),
             color: tb.color || null,
-            rating: parseFloat(tb.rating) || 0,
-            slope: parseInt(tb.slope) || 0,
-            yardage: parseInt(tb.yardage) || null,
+            course_rating: parseFloat(tb.rating) || 0,
+            slope_rating: parseInt(tb.slope) || 0,
+            total_yardage: parseInt(tb.yardage) || null,
           })
           .select('id')
           .single();
@@ -273,10 +271,10 @@ export default function EditCoursePage() {
         if (tbHoles) {
           const holesInsert = tbHoles.holes.map((h) => ({
             tee_box_id: teeData.id,
-            number: h.number,
+            hole_number: h.number,
             par: parseInt(h.par) || 4,
             yardage: parseInt(h.yardage) || null,
-            stroke_index: parseInt(h.strokeIndex) || h.number,
+            handicap_index: parseInt(h.strokeIndex) || h.number,
           }));
 
           const { error: holesError } = await supabase

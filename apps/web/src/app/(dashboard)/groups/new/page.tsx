@@ -12,7 +12,7 @@ import {
   CardDescription,
   Button,
   Input,
-  Select,
+  SimpleSelect,
 } from '@/components/ui';
 
 interface Course {
@@ -157,20 +157,13 @@ export default function CreateGroupPage() {
             >
               Default Course
             </label>
-            <Select
+            <SimpleSelect
               id="defaultCourse"
               value={defaultCourseId}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                setDefaultCourseId(e.target.value)
-              }
-            >
-              <option value="">Select a course (optional)</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.name}
-                </option>
-              ))}
-            </Select>
+              onChange={(e) => setDefaultCourseId(e.target.value)}
+              options={courses.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="Select a course (optional)"
+            />
             <p className="text-xs text-gray-500">
               This will be the default course when creating rounds for this group.
             </p>

@@ -13,7 +13,7 @@ export function Header() {
       <div className="flex items-center lg:hidden">
         <Link href="/home" className="flex items-center space-x-2">
           <span className="text-2xl">&#9971;</span>
-          <span className="text-lg font-bold text-slate-900">GolfApp</span>
+          <span className="text-lg font-bold text-slate-900">WWG</span>
         </Link>
       </div>
 

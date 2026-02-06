@@ -34,21 +34,21 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
     .from('rounds')
     .select(`
       id,
-      date,
+      round_date,
       status,
       scoring_mode,
       course:courses (name),
-      created_by_profile:profiles!rounds_created_by_fkey (full_name),
+      created_by_profile:profiles!rounds_created_by_fkey (display_name),
       round_players (count)
     `)
     .eq('group_id', groupId)
-    .order('date', { ascending: false });
+    .order('round_date', { ascending: false });
 
   // Separate into upcoming and past rounds
   const now = new Date().toISOString();
   const upcomingRounds =
     rounds?.filter(
-      (r) => r.status === 'scheduled' || (r.status === 'in_progress' && r.date >= now)
+      (r) => r.status === 'scheduled' || (r.status === 'in_progress' && r.round_date >= now)
     ) ?? [];
   const completedRounds =
     rounds?.filter((r) => r.status === 'completed') ?? [];
@@ -137,7 +137,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
                             {(round.course as any)?.name ?? 'Unknown Course'}
                           </CardTitle>
                           <CardDescription>
-                            {new Date(round.date).toLocaleDateString('en-US', {
+                            {new Date(round.round_date).toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric',
@@ -179,14 +179,14 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
                             {(round.course as any)?.name ?? 'Unknown Course'}
                           </CardTitle>
                           <CardDescription>
-                            {new Date(round.date).toLocaleDateString('en-US', {
+                            {new Date(round.round_date).toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric',
                               year: 'numeric',
                             })}{' '}
                             at{' '}
-                            {new Date(round.date).toLocaleTimeString('en-US', {
+                            {new Date(round.round_date).toLocaleTimeString('en-US', {
                               hour: 'numeric',
                               minute: '2-digit',
                             })}
@@ -225,7 +225,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
                             {(round.course as any)?.name ?? 'Unknown Course'}
                           </CardTitle>
                           <CardDescription>
-                            {new Date(round.date).toLocaleDateString('en-US', {
+                            {new Date(round.round_date).toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric',

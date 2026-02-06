@@ -46,7 +46,7 @@ export default async function GroupLeaderboardPage({
     .from('group_members')
     .select(`
       user_id,
-      profile:profiles (id, full_name, handicap)
+      profile:profiles (id, display_name, current_handicap_index)
     `)
     .eq('group_id', groupId);
 
@@ -55,12 +55,10 @@ export default async function GroupLeaderboardPage({
     .from('round_players')
     .select(`
       user_id,
-      total_score,
-      points,
       round:rounds!inner (id, group_id, status)
     `)
     .eq('round.group_id', groupId)
-    .eq('round.status', 'completed');
+    .eq('round.status', 'completed') as { data: any[] | null };
 
   // Compute per-player stats
   const statsMap = new Map<string, PlayerStats>();
@@ -69,12 +67,12 @@ export default async function GroupLeaderboardPage({
     const profile = member.profile as any;
     statsMap.set(member.user_id, {
       userId: member.user_id,
-      name: profile?.full_name ?? 'Unknown',
+      name: profile?.display_name ?? 'Unknown',
       roundsPlayed: 0,
       averageScore: 0,
       bestScore: 0,
       totalPoints: 0,
-      handicap: profile?.handicap ?? null,
+      handicap: profile?.current_handicap_index ?? null,
     });
   });
 

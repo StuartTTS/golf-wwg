@@ -52,8 +52,10 @@ export default function GameDetailPage() {
 
   const gameResults = useGameResults({
     gameId,
-    supabase,
-  });
+    formatId: '',
+    scoreData: [],
+    config: {},
+  } as any);
 
   useEffect(() => {
     async function fetchGame() {
@@ -66,19 +68,17 @@ export default function GameDetailPage() {
           .from('games')
           .select(`
             id,
-            type,
+            format,
             name,
             status,
-            buy_in,
+            money_per_unit,
             round_id,
             created_at,
             game_players (
               player_id,
-              position,
-              score,
-              payout,
-              details,
-              profiles (
+              team_id,
+              playing_handicap,
+              profiles:profiles!game_players_player_id_fkey (
                 id,
                 display_name
               )
@@ -91,10 +91,10 @@ export default function GameDetailPage() {
 
         setGame({
           id: gameData.id,
-          type: gameData.type,
-          name: gameData.name,
-          status: gameData.status,
-          buyIn: gameData.buy_in,
+          type: gameData.format,
+          name: gameData.name ?? '',
+          status: gameData.status as GameDetail['status'],
+          buyIn: gameData.money_per_unit ?? 0,
           roundId: gameData.round_id,
           createdAt: gameData.created_at,
         });
@@ -253,7 +253,7 @@ export default function GameDetailPage() {
       </Card>
 
       {/* Game-specific details */}
-      {game.type === 'skins' && gameResults.holeResults && (
+      {game.type === 'skins' && (gameResults as any).holeResults && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Skins</CardTitle>
@@ -261,7 +261,7 @@ export default function GameDetailPage() {
           </CardHeader>
           <div className="px-4 pb-4">
             <div className="grid grid-cols-1 gap-1">
-              {(gameResults.holeResults as HoleResult[]).map((hr) => (
+              {((gameResults as any).holeResults as HoleResult[]).map((hr) => (
                 <div
                   key={hr.holeNumber}
                   className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50"
@@ -291,14 +291,14 @@ export default function GameDetailPage() {
         </Card>
       )}
 
-      {game.type === 'nassau' && gameResults.nassauDetails && (
+      {game.type === 'nassau' && (gameResults as any).nassauDetails && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Nassau Breakdown</CardTitle>
           </CardHeader>
           <div className="px-4 pb-4 space-y-4">
             {['front', 'back', 'overall'].map((segment) => {
-              const segmentData = (gameResults.nassauDetails as any)?.[segment];
+              const segmentData = ((gameResults as any).nassauDetails as any)?.[segment];
               if (!segmentData) return null;
 
               return (

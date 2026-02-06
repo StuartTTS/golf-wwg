@@ -57,62 +57,59 @@ export default function HandicapPage() {
         // Fetch profile with handicap
         const { data: profile } = await supabase
           .from('profiles')
-          .select('handicap')
+          .select('current_handicap_index')
           .eq('id', user.id)
           .single();
 
         // Fetch handicap history
         const { data: historyData } = await supabase
-          .from('handicap_history')
-          .select('date, handicap_index')
-          .eq('player_id', user.id)
-          .order('date', { ascending: false })
+          .from('handicap_records')
+          .select('calculated_at, handicap_index')
+          .eq('user_id', user.id)
+          .order('calculated_at', { ascending: false })
           .limit(50);
 
         // Fetch score differentials
         const { data: diffData } = await supabase
-          .from('score_differentials')
+          .from('handicap_records')
           .select(`
+            id,
+            handicap_index,
+            calculated_at,
             round_id,
-            gross_score,
-            course_rating,
-            slope,
-            differential,
-            is_used,
             rounds (
               id,
-              date,
+              round_date,
               courses ( name )
-            ),
-            tee_boxes ( name )
+            )
           `)
-          .eq('player_id', user.id)
-          .order('differential', { ascending: true })
+          .eq('user_id', user.id)
+          .order('calculated_at', { ascending: false })
           .limit(20);
 
         const history: HandicapEntry[] = (historyData ?? []).map((h: any) => ({
-          date: h.date,
+          date: h.calculated_at,
           handicapIndex: h.handicap_index,
         }));
 
         const differentials: Differential[] = (diffData ?? []).map(
           (d: any) => ({
             roundId: d.round_id,
-            date: d.rounds?.date ?? '',
+            date: d.rounds?.round_date ?? '',
             courseName: d.rounds?.courses?.name ?? 'Unknown',
-            teeBoxName: d.tee_boxes?.name ?? '',
-            grossScore: d.gross_score,
-            courseRating: d.course_rating,
-            slope: d.slope,
-            differential: d.differential,
-            isUsed: d.is_used,
+            teeBoxName: '',
+            grossScore: 0,
+            courseRating: 0,
+            slope: 0,
+            differential: d.handicap_index,
+            isUsed: true,
           })
         );
 
         const handicapValues = history.map((h) => h.handicapIndex);
 
         setData({
-          currentHandicap: profile?.handicap ?? null,
+          currentHandicap: profile?.current_handicap_index ?? null,
           lowHandicap:
             handicapValues.length > 0 ? Math.min(...handicapValues) : null,
           highHandicap:

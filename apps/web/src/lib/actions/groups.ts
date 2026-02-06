@@ -1,30 +1,24 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createGroupSchema, inviteMemberSchema } from '@golf/core';
+import { inviteMemberSchema } from '@golf/core';
 import { randomBytes } from 'crypto';
 
-export async function createGroup(formData: FormData) {
+export async function createGroup(data: { name: string; description?: string; defaultCourseId?: string }) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  const parsed = createGroupSchema.safeParse({
-    name: formData.get('name'),
-    description: formData.get('description') || undefined,
-    defaultCourseId: formData.get('defaultCourseId') || undefined,
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+  if (!data.name || !data.name.trim()) {
+    return { error: 'Group name is required' };
   }
 
   const { data: group, error } = await supabase
     .from('groups')
     .insert({
-      name: parsed.data.name,
-      description: parsed.data.description ?? null,
-      default_course_id: parsed.data.defaultCourseId ?? null,
+      name: data.name,
+      description: data.description ?? null,
+      default_course_id: data.defaultCourseId ?? null,
       created_by: user.id,
     })
     .select()
@@ -42,7 +36,7 @@ export async function createGroup(formData: FormData) {
   return { success: true, groupId: group.id };
 }
 
-export async function updateGroup(groupId: string, formData: FormData) {
+export async function updateGroup(data: { groupId: string; name: string; description?: string; defaultCourseId?: string }) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
@@ -50,11 +44,11 @@ export async function updateGroup(groupId: string, formData: FormData) {
   const { error } = await supabase
     .from('groups')
     .update({
-      name: formData.get('name') as string,
-      description: (formData.get('description') as string) || null,
-      default_course_id: (formData.get('defaultCourseId') as string) || null,
+      name: data.name,
+      description: data.description ?? null,
+      default_course_id: data.defaultCourseId ?? null,
     })
-    .eq('id', groupId);
+    .eq('id', data.groupId);
 
   if (error) return { error: error.message };
   return { success: true };

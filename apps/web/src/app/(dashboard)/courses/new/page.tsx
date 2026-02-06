@@ -696,8 +696,7 @@ export default function NewCoursePage() {
           city: details.city.trim() || null,
           state: details.state || null,
           country: details.country,
-          holes_count: parseInt(details.holesCount),
-          is_public: details.isPublic,
+          num_holes: parseInt(details.holesCount),
           created_by: user.id,
         })
         .select('id')
@@ -716,9 +715,9 @@ export default function NewCoursePage() {
             course_id: courseId,
             name: tb.name.trim(),
             color: tb.color || null,
-            rating: parseFloat(tb.rating) || 0,
-            slope: parseInt(tb.slope) || 0,
-            yardage: parseInt(tb.yardage) || null,
+            course_rating: parseFloat(tb.rating) || 0,
+            slope_rating: parseInt(tb.slope) || 0,
+            total_yardage: parseInt(tb.yardage) || null,
           })
           .select('id')
           .single();
@@ -732,10 +731,10 @@ export default function NewCoursePage() {
         if (tbHoles) {
           const holesInsert = tbHoles.holes.map((h) => ({
             tee_box_id: teeData.id,
-            number: h.number,
+            hole_number: h.number,
             par: parseInt(h.par) || 4,
             yardage: parseInt(h.yardage) || null,
-            stroke_index: parseInt(h.strokeIndex) || h.number,
+            handicap_index: parseInt(h.strokeIndex) || h.number,
           }));
 
           const { error: holesError } = await supabase
