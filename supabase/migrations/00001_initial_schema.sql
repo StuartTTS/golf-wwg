@@ -64,7 +64,7 @@ CREATE TRIGGER profiles_updated_at
 -- COURSES
 -- ============================================================
 CREATE TABLE courses (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   city TEXT,
   state TEXT,
@@ -92,7 +92,7 @@ CREATE POLICY "Creator can update courses"
 -- TEE BOXES
 -- ============================================================
 CREATE TABLE tee_boxes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT,
@@ -123,7 +123,7 @@ CREATE POLICY "Course creator can update tee boxes"
 -- HOLES
 -- ============================================================
 CREATE TABLE holes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tee_box_id UUID NOT NULL REFERENCES tee_boxes(id) ON DELETE CASCADE,
   hole_number INT NOT NULL,
   par INT NOT NULL CHECK (par >= 3 AND par <= 6),
@@ -166,7 +166,7 @@ CREATE POLICY "Course creator can delete holes"
 -- GROUPS
 -- ============================================================
 CREATE TABLE groups (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   description TEXT,
   default_course_id UUID REFERENCES courses(id) ON DELETE SET NULL,
@@ -180,7 +180,7 @@ ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
 -- GROUP MEMBERS
 -- ============================================================
 CREATE TABLE group_members (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('admin', 'member')) DEFAULT 'member',
@@ -266,7 +266,7 @@ CREATE POLICY "Group admins can remove members"
 -- ROUNDS
 -- ============================================================
 CREATE TABLE rounds (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   course_id UUID NOT NULL REFERENCES courses(id),
   tee_box_id UUID NOT NULL REFERENCES tee_boxes(id),
@@ -312,7 +312,7 @@ CREATE POLICY "Round creator or admin can update rounds"
 -- ROUND PLAYERS
 -- ============================================================
 CREATE TABLE round_players (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   round_id UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id),
   tee_box_id UUID NOT NULL REFERENCES tee_boxes(id),
@@ -382,7 +382,7 @@ CREATE POLICY "Round creator or admin can remove players"
 -- SCORES
 -- ============================================================
 CREATE TABLE scores (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   round_id UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
   player_id UUID NOT NULL REFERENCES profiles(id),
   hole_number INT NOT NULL CHECK (hole_number >= 1 AND hole_number <= 36),
@@ -458,7 +458,7 @@ CREATE POLICY "Score entry permissions for update"
 -- GAMES
 -- ============================================================
 CREATE TABLE games (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   round_id UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
   format TEXT NOT NULL,
   name TEXT,
@@ -528,7 +528,7 @@ CREATE POLICY "Round creator or admin can delete games"
 -- GAME TEAMS
 -- ============================================================
 CREATE TABLE game_teams (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   team_name TEXT NOT NULL,
   team_order INT
@@ -573,7 +573,7 @@ CREATE POLICY "Game creators can delete teams"
 -- GAME PLAYERS
 -- ============================================================
 CREATE TABLE game_players (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   player_id UUID NOT NULL REFERENCES profiles(id),
   team_id UUID REFERENCES game_teams(id) ON DELETE SET NULL,
@@ -619,7 +619,7 @@ CREATE POLICY "Game creators can delete game players"
 -- HANDICAP RECORDS
 -- ============================================================
 CREATE TABLE handicap_records (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   round_id UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
   handicap_index NUMERIC(4,1) NOT NULL,
@@ -643,7 +643,7 @@ CREATE POLICY "System can insert handicap records"
 -- INVITATIONS
 -- ============================================================
 CREATE TABLE invitations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type TEXT NOT NULL CHECK (type IN ('group', 'round')),
   group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
   round_id UUID REFERENCES rounds(id) ON DELETE CASCADE,
@@ -693,7 +693,7 @@ CREATE POLICY "Invited user or admin can update invitations"
 -- SETTLEMENTS
 -- ============================================================
 CREATE TABLE settlements (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   round_id UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
   payer_id UUID NOT NULL REFERENCES profiles(id),
   payee_id UUID NOT NULL REFERENCES profiles(id),

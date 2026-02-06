@@ -1,0 +1,28 @@
+trigger:
+  - main
+
+pool:
+  name: 'TTS-Server'
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+    displayName: 'Install Node.js'
+
+  - script: npm ci
+    displayName: 'Install dependencies'
+
+  - script: npm run build
+    displayName: 'Build monorepo'
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: $(NEXT_PUBLIC_SUPABASE_URL)
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: $(NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+  - task: AzureStaticWebApp@0
+    inputs:
+      app_location: 'apps/web'
+      output_location: '.next'
+      skip_app_build: true
+      azure_static_web_apps_api_token: $(SWA_DEPLOYMENT_TOKEN)
+    displayName: 'Deploy to Azure Static Web Apps'
