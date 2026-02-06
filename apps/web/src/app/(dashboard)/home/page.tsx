@@ -41,10 +41,10 @@ export default async function DashboardHomePage() {
     <div className="space-y-8">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
           Welcome back, {displayName}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-dark-600">
           Track your rounds, compete with friends, and improve your game.
         </p>
       </div>
@@ -88,7 +88,7 @@ export default async function DashboardHomePage() {
       {/* Recent Rounds */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Recent Rounds</h2>
+          <h2 className="text-xl font-semibold text-dark-900">Recent Rounds</h2>
         </div>
 
         {!recentRounds || recentRounds.length === 0 ? (
@@ -136,7 +136,7 @@ export default async function DashboardHomePage() {
       {/* Upcoming Rounds */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Upcoming Rounds</h2>
+          <h2 className="text-xl font-semibold text-dark-900">Upcoming Rounds</h2>
         </div>
 
         {!upcomingRounds || upcomingRounds.length === 0 ? (

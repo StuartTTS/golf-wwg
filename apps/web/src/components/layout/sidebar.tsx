@@ -15,11 +15,11 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-slate-200 lg:bg-white">
-      <div className="flex h-16 items-center px-6 border-b border-slate-200">
+    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-dark-300 lg:bg-dark-100">
+      <div className="flex h-16 items-center px-6 border-b border-dark-300">
         <Link href="/home" className="flex items-center space-x-2">
           <span className="text-2xl">&#9971;</span>
-          <span className="text-lg font-bold text-slate-900">WWG</span>
+          <span className="text-lg font-bold text-dark-900">WWG</span>
         </Link>
       </div>
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -31,8 +31,8 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-golf-50 text-golf-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-golf-50 text-golf-600'
+                  : 'text-dark-700 hover:bg-dark-200 hover:text-dark-900'
               }`}
             >
               <svg

@@ -57,8 +57,8 @@ function ScoreCell({
     if (strokes === null) return '';
     const diff = strokes - holePar;
     if (diff <= -2) return 'bg-yellow-400 text-yellow-900 font-bold';
-    if (diff === -1) return 'bg-red-500 text-white font-semibold';
-    if (diff === 0) return 'text-gray-900';
+    if (diff === -1) return 'bg-red-900/300 text-white font-semibold';
+    if (diff === 0) return 'text-dark-900';
     if (diff === 1) return 'bg-blue-500 text-white';
     if (diff >= 2) return 'bg-blue-800 text-white';
     return '';
@@ -80,7 +80,7 @@ function ScoreCell({
       className={`
         w-10 h-10 flex items-center justify-center text-sm
         transition-all duration-150 select-none
-        ${isActive ? 'ring-2 ring-green-500 bg-green-50' : 'hover:bg-gray-50'}
+        ${isActive ? 'ring-2 ring-green-500 bg-green-50' : 'hover:bg-dark-50'}
         ${getScoreColor(score, par)}
         ${getScoreBorder(score, par)}
       `}
@@ -114,17 +114,17 @@ function ScoreInput({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40">
-      <div className="bg-white w-full sm:w-96 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom">
+      <div className="bg-dark-100 w-full sm:w-96 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-dark-600">
               Hole {holeNumber} &middot; Par {par}
             </p>
             <p className="text-lg font-semibold">{playerName}</p>
           </div>
           <button
             onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 p-2"
+            className="text-dark-500 hover:text-dark-700 p-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -157,7 +157,7 @@ function ScoreInput({
               onClick={() => setValue(qs)}
               className={`
                 py-2 rounded-lg text-sm font-medium transition-colors
-                ${value === qs ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}
+                ${value === qs ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-dark-800'}
               `}
             >
               {qs}
@@ -205,13 +205,13 @@ function MobileHoleView({
   };
 
   const getScoreStyle = (strokes: number | null) => {
-    if (strokes === null) return 'bg-gray-50 border-gray-200 text-gray-400';
+    if (strokes === null) return 'bg-dark-50 border-dark-300 text-dark-500';
     const diff = strokes - hole.par;
-    if (diff <= -2) return 'bg-yellow-100 border-yellow-400 text-yellow-800';
-    if (diff === -1) return 'bg-red-50 border-red-400 text-red-700';
-    if (diff === 0) return 'bg-white border-gray-300 text-gray-900';
-    if (diff === 1) return 'bg-blue-50 border-blue-400 text-blue-700';
-    return 'bg-blue-100 border-blue-600 text-blue-900';
+    if (diff <= -2) return 'bg-yellow-900/40 border-yellow-400 text-yellow-800';
+    if (diff === -1) return 'bg-red-900/30 border-red-400 text-red-400';
+    if (diff === 0) return 'bg-dark-100 border-gray-300 text-dark-900';
+    if (diff === 1) return 'bg-blue-50 border-blue-400 text-blue-400';
+    return 'bg-blue-900/40 border-blue-600 text-blue-900';
   };
 
   const getPlayerTotal = (playerId: string) => {
@@ -254,8 +254,8 @@ function MobileHoleView({
           <p className="text-3xl font-bold">Hole {hole.number}</p>
           <div className="flex items-center gap-3 justify-center mt-1">
             <Badge variant="secondary">Par {hole.par}</Badge>
-            <span className="text-sm text-gray-500">{hole.yardage} yds</span>
-            <span className="text-sm text-gray-500">SI {hole.strokeIndex}</span>
+            <span className="text-sm text-dark-600">{hole.yardage} yds</span>
+            <span className="text-sm text-dark-600">SI {hole.strokeIndex}</span>
           </div>
         </div>
 
@@ -293,16 +293,16 @@ function MobileHoleView({
             <button
               key={player.id}
               onClick={() => onScoreTap(player.id)}
-              className="w-full flex items-center justify-between p-4 rounded-xl bg-white border border-gray-200 hover:border-green-300 hover:shadow-sm transition-all active:scale-[0.98]"
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-dark-100 border border-dark-300 hover:border-green-300 hover:shadow-sm transition-all active:scale-[0.98]"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold text-sm">
+                <div className="w-10 h-10 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 font-semibold text-sm">
                   {player.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-gray-900">{player.displayName}</p>
+                  <p className="font-medium text-dark-900">{player.displayName}</p>
                   {total !== null && (
-                    <p className="text-xs text-gray-500">Total: {total}</p>
+                    <p className="text-xs text-dark-600">Total: {total}</p>
                   )}
                 </div>
               </div>
@@ -367,7 +367,7 @@ function DesktopScorecardGrid({
     holeList.map((h) => (
       <th
         key={h.number}
-        className="w-10 h-8 text-center text-xs font-semibold text-gray-500 border-b border-gray-200"
+        className="w-10 h-8 text-center text-xs font-semibold text-dark-600 border-b border-dark-300"
       >
         {h.number}
       </th>
@@ -378,12 +378,12 @@ function DesktopScorecardGrid({
       {holeList.map((h) => (
         <td
           key={h.number}
-          className="w-10 h-8 text-center text-xs font-medium text-gray-600 bg-gray-50 border-b border-gray-200"
+          className="w-10 h-8 text-center text-xs font-medium text-dark-700 bg-dark-50 border-b border-dark-300"
         >
           {h.par}
         </td>
       ))}
-      <td className="w-12 h-8 text-center text-xs font-bold text-gray-700 bg-gray-100 border-b border-gray-200">
+      <td className="w-12 h-8 text-center text-xs font-bold text-dark-800 bg-gray-100 border-b border-dark-300">
         {parTotal}
       </td>
     </>
@@ -416,7 +416,7 @@ function DesktopScorecardGrid({
             </td>
           );
         })}
-        <td className="w-12 h-10 text-center text-sm font-bold text-gray-800 bg-gray-50 border-b border-gray-100">
+        <td className="w-12 h-10 text-center text-sm font-bold text-gray-800 bg-dark-50 border-b border-gray-100">
           {subtotal ?? '-'}
         </td>
       </>
@@ -428,18 +428,18 @@ function DesktopScorecardGrid({
       <table className="border-collapse min-w-full">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-white w-28 text-left px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-200">
+            <th className="sticky left-0 z-10 bg-dark-100 w-28 text-left px-3 py-2 text-xs font-semibold text-dark-600 border-b border-dark-300">
               HOLE
             </th>
             {renderHoleHeaders(frontNine)}
-            <th className="w-12 text-center text-xs font-bold text-gray-700 bg-gray-100 border-b border-gray-200">
+            <th className="w-12 text-center text-xs font-bold text-dark-800 bg-gray-100 border-b border-dark-300">
               OUT
             </th>
             {renderHoleHeaders(backNine)}
-            <th className="w-12 text-center text-xs font-bold text-gray-700 bg-gray-100 border-b border-gray-200">
+            <th className="w-12 text-center text-xs font-bold text-dark-800 bg-gray-100 border-b border-dark-300">
               IN
             </th>
-            <th className="w-14 text-center text-xs font-bold text-gray-900 bg-gray-200 border-b border-gray-200">
+            <th className="w-14 text-center text-xs font-bold text-dark-900 bg-gray-200 border-b border-dark-300">
               TOT
             </th>
           </tr>
@@ -447,12 +447,12 @@ function DesktopScorecardGrid({
         <tbody>
           {/* Par row */}
           <tr>
-            <td className="sticky left-0 z-10 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-500 border-b border-gray-200">
+            <td className="sticky left-0 z-10 bg-dark-50 px-3 py-1 text-xs font-semibold text-dark-600 border-b border-dark-300">
               PAR
             </td>
             {renderParRow(frontNine, 'OUT', getParSum(frontNine))}
             {renderParRow(backNine, 'IN', getParSum(backNine))}
-            <td className="w-14 h-8 text-center text-xs font-bold text-gray-800 bg-gray-200 border-b border-gray-200">
+            <td className="w-14 h-8 text-center text-xs font-bold text-gray-800 bg-gray-200 border-b border-dark-300">
               {getParSum(holes)}
             </td>
           </tr>
@@ -466,17 +466,17 @@ function DesktopScorecardGrid({
 
             return (
               <tr key={player.id} className="group">
-                <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-1 border-b border-gray-100">
+                <td className="sticky left-0 z-10 bg-dark-100 group-hover:bg-dark-50 px-3 py-1 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs font-semibold">
+                    <div className="w-6 h-6 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 text-xs font-semibold">
                       {player.displayName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-900 truncate max-w-[80px]">
+                      <p className="text-xs font-medium text-dark-900 truncate max-w-[80px]">
                         {player.displayName}
                       </p>
                       {player.handicap !== null && (
-                        <p className="text-[10px] text-gray-400">
+                        <p className="text-[10px] text-dark-500">
                           HCP {player.handicap}
                         </p>
                       )}
@@ -485,7 +485,7 @@ function DesktopScorecardGrid({
                 </td>
                 {renderPlayerScores(player, frontNine, 'OUT')}
                 {renderPlayerScores(player, backNine, 'IN')}
-                <td className="w-14 h-10 text-center text-sm font-bold text-gray-900 bg-gray-100 border-b border-gray-100">
+                <td className="w-14 h-10 text-center text-sm font-bold text-dark-900 bg-gray-100 border-b border-gray-100">
                   {total ?? '-'}
                 </td>
               </tr>
@@ -630,7 +630,7 @@ export default function ScorecardPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-gray-500">Loading scorecard...</p>
+          <p className="text-sm text-dark-600">Loading scorecard...</p>
         </div>
       </div>
     );
@@ -641,8 +641,8 @@ export default function ScorecardPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="max-w-sm w-full">
           <CardHeader>
-            <CardTitle className="text-red-600">Error</CardTitle>
-            <p className="text-sm text-gray-500">
+            <CardTitle className="text-red-400">Error</CardTitle>
+            <p className="text-sm text-dark-600">
               {error ?? 'Round not found'}
             </p>
             <Button
@@ -678,8 +678,8 @@ export default function ScorecardPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{round.courseName}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-dark-900">{round.courseName}</h1>
+          <p className="text-sm text-dark-600">
             {new Date(round.date).toLocaleDateString('en-US', {
               weekday: 'short',
               month: 'short',
@@ -689,7 +689,7 @@ export default function ScorecardPage() {
         </div>
         <div className="flex items-center gap-2">
           {saving && (
-            <span className="text-xs text-gray-400 animate-pulse">Saving...</span>
+            <span className="text-xs text-dark-500 animate-pulse">Saving...</span>
           )}
           <Badge
             variant={round.status === 'in_progress' ? 'default' : 'secondary'}
@@ -734,7 +734,7 @@ export default function ScorecardPage() {
       <div className="block lg:hidden px-4">
         <Card>
           <div className="p-3">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <h3 className="text-xs font-semibold text-dark-600 uppercase tracking-wide mb-2">
               Totals
             </h3>
             <div className="space-y-2">
@@ -759,11 +759,11 @@ export default function ScorecardPage() {
                     key={player.id}
                     className="flex items-center justify-between"
                   >
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-dark-800">
                       {player.displayName}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-dark-500">
                         {holesPlayed} holes
                       </span>
                       {holesPlayed > 0 && (
@@ -774,10 +774,10 @@ export default function ScorecardPage() {
                           <span
                             className={`text-xs font-semibold ${
                               toPar < 0
-                                ? 'text-red-600'
+                                ? 'text-red-400'
                                 : toPar > 0
                                 ? 'text-blue-600'
-                                : 'text-gray-600'
+                                : 'text-dark-700'
                             }`}
                           >
                             {toPar === 0 ? 'E' : toPar > 0 ? `+${toPar}` : toPar}

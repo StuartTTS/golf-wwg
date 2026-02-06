@@ -84,7 +84,7 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
                   ? 'bg-golf-600 text-white'
                   : i < ['course', 'details', 'players'].indexOf(step)
                     ? 'bg-golf-100 text-golf-700'
-                    : 'bg-slate-100 text-slate-400'
+                    : 'bg-dark-200 text-dark-500'
               }`}
             >
               {i + 1}
@@ -171,7 +171,7 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
       {step === 'players' && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Add Players</h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-dark-600">
             Select group members to include in this round.
           </p>
           <div className="space-y-2">
@@ -181,21 +181,21 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
                 className={`flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors ${
                   selectedPlayers.includes(member.userId)
                     ? 'border-golf-400 bg-golf-50'
-                    : 'border-slate-200 hover:border-slate-300'
+                    : 'border-dark-300 hover:border-dark-300'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={selectedPlayers.includes(member.userId)}
                   onChange={() => togglePlayer(member.userId)}
-                  className="rounded border-slate-300 text-golf-600 focus:ring-golf-500"
+                  className="rounded border-dark-300 text-golf-600 focus:ring-golf-500"
                 />
                 <span className="text-sm font-medium">{member.displayName}</span>
               </label>
             ))}
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => setStep('details')}>

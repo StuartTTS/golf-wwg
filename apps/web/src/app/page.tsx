@@ -4,21 +4,21 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
+      <header className="flex items-center justify-between px-6 py-4 bg-dark-100 border-b border-dark-300">
         <div className="flex items-center space-x-2">
           <span className="text-2xl">&#9971;</span>
-          <span className="text-xl font-bold text-slate-900">WWG</span>
+          <span className="text-xl font-bold text-dark-900">WWG</span>
         </div>
         <div className="flex items-center gap-4">
           <Link
             href="/login"
-            className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="text-sm font-medium text-dark-700 hover:text-dark-900"
           >
             Sign In
           </Link>
           <Link
             href="/register"
-            className="rounded-md bg-golf-600 px-4 py-2 text-sm font-medium text-white hover:bg-golf-700"
+            className="rounded-md bg-golf-600 px-4 py-2 text-sm font-medium text-dark-50 hover:bg-golf-700"
           >
             Get Started
           </Link>
@@ -27,24 +27,24 @@ export default function LandingPage() {
 
       {/* Hero */}
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-20 text-center">
-        <h1 className="max-w-3xl text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+        <h1 className="max-w-3xl text-5xl font-bold tracking-tight text-dark-900 sm:text-6xl">
           Group Golf Scoring
           <span className="text-golf-600"> Made Simple</span>
         </h1>
-        <p className="mt-6 max-w-2xl text-lg text-slate-600">
+        <p className="mt-6 max-w-2xl text-lg text-dark-700">
           Record scores in real-time, run multiple game formats simultaneously,
           track handicaps, and settle up with your golf group.
         </p>
         <div className="mt-10 flex items-center gap-4">
           <Link
             href="/register"
-            className="rounded-md bg-golf-600 px-6 py-3 text-base font-medium text-white hover:bg-golf-700"
+            className="rounded-md bg-golf-600 px-6 py-3 text-base font-medium text-dark-50 hover:bg-golf-700"
           >
             Create Your Group
           </Link>
           <Link
             href="/login"
-            className="rounded-md border border-slate-300 bg-white px-6 py-3 text-base font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-md border border-dark-300 bg-dark-100 px-6 py-3 text-base font-medium text-dark-800 hover:bg-dark-200"
           >
             Sign In
           </Link>
@@ -84,9 +84,9 @@ export default function LandingPage() {
 
 function FeatureCard({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 text-left">
-      <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{description}</p>
+    <div className="rounded-lg border border-dark-300 bg-dark-100 p-6 text-left">
+      <h3 className="text-base font-semibold text-dark-900">{title}</h3>
+      <p className="mt-2 text-sm text-dark-600">{description}</p>
     </div>
   );
 }

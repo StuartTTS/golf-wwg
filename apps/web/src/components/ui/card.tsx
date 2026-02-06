@@ -14,7 +14,7 @@ const paddingClasses = {
 export function Card({ className = '', padding = 'md', children, ...props }: CardProps) {
   return (
     <div
-      className={`rounded-lg border border-slate-200 bg-white shadow-sm ${paddingClasses[padding]} ${className}`}
+      className={`rounded-lg border border-dark-300 bg-dark-100 shadow-sm ${paddingClasses[padding]} ${className}`}
       {...props}
     >
       {children}
@@ -32,7 +32,7 @@ export function CardHeader({ className = '', children, ...props }: HTMLAttribute
 
 export function CardTitle({ className = '', children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3 className={`text-lg font-semibold text-slate-900 ${className}`} {...props}>
+    <h3 className={`text-lg font-semibold text-dark-900 ${className}`} {...props}>
       {children}
     </h3>
   );
@@ -40,7 +40,7 @@ export function CardTitle({ className = '', children, ...props }: HTMLAttributes
 
 export function CardDescription({ className = '', children, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={`text-sm text-slate-500 ${className}`} {...props}>
+    <p className={`text-sm text-dark-600 ${className}`} {...props}>
       {children}
     </p>
   );

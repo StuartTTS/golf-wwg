@@ -35,14 +35,14 @@ export default function RegisterPage() {
     <div className="w-full max-w-md space-y-8">
       {/* Heading */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-2xl font-bold tracking-tight text-dark-900">
           Create your account
         </h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 text-sm text-dark-600">
           Already have an account?{' '}
           <Link
             href="/login"
-            className="font-medium text-green-600 hover:text-green-500"
+            className="font-medium text-golf-600 hover:text-golf-700"
           >
             Sign in
           </Link>
@@ -51,8 +51,8 @@ export default function RegisterPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="rounded-md bg-red-900/30 border border-red-800/50 p-4">
+          <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
 
@@ -61,7 +61,7 @@ export default function RegisterPage() {
         <div>
           <label
             htmlFor="displayName"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-dark-800"
           >
             Display name
           </label>
@@ -81,7 +81,7 @@ export default function RegisterPage() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-dark-800"
           >
             Email address
           </label>
@@ -101,7 +101,7 @@ export default function RegisterPage() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-dark-800"
           >
             Password
           </label>
@@ -116,7 +116,7 @@ export default function RegisterPage() {
               disabled={isPending}
             />
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-dark-600">
             Must be at least 8 characters
           </p>
         </div>

@@ -74,14 +74,14 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
         >
           &larr; Back to {group.name}
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
           Members
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-dark-600">
           Manage members of {group.name}.
         </p>
       </div>
@@ -104,7 +104,7 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
               <div className="flex-1 space-y-2">
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-dark-800"
                 >
                   Email Address
                 </label>
@@ -136,10 +136,10 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
                   className="flex items-center justify-between py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-dark-900">
                       {invite.email}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-dark-600">
                       Invited{' '}
                       {new Date(invite.created_at).toLocaleDateString('en-US', {
                         month: 'short',
@@ -165,7 +165,7 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
         </CardHeader>
         <div className="px-6 pb-6">
           {sortedMembers.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-6">
+            <p className="text-sm text-dark-600 text-center py-6">
               No members found.
             </p>
           ) : (
@@ -180,24 +180,24 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
                     className="flex items-center justify-between py-4"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-sm font-semibold text-green-700">
+                      <div className="h-10 w-10 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-semibold text-golf-600">
                         {(profile?.full_name ?? 'U').charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-dark-900">
                             {profile?.full_name ?? 'Unknown'}
                           </p>
                           {isCurrentUser && (
-                            <span className="text-xs text-gray-400">(you)</span>
+                            <span className="text-xs text-dark-500">(you)</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-dark-600">
                           {profile?.email ?? ''}
                           {profile?.handicap != null &&
                             ` · HCP: ${profile.handicap}`}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-dark-500">
                           Joined{' '}
                           {new Date(member.joined_at).toLocaleDateString(
                             'en-US',
@@ -233,7 +233,7 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
                             type="submit"
                             variant="outline"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-400 hover:text-red-400 hover:bg-red-900/30"
                           >
                             Remove
                           </Button>

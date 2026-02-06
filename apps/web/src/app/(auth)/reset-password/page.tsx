@@ -50,10 +50,10 @@ export default function ResetPasswordPage() {
     <div className="w-full max-w-md space-y-8">
       {/* Heading */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-2xl font-bold tracking-tight text-dark-900">
           Set a new password
         </h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 text-sm text-dark-700">
           Enter your new password below.
         </p>
       </div>
@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
       {success ? (
         <div className="space-y-6">
           <div className="rounded-md bg-green-50 p-4">
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-golf-600">
               Your password has been updated successfully. Redirecting you to
               sign in...
             </p>
@@ -70,7 +70,7 @@ export default function ResetPasswordPage() {
           <div className="text-center">
             <Link
               href="/login"
-              className="text-sm font-medium text-green-600 hover:text-green-500"
+              className="text-sm font-medium text-golf-600 hover:text-golf-700"
             >
               Go to sign in
             </Link>
@@ -80,8 +80,8 @@ export default function ResetPasswordPage() {
         <>
           {/* Error banner */}
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="rounded-md bg-red-900/30 p-4">
+              <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
 
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-dark-800"
               >
                 New password
               </label>
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
                   disabled={isPending}
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-dark-600">
                 Must be at least 8 characters
               </p>
             </div>
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-dark-800"
               >
                 Confirm new password
               </label>
@@ -138,7 +138,7 @@ export default function ResetPasswordPage() {
           <div className="text-center">
             <Link
               href="/login"
-              className="text-sm font-medium text-green-600 hover:text-green-500"
+              className="text-sm font-medium text-golf-600 hover:text-golf-700"
             >
               Back to sign in
             </Link>

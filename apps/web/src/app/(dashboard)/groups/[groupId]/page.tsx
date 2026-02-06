@@ -76,20 +76,20 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
       <div>
         <Link
           href="/groups"
-          className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
         >
           &larr; Back to Groups
         </Link>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-3xl font-bold tracking-tight text-dark-900">
               {group.name}
             </h1>
             {group.description && (
-              <p className="mt-1 text-sm text-gray-500">{group.description}</p>
+              <p className="mt-1 text-sm text-dark-600">{group.description}</p>
             )}
             {(group.default_course as any)?.name && (
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-dark-500">
                 Default Course: {(group.default_course as any).name}
               </p>
             )}
@@ -108,28 +108,28 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
       </div>
 
       {/* Navigation Tabs */}
-      <nav className="flex gap-4 border-b border-gray-200 pb-2">
+      <nav className="flex gap-4 border-b border-dark-300 pb-2">
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm font-medium text-green-600 border-b-2 border-green-600 pb-2"
+          className="text-sm font-medium text-golf-600 border-b-2 border-green-600 pb-2"
         >
           Overview
         </Link>
         <Link
           href={`/groups/${groupId}/members`}
-          className="text-sm font-medium text-gray-500 hover:text-gray-700 pb-2"
+          className="text-sm font-medium text-dark-600 hover:text-dark-800 pb-2"
         >
           Members
         </Link>
         <Link
           href={`/groups/${groupId}/rounds`}
-          className="text-sm font-medium text-gray-500 hover:text-gray-700 pb-2"
+          className="text-sm font-medium text-dark-600 hover:text-dark-800 pb-2"
         >
           Rounds
         </Link>
         <Link
           href={`/groups/${groupId}/leaderboard`}
-          className="text-sm font-medium text-gray-500 hover:text-gray-700 pb-2"
+          className="text-sm font-medium text-dark-600 hover:text-dark-800 pb-2"
         >
           Leaderboard
         </Link>
@@ -150,7 +150,7 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
           </CardHeader>
           <div className="px-6 pb-6">
             {!members || members.length === 0 ? (
-              <p className="text-sm text-gray-500">No members found.</p>
+              <p className="text-sm text-dark-600">No members found.</p>
             ) : (
               <ul className="space-y-3">
                 {members.slice(0, 8).map((member) => (
@@ -159,17 +159,17 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
                     className="flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-sm font-medium text-green-700">
+                      <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
                         {((member.profile as any)?.full_name ?? 'U')
                           .charAt(0)
                           .toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-dark-900">
                           {(member.profile as any)?.full_name ?? 'Unknown'}
                         </p>
                         {(member.profile as any)?.handicap != null && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-dark-600">
                             HCP: {(member.profile as any).handicap}
                           </p>
                         )}
@@ -181,7 +181,7 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
                   </li>
                 ))}
                 {members.length > 8 && (
-                  <li className="text-xs text-gray-500 text-center pt-1">
+                  <li className="text-xs text-dark-600 text-center pt-1">
                     +{members.length - 8} more
                   </li>
                 )}
@@ -205,7 +205,7 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
           <div className="px-6 pb-6">
             {!recentRounds || recentRounds.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-dark-600 mb-4">
                   No rounds have been played yet.
                 </p>
                 <Link href={`/groups/${groupId}/rounds/new`}>
@@ -218,13 +218,13 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
                   <li key={round.id}>
                     <Link
                       href={`/rounds/${round.id}`}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-dark-50 transition-colors"
                     >
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-dark-900">
                           {(round.course as any)?.name ?? 'Unknown Course'}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-dark-600">
                           {new Date(round.round_date).toLocaleDateString('en-US', {
                             weekday: 'short',
                             month: 'short',

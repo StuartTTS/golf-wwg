@@ -163,28 +163,28 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
         >
           &larr; Back to Group
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
           Group Settings
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-dark-600">
           Manage settings for your group.
         </p>
       </div>
 
       {/* Success Message */}
       {success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-green-700">
+        <div className="rounded-md bg-green-50 p-4 text-sm text-golf-600">
           {success}
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-md bg-red-900/30 p-4 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -203,7 +203,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
           <div className="space-y-2">
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-dark-800"
             >
               Group Name <span className="text-red-500">*</span>
             </label>
@@ -223,13 +223,13 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
           <div className="space-y-2">
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-dark-800"
             >
               Description
             </label>
             <textarea
               id="description"
-              className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-dark-100 px-3 py-2 text-sm placeholder:text-dark-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}
@@ -241,7 +241,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
           <div className="space-y-2">
             <label
               htmlFor="defaultCourse"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-dark-800"
             >
               Default Course
             </label>
@@ -252,7 +252,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
               options={courses.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="No default course"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-dark-600">
               Pre-selected when creating new rounds.
             </p>
           </div>
@@ -269,7 +269,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
       {/* Danger Zone */}
       <Card className="max-w-2xl border-red-200">
         <CardHeader>
-          <CardTitle className="text-red-600">Danger Zone</CardTitle>
+          <CardTitle className="text-red-400">Danger Zone</CardTitle>
           <CardDescription>
             Irreversible and destructive actions.
           </CardDescription>
@@ -279,10 +279,10 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
           {!showDeleteConfirm ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-dark-900">
                   Delete this group
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-dark-600">
                   Once deleted, all rounds and data associated with this group
                   will be permanently removed.
                 </p>
@@ -290,15 +290,15 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="text-red-600 border-red-300 hover:bg-red-50"
+                className="text-red-400 border-red-300 hover:bg-red-900/30"
                 onClick={() => setShowDeleteConfirm(true)}
               >
                 Delete Group
               </Button>
             </div>
           ) : (
-            <div className="space-y-4 rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-sm text-red-700">
+            <div className="space-y-4 rounded-lg border border-red-200 bg-red-900/30 p-4">
+              <p className="text-sm text-red-400">
                 This action cannot be undone. This will permanently delete the
                 group <strong>{name}</strong>, all its rounds, scores, and
                 member associations.
@@ -306,7 +306,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
               <div className="space-y-2">
                 <label
                   htmlFor="deleteConfirm"
-                  className="block text-sm font-medium text-red-700"
+                  className="block text-sm font-medium text-red-400"
                 >
                   Type <strong>{name}</strong> to confirm:
                 </label>

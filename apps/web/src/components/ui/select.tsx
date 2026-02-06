@@ -24,14 +24,14 @@ export const SimpleSelect = forwardRef<HTMLSelectElement, SimpleSelectProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+          <label htmlFor={id} className="block text-sm font-medium text-dark-800">
             {label}
           </label>
         )}
         <select
           ref={ref}
           id={id}
-          className={`block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-golf-500 focus:outline-none focus:ring-1 focus:ring-golf-500 disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`block w-full rounded-md border border-dark-300 bg-dark-200 px-3 py-2 text-sm text-dark-900 focus:border-golf-500 focus:outline-none focus:ring-1 focus:ring-golf-500 disabled:cursor-not-allowed disabled:opacity-50 ${
             error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
           } ${className}`}
           {...props}
@@ -43,7 +43,7 @@ export const SimpleSelect = forwardRef<HTMLSelectElement, SimpleSelectProps>(
             </option>
           ))}
         </select>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
       </div>
     );
   }
@@ -97,7 +97,7 @@ export function SelectTrigger({ className = '', children }: { className?: string
     <button
       type="button"
       onClick={() => setOpen(!open)}
-      className={`flex w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-golf-500 focus:outline-none focus:ring-1 focus:ring-golf-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`flex w-full items-center justify-between rounded-md border border-dark-300 bg-dark-200 px-3 py-2 text-sm text-dark-900 focus:border-golf-500 focus:outline-none focus:ring-1 focus:ring-golf-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
       <svg className="ml-2 h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -109,7 +109,7 @@ export function SelectTrigger({ className = '', children }: { className?: string
 
 export function SelectValue({ placeholder }: { placeholder?: string }) {
   const { value } = useSelectContext();
-  return <span className={value ? '' : 'text-slate-500'}>{value || placeholder || ''}</span>;
+  return <span className={value ? '' : 'text-dark-500'}>{value || placeholder || ''}</span>;
 }
 
 export function SelectContent({ children }: { children: ReactNode }) {
@@ -132,7 +132,7 @@ export function SelectContent({ children }: { children: ReactNode }) {
   return (
     <div
       ref={ref}
-      className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+      className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-dark-300 bg-dark-100 py-1 shadow-lg"
     >
       {children}
     </div>
@@ -151,8 +151,8 @@ export function SelectItem({ value, children }: { value: string; children: React
         onValueChange(value);
         setOpen(false);
       }}
-      className={`cursor-pointer px-3 py-2 text-sm hover:bg-golf-50 ${
-        isSelected ? 'bg-golf-50 font-medium text-golf-700' : 'text-slate-700'
+      className={`cursor-pointer px-3 py-2 text-sm hover:bg-dark-300 ${
+        isSelected ? 'bg-dark-300 font-medium text-golf-600' : 'text-dark-800'
       }`}
     >
       {children}

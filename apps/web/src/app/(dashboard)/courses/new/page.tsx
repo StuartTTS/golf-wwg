@@ -92,8 +92,8 @@ function StepIndicator({ currentStep }: { currentStep: Step }) {
               flex items-center gap-2 px-3 py-1.5 rounded-full text-sm
               ${
                 idx <= currentIndex
-                  ? 'bg-green-100 text-green-700 font-medium'
-                  : 'bg-gray-100 text-gray-400'
+                  ? 'bg-emerald-900/40 text-golf-600 font-medium'
+                  : 'bg-gray-100 text-dark-500'
               }
             `}
           >
@@ -153,7 +153,7 @@ function CourseDetailsStep({
       </CardHeader>
       <div className="px-6 pb-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-dark-800 mb-1">
             Course Name *
           </label>
           <Input
@@ -165,7 +165,7 @@ function CourseDetailsStep({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               City
             </label>
             <Input
@@ -175,7 +175,7 @@ function CourseDetailsStep({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               State
             </label>
             <Select
@@ -197,7 +197,7 @@ function CourseDetailsStep({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-dark-800 mb-1">
             Number of Holes
           </label>
           <Select
@@ -224,9 +224,9 @@ function CourseDetailsStep({
             onChange={(e) =>
               onChange({ ...details, isPublic: e.target.checked })
             }
-            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+            className="rounded border-gray-300 text-golf-600 focus:ring-green-500"
           />
-          <label htmlFor="isPublic" className="text-sm text-gray-700">
+          <label htmlFor="isPublic" className="text-sm text-dark-800">
             Make this course visible to other users
           </label>
         </div>
@@ -297,16 +297,16 @@ function TeeBoxesStep({
         {teeBoxes.map((teeBox, idx) => (
           <div
             key={teeBox.id}
-            className="p-4 border border-gray-200 rounded-lg space-y-3"
+            className="p-4 border border-dark-300 rounded-lg space-y-3"
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-700">
+              <h4 className="text-sm font-semibold text-dark-800">
                 Tee Box {idx + 1}
               </h4>
               {teeBoxes.length > 1 && (
                 <button
                   onClick={() => removeTeeBox(idx)}
-                  className="text-red-500 hover:text-red-700 text-sm"
+                  className="text-red-500 hover:text-red-400 text-sm"
                 >
                   Remove
                 </button>
@@ -315,7 +315,7 @@ function TeeBoxesStep({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-dark-700 mb-1">
                   Name *
                 </label>
                 <Input
@@ -327,7 +327,7 @@ function TeeBoxesStep({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-dark-700 mb-1">
                   Color
                 </label>
                 <Select
@@ -350,7 +350,7 @@ function TeeBoxesStep({
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-dark-700 mb-1">
                   Rating *
                 </label>
                 <Input
@@ -364,7 +364,7 @@ function TeeBoxesStep({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-dark-700 mb-1">
                   Slope *
                 </label>
                 <Input
@@ -377,7 +377,7 @@ function TeeBoxesStep({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-dark-700 mb-1">
                   Yardage
                 </label>
                 <Input
@@ -395,7 +395,7 @@ function TeeBoxesStep({
 
         <button
           onClick={addTeeBox}
-          className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-green-400 hover:text-green-600 transition-colors"
+          className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-dark-600 hover:border-green-400 hover:text-golf-600 transition-colors"
         >
           + Add Another Tee Box
         </button>
@@ -477,7 +477,7 @@ function HolesStep({
       <div className="px-6 pb-6 space-y-4">
         {/* Tee box tabs */}
         {teeBoxes.length > 1 && (
-          <div className="flex gap-2 border-b border-gray-200 pb-2">
+          <div className="flex gap-2 border-b border-dark-300 pb-2">
             {teeBoxes.map((tb, idx) => (
               <button
                 key={tb.id}
@@ -486,8 +486,8 @@ function HolesStep({
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
                   ${
                     idx === activeTeeBox
-                      ? 'bg-green-100 text-green-700'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-emerald-900/40 text-golf-600'
+                      : 'text-dark-600 hover:text-dark-800'
                   }
                 `}
               >
@@ -500,7 +500,7 @@ function HolesStep({
         <div className="flex justify-end">
           <button
             onClick={applyDefaultPars}
-            className="text-xs text-green-600 hover:text-green-700 font-medium"
+            className="text-xs text-golf-600 hover:text-golf-600 font-medium"
           >
             Apply Default Pars
           </button>
@@ -510,17 +510,17 @@ function HolesStep({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500 w-16">
+              <tr className="border-b border-dark-300">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600 w-16">
                   Hole
                 </th>
-                <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
                   Par
                 </th>
-                <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
                   Yardage
                 </th>
-                <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
                   SI
                 </th>
               </tr>
@@ -534,7 +534,7 @@ function HolesStep({
                   }`}
                 >
                   <td className="py-1.5 px-2">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-dark-800">
                       {hole.number}
                     </span>
                   </td>
@@ -585,7 +585,7 @@ function HolesStep({
         </div>
 
         {/* Summary */}
-        <div className="flex justify-between text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+        <div className="flex justify-between text-sm text-dark-700 bg-dark-50 p-3 rounded-lg">
           <span>
             Front 9 Par:{' '}
             <strong>
@@ -757,20 +757,20 @@ export default function NewCoursePage() {
       <div className="mb-6">
         <button
           onClick={() => router.push('/courses')}
-          className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-2"
+          className="text-sm text-dark-600 hover:text-dark-800 flex items-center gap-1 mb-2"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Courses
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">New Course</h1>
+        <h1 className="text-2xl font-bold text-dark-900">New Course</h1>
       </div>
 
       <StepIndicator currentStep={step} />
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        <div className="mb-4 p-3 bg-red-900/30 border border-red-200 rounded-lg text-sm text-red-400">
           {error}
         </div>
       )}

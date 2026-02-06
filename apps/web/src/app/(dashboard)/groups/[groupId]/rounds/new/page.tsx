@@ -247,14 +247,14 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
       <div>
         <Link
           href={`/groups/${groupId}/rounds`}
-          className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
         >
           &larr; Back to Rounds
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
           Create a Round
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-dark-600">
           {groupName ? `Setting up a new round for ${groupName}.` : 'Setting up a new round.'}
         </p>
       </div>
@@ -279,10 +279,10 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
               }}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 step.key === currentStep
-                  ? 'bg-green-100 text-green-800'
+                  ? 'bg-emerald-900/40 text-green-800'
                   : index < currentStepIndex
-                    ? 'bg-green-50 text-green-600 cursor-pointer'
-                    : 'bg-gray-100 text-gray-400 cursor-default'
+                    ? 'bg-green-50 text-golf-600 cursor-pointer'
+                    : 'bg-gray-100 text-dark-500 cursor-default'
               }`}
               disabled={index > currentStepIndex}
             >
@@ -292,7 +292,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                     ? 'bg-green-500 text-white'
                     : step.key === currentStep
                       ? 'bg-green-600 text-white'
-                      : 'bg-gray-300 text-gray-500'
+                      : 'bg-gray-300 text-dark-600'
                 }`}
               >
                 {index < currentStepIndex ? '\u2713' : index + 1}
@@ -305,7 +305,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
 
       {/* Error */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-md bg-red-900/30 p-4 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -329,7 +329,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                 placeholder="Choose a course..."
               />
               {courses.length === 0 && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-dark-600">
                   No courses available. Please add a course first.
                 </p>
               )}
@@ -348,7 +348,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
             </CardHeader>
             <div className="px-6 pb-6 space-y-3">
               {teeBoxes.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-dark-600">
                   No tee boxes found for this course.
                 </p>
               ) : (
@@ -358,7 +358,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                     className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-colors ${
                       selectedTeeBoxId === tee.id
                         ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-dark-300 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -375,10 +375,10 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                         style={{ backgroundColor: tee.color || undefined }}
                       />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-dark-900">
                           {tee.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-dark-600">
                           Rating: {tee.course_rating} / Slope: {tee.slope_rating}
                         </p>
                       </div>
@@ -406,7 +406,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
               <div className="space-y-2">
                 <label
                   htmlFor="date"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-dark-800"
                 >
                   Date
                 </label>
@@ -423,7 +423,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
               <div className="space-y-2">
                 <label
                   htmlFor="time"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-dark-800"
                 >
                   Tee Time
                 </label>
@@ -457,7 +457,7 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                   className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-colors ${
                     scoringMode === mode.value
                       ? 'border-green-500 bg-green-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      : 'border-dark-300 hover:border-gray-300'
                   }`}
                 >
                   <div>
@@ -469,10 +469,10 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                       onChange={() => setScoringMode(mode.value)}
                       className="sr-only"
                     />
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-dark-900">
                       {mode.label}
                     </p>
-                    <p className="text-xs text-gray-500">{mode.description}</p>
+                    <p className="text-xs text-dark-600">{mode.description}</p>
                   </div>
                   {scoringMode === mode.value && (
                     <Badge variant="default">Selected</Badge>
@@ -510,13 +510,13 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                 >
                   Deselect All
                 </Button>
-                <span className="text-sm text-gray-500 ml-auto">
+                <span className="text-sm text-dark-600 ml-auto">
                   {selectedPlayerIds.length} selected
                 </span>
               </div>
 
               {members.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-dark-600">
                   No members found in this group.
                 </p>
               ) : (
@@ -533,24 +533,24 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
                           className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
                             isSelected
                               ? 'border-green-500 bg-green-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                              : 'border-dark-300 hover:border-gray-300'
                           }`}
                         >
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => togglePlayer(member.user_id)}
-                            className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                            className="h-4 w-4 rounded border-gray-300 text-golf-600 focus:ring-green-500"
                           />
-                          <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-sm font-medium text-green-700">
+                          <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
                             {(profile?.full_name ?? 'U').charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-dark-900">
                               {profile?.full_name ?? 'Unknown'}
                             </p>
                             {profile?.handicap != null && (
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-dark-600">
                                 Handicap: {profile.handicap}
                               </p>
                             )}

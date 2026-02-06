@@ -113,13 +113,13 @@ export default async function GroupLeaderboardPage({
   function getMedalColor(rank: number): string {
     switch (rank) {
       case 0:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        return 'bg-yellow-900/40 text-yellow-800 border-yellow-300';
       case 1:
-        return 'bg-gray-100 text-gray-700 border-gray-300';
+        return 'bg-gray-100 text-dark-800 border-gray-300';
       case 2:
         return 'bg-orange-100 text-orange-800 border-orange-300';
       default:
-        return 'bg-white text-gray-600 border-gray-200';
+        return 'bg-dark-100 text-dark-700 border-dark-300';
     }
   }
 
@@ -129,14 +129,14 @@ export default async function GroupLeaderboardPage({
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
         >
           &larr; Back to {group.name}
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
           Leaderboard
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-dark-600">
           Player rankings for {group.name}.
         </p>
       </div>
@@ -151,30 +151,30 @@ export default async function GroupLeaderboardPage({
         </CardHeader>
         <div className="px-6 pb-6">
           {leaderboard.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-6">
+            <p className="text-sm text-dark-600 text-center py-6">
               No players found.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-2 font-medium text-gray-500 w-12">
+                  <tr className="border-b border-dark-300">
+                    <th className="text-left py-3 px-2 font-medium text-dark-600 w-12">
                       #
                     </th>
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
+                    <th className="text-left py-3 px-2 font-medium text-dark-600">
                       Player
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-gray-500">
+                    <th className="text-center py-3 px-2 font-medium text-dark-600">
                       Rounds
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-gray-500">
+                    <th className="text-center py-3 px-2 font-medium text-dark-600">
                       Avg Score
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-gray-500">
+                    <th className="text-center py-3 px-2 font-medium text-dark-600">
                       Best
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-gray-500">
+                    <th className="text-center py-3 px-2 font-medium text-dark-600">
                       HCP
                     </th>
                   </tr>
@@ -183,7 +183,7 @@ export default async function GroupLeaderboardPage({
                   {leaderboard.map((player, index) => (
                     <tr
                       key={player.userId}
-                      className="border-b border-gray-50 hover:bg-gray-50"
+                      className="border-b border-gray-50 hover:bg-dark-50"
                     >
                       <td className="py-3 px-2">
                         <span
@@ -196,36 +196,36 @@ export default async function GroupLeaderboardPage({
                       </td>
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-sm font-medium text-green-700">
+                          <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
                             {player.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-dark-900">
                             {player.name}
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 px-2 text-center text-gray-600">
+                      <td className="py-3 px-2 text-center text-dark-700">
                         {player.roundsPlayed}
                       </td>
                       <td className="py-3 px-2 text-center">
                         {player.roundsPlayed > 0 ? (
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-dark-900">
                             {player.averageScore}
                           </span>
                         ) : (
-                          <span className="text-gray-400">--</span>
+                          <span className="text-dark-500">--</span>
                         )}
                       </td>
                       <td className="py-3 px-2 text-center">
                         {player.bestScore > 0 ? (
-                          <span className="text-gray-700">
+                          <span className="text-dark-800">
                             {player.bestScore}
                           </span>
                         ) : (
-                          <span className="text-gray-400">--</span>
+                          <span className="text-dark-500">--</span>
                         )}
                       </td>
-                      <td className="py-3 px-2 text-center text-gray-600">
+                      <td className="py-3 px-2 text-center text-dark-700">
                         {player.handicap != null ? player.handicap : '--'}
                       </td>
                     </tr>
@@ -250,17 +250,17 @@ export default async function GroupLeaderboardPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-2 font-medium text-gray-500 w-12">
+                  <tr className="border-b border-dark-300">
+                    <th className="text-left py-3 px-2 font-medium text-dark-600 w-12">
                       #
                     </th>
-                    <th className="text-left py-3 px-2 font-medium text-gray-500">
+                    <th className="text-left py-3 px-2 font-medium text-dark-600">
                       Player
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-gray-500">
+                    <th className="text-center py-3 px-2 font-medium text-dark-600">
                       Total Points
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-gray-500">
+                    <th className="text-center py-3 px-2 font-medium text-dark-600">
                       Rounds
                     </th>
                   </tr>
@@ -269,7 +269,7 @@ export default async function GroupLeaderboardPage({
                   {pointsLeaderboard.map((player, index) => (
                     <tr
                       key={player.userId}
-                      className="border-b border-gray-50 hover:bg-gray-50"
+                      className="border-b border-gray-50 hover:bg-dark-50"
                     >
                       <td className="py-3 px-2">
                         <span
@@ -282,20 +282,20 @@ export default async function GroupLeaderboardPage({
                       </td>
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-sm font-medium text-green-700">
+                          <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
                             {player.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-dark-900">
                             {player.name}
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-2 text-center">
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-dark-900">
                           {player.totalPoints}
                         </span>
                       </td>
-                      <td className="py-3 px-2 text-center text-gray-600">
+                      <td className="py-3 px-2 text-center text-dark-700">
                         {player.roundsPlayed}
                       </td>
                     </tr>

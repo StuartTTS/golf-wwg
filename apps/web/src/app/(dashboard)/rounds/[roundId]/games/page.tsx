@@ -102,7 +102,7 @@ function AddGameModal({
             <CardTitle>Add Game</CardTitle>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-dark-500 hover:text-dark-700"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -112,7 +112,7 @@ function AddGameModal({
         </CardHeader>
         <div className="px-6 pb-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               Game Type
             </label>
             <div className="grid grid-cols-1 gap-2">
@@ -125,19 +125,19 @@ function AddGameModal({
                     ${
                       gameType === gt.value
                         ? 'border-green-500 bg-green-50 ring-1 ring-green-500'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-dark-300 hover:border-gray-300'
                     }
                   `}
                 >
-                  <p className="text-sm font-medium text-gray-900">{gt.label}</p>
-                  <p className="text-xs text-gray-500">{gt.description}</p>
+                  <p className="text-sm font-medium text-dark-900">{gt.label}</p>
+                  <p className="text-xs text-dark-600">{gt.description}</p>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               Buy-in ($)
             </label>
             <input
@@ -178,7 +178,7 @@ function GameCard({ game, roundId }: { game: Game; roundId: string }) {
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900">{game.name}</h3>
+              <h3 className="font-semibold text-dark-900">{game.name}</h3>
               <Badge
                 variant={game.status === 'active' ? 'default' : 'secondary'}
               >
@@ -186,7 +186,7 @@ function GameCard({ game, roundId }: { game: Game; roundId: string }) {
               </Badge>
             </div>
             {game.buyIn > 0 && (
-              <span className="text-sm font-medium text-gray-600">
+              <span className="text-sm font-medium text-dark-700">
                 ${game.buyIn}
               </span>
             )}
@@ -203,19 +203,19 @@ function GameCard({ game, roundId }: { game: Game; roundId: string }) {
                   <span
                     className={`
                       w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold
-                      ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}
+                      ${idx === 0 ? 'bg-yellow-900/40 text-yellow-400' : 'bg-gray-100 text-dark-700'}
                     `}
                   >
                     {player.position}
                   </span>
-                  <span className="text-gray-700">{player.displayName}</span>
+                  <span className="text-dark-800">{player.displayName}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-900 font-medium">{player.score}</span>
+                  <span className="text-dark-900 font-medium">{player.score}</span>
                   {player.payout !== 0 && (
                     <span
                       className={`text-xs font-semibold ${
-                        player.payout > 0 ? 'text-green-600' : 'text-red-600'
+                        player.payout > 0 ? 'text-golf-600' : 'text-red-400'
                       }`}
                     >
                       {player.payout > 0 ? '+' : ''}${player.payout}
@@ -225,7 +225,7 @@ function GameCard({ game, roundId }: { game: Game; roundId: string }) {
               </div>
             ))}
             {game.players.length > 3 && (
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-xs text-dark-500 text-center">
                 +{game.players.length - 3} more players
               </p>
             )}
@@ -316,8 +316,8 @@ export default function GamesPage() {
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Games</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-dark-900">Games</h1>
+          <p className="text-sm text-dark-600">
             {games.length === 0
               ? 'No games yet - add one to start competing'
               : `${games.length} game${games.length !== 1 ? 's' : ''} active`}
@@ -335,11 +335,11 @@ export default function GamesPage() {
         <Card>
           <div className="p-8 text-center">
             <div className="w-12 h-12 rounded-full bg-gray-100 mx-auto flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-6 h-6 text-dark-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-gray-500 mb-4">
+            <p className="text-dark-600 mb-4">
               Spice up your round with a friendly wager
             </p>
             <Button onClick={() => setShowAddGame(true)}>Add Your First Game</Button>

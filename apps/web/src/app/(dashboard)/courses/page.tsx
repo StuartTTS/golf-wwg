@@ -28,7 +28,7 @@ export default async function CoursesPage() {
   if (!user) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-gray-500">Please sign in to view courses.</p>
+        <p className="text-dark-600">Please sign in to view courses.</p>
       </div>
     );
   }
@@ -64,8 +64,8 @@ export default async function CoursesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-dark-900">Courses</h1>
+          <p className="text-sm text-dark-600">
             {courses?.length ?? 0} courses available
           </p>
         </div>
@@ -95,7 +95,7 @@ export default async function CoursesPage() {
           <div className="p-8 text-center">
             <div className="w-12 h-12 rounded-full bg-green-50 mx-auto flex items-center justify-center mb-3">
               <svg
-                className="w-6 h-6 text-green-600"
+                className="w-6 h-6 text-golf-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -108,10 +108,10 @@ export default async function CoursesPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-dark-900 mb-1">
               No courses yet
             </h3>
-            <p className="text-gray-500 mb-4">
+            <p className="text-dark-600 mb-4">
               Add your home course to get started
             </p>
             <Link href="/courses/new">
@@ -149,10 +149,10 @@ export default async function CoursesPage() {
                           key={tee.id}
                           className="text-xs bg-gray-100 rounded-md px-2 py-1"
                         >
-                          <span className="font-medium text-gray-700">
+                          <span className="font-medium text-dark-800">
                             {tee.name}
                           </span>
-                          <span className="text-gray-500 ml-1">
+                          <span className="text-dark-600 ml-1">
                             {tee.course_rating}/{tee.slope_rating}
                           </span>
                         </div>

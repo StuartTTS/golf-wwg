@@ -151,7 +151,7 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-gray-500">Profile not found</p>
+        <p className="text-dark-600">Profile not found</p>
       </div>
     );
   }
@@ -167,15 +167,15 @@ export default function ProfilePage() {
       <Card>
         <div className="p-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-2xl font-bold">
+            <div className="w-16 h-16 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 text-2xl font-bold">
               {profile.displayName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-dark-900">
                 {profile.displayName}
               </h1>
-              <p className="text-sm text-gray-500">{profile.email}</p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-sm text-dark-600">{profile.email}</p>
+              <p className="text-xs text-dark-500 mt-1">
                 Member since {memberSince}
               </p>
             </div>
@@ -193,14 +193,14 @@ export default function ProfilePage() {
         <div className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+              <p className="text-xs text-dark-600 uppercase tracking-wide font-semibold">
                 Handicap Index
               </p>
-              <p className="text-4xl font-bold text-gray-900 mt-1">
+              <p className="text-4xl font-bold text-dark-900 mt-1">
                 {profile.handicap !== null ? profile.handicap.toFixed(1) : 'N/A'}
               </p>
               {profile.handicapUpdatedAt && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-dark-500 mt-1">
                   Updated{' '}
                   {new Date(profile.handicapUpdatedAt).toLocaleDateString()}
                 </p>
@@ -219,20 +219,20 @@ export default function ProfilePage() {
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-dark-600 uppercase tracking-wide">
               Rounds
             </p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-2xl font-bold text-dark-900 mt-1">
               {recentRounds.length}
             </p>
           </div>
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-dark-600 uppercase tracking-wide">
               Best Score
             </p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-2xl font-bold text-dark-900 mt-1">
               {recentRounds.length > 0
                 ? Math.min(...recentRounds.map((r) => r.grossScore))
                 : '-'}
@@ -241,10 +241,10 @@ export default function ProfilePage() {
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-dark-600 uppercase tracking-wide">
               Average
             </p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+            <p className="text-2xl font-bold text-dark-900 mt-1">
               {recentRounds.length > 0
                 ? (
                     recentRounds.reduce((sum, r) => sum + r.grossScore, 0) /
@@ -267,8 +267,8 @@ export default function ProfilePage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Statistics</p>
-                <p className="text-xs text-gray-500">View detailed stats</p>
+                <p className="text-sm font-semibold text-dark-900">Statistics</p>
+                <p className="text-xs text-dark-600">View detailed stats</p>
               </div>
             </div>
           </Card>
@@ -277,13 +277,13 @@ export default function ProfilePage() {
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <div className="p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-golf-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Handicap</p>
-                <p className="text-xs text-gray-500">Track your index</p>
+                <p className="text-sm font-semibold text-dark-900">Handicap</p>
+                <p className="text-xs text-dark-600">Track your index</p>
               </div>
             </div>
           </Card>
@@ -298,19 +298,19 @@ export default function ProfilePage() {
         </CardHeader>
         <div className="px-4 pb-4">
           {recentRounds.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">
+            <p className="text-sm text-dark-500 text-center py-4">
               No completed rounds yet
             </p>
           ) : (
             <div className="space-y-2">
               {recentRounds.map((round) => (
                 <Link key={round.id} href={`/rounds/${round.id}/results`}>
-                  <div className="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-dark-50 transition-colors cursor-pointer">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-dark-900">
                         {round.courseName}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-dark-600">
                         {new Date(round.date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -319,7 +319,7 @@ export default function ProfilePage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold tabular-nums text-gray-900">
+                      <p className="text-lg font-bold tabular-nums text-dark-900">
                         {round.grossScore}
                       </p>
                     </div>

@@ -36,10 +36,10 @@ export default async function InvitePage({ params }: InvitePageProps) {
     return (
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-2xl font-bold tracking-tight text-dark-900">
             Invalid Invite
           </h1>
-          <p className="mt-4 text-sm text-gray-600">
+          <p className="mt-4 text-sm text-dark-700">
             This invite link is invalid or has expired. Please ask the group
             admin to send a new invite.
           </p>
@@ -52,10 +52,10 @@ export default async function InvitePage({ params }: InvitePageProps) {
     return (
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-2xl font-bold tracking-tight text-dark-900">
             Invite Already Used
           </h1>
-          <p className="mt-4 text-sm text-gray-600">
+          <p className="mt-4 text-sm text-dark-700">
             This invite has already been{' '}
             {invite.status === 'accepted' ? 'accepted' : 'declined'}.
           </p>
@@ -85,40 +85,40 @@ export default async function InvitePage({ params }: InvitePageProps) {
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-2xl font-bold tracking-tight text-dark-900">
           You&apos;re Invited!
         </h1>
-        <p className="mt-4 text-sm text-gray-600">
+        <p className="mt-4 text-sm text-dark-700">
           You&apos;ve been invited to join{' '}
-          <span className="font-semibold text-gray-900">{groupName}</span>.
+          <span className="font-semibold text-dark-900">{groupName}</span>.
         </p>
       </div>
 
       {/* Invite details card */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-dark-300 bg-dark-100 p-6 shadow-sm">
         <dl className="space-y-4">
           {invite.email && (
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-dark-600">
                 Invited email
               </dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dd className="mt-1 text-sm text-dark-900">
                 {invite.email}
               </dd>
             </div>
           )}
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-dark-600">
               Group
             </dt>
-            <dd className="mt-1 text-sm text-gray-900">{groupName}</dd>
+            <dd className="mt-1 text-sm text-dark-900">{groupName}</dd>
           </div>
           {invite.type && (
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-dark-600">
                 Invite type
               </dt>
-              <dd className="mt-1 text-sm capitalize text-gray-900">
+              <dd className="mt-1 text-sm capitalize text-dark-900">
                 {invite.type}
               </dd>
             </div>

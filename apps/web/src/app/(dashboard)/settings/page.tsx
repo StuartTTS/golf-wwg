@@ -158,8 +158,8 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500">Manage your account preferences</p>
+        <h1 className="text-2xl font-bold text-dark-900">Settings</h1>
+        <p className="text-sm text-dark-600">Manage your account preferences</p>
       </div>
 
       {/* Profile settings */}
@@ -172,7 +172,7 @@ export default function SettingsPage() {
         </CardHeader>
         <div className="px-6 pb-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               Display Name
             </label>
             <Input
@@ -185,17 +185,17 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               Email
             </label>
-            <Input value={settings.email} disabled className="bg-gray-50" />
-            <p className="text-xs text-gray-400 mt-1">
+            <Input value={settings.email} disabled className="bg-dark-50" />
+            <p className="text-xs text-dark-500 mt-1">
               Email cannot be changed here
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               Default Tee Preference
             </label>
             <Select
@@ -218,19 +218,19 @@ export default function SettingsPage() {
                 <SelectItem value="silver">Silver</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-dark-500 mt-1">
               Automatically selected when joining a round
             </p>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="p-3 bg-red-900/30 border border-red-200 rounded-lg text-sm text-red-400">
               {error}
             </div>
           )}
 
           {saved && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-golf-600">
               Settings saved successfully
             </div>
           )}
@@ -254,7 +254,7 @@ export default function SettingsPage() {
         </CardHeader>
         <div className="px-6 pb-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               Current Password
             </label>
             <Input
@@ -266,7 +266,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               New Password
             </label>
             <Input
@@ -275,13 +275,13 @@ export default function SettingsPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-dark-500 mt-1">
               Must be at least 8 characters
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-dark-800 mb-1">
               Confirm New Password
             </label>
             <Input
@@ -293,13 +293,13 @@ export default function SettingsPage() {
           </div>
 
           {passwordError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="p-3 bg-red-900/30 border border-red-200 rounded-lg text-sm text-red-400">
               {passwordError}
             </div>
           )}
 
           {passwordSuccess && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-golf-600">
               Password changed successfully
             </div>
           )}
@@ -317,13 +317,13 @@ export default function SettingsPage() {
       {/* Danger zone */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-red-600">Account</CardTitle>
+          <CardTitle className="text-red-400">Account</CardTitle>
         </CardHeader>
         <div className="px-6 pb-6 space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-dark-50 rounded-lg">
             <div>
-              <p className="text-sm font-medium text-gray-900">Sign Out</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-medium text-dark-900">Sign Out</p>
+              <p className="text-xs text-dark-600">
                 Sign out of your account on this device
               </p>
             </div>

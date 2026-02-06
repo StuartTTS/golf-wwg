@@ -35,14 +35,14 @@ export default function LoginPage() {
     <div className="w-full max-w-md space-y-8">
       {/* Heading */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-2xl font-bold tracking-tight text-dark-900">
           Sign in to your account
         </h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 text-sm text-dark-600">
           Or{' '}
           <Link
             href="/register"
-            className="font-medium text-green-600 hover:text-green-500"
+            className="font-medium text-golf-600 hover:text-golf-700"
           >
             create a new account
           </Link>
@@ -51,8 +51,8 @@ export default function LoginPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="rounded-md bg-red-900/30 border border-red-800/50 p-4">
+          <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-dark-800"
           >
             Email address
           </label>
@@ -81,7 +81,7 @@ export default function LoginPage() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700"
+            className="block text-sm font-medium text-dark-800"
           >
             Password
           </label>
@@ -101,7 +101,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-end">
           <Link
             href="/forgot-password"
-            className="text-sm font-medium text-green-600 hover:text-green-500"
+            className="text-sm font-medium text-golf-600 hover:text-golf-700"
           >
             Forgot your password?
           </Link>

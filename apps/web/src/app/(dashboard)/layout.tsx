@@ -8,7 +8,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-dark-50">
       {/* Sidebar - hidden on mobile, visible on md+ */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <Sidebar />

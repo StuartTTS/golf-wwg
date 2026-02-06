@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 font-sans antialiased">
+      <body className="min-h-screen bg-dark-50 font-sans antialiased">
         <SupabaseProvider>
           <AuthProvider>{children}</AuthProvider>
         </SupabaseProvider>

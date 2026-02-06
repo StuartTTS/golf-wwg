@@ -114,7 +114,7 @@ export default async function CourseDetailPage({
       case 'blue':
         return 'bg-blue-600 text-white';
       case 'white':
-        return 'bg-white text-gray-900 border border-gray-300';
+        return 'bg-dark-100 text-dark-900 border border-gray-300';
       case 'gold':
         return 'bg-yellow-500 text-white';
       case 'green':
@@ -124,7 +124,7 @@ export default async function CourseDetailPage({
       case 'silver':
         return 'bg-gray-400 text-white';
       default:
-        return 'bg-gray-200 text-gray-700';
+        return 'bg-gray-200 text-dark-800';
     }
   };
 
@@ -135,7 +135,7 @@ export default async function CourseDetailPage({
         <div>
           <Link
             href="/courses"
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-2"
+            className="text-sm text-dark-600 hover:text-dark-800 flex items-center gap-1 mb-2"
           >
             <svg
               className="w-4 h-4"
@@ -152,11 +152,11 @@ export default async function CourseDetailPage({
             </svg>
             Courses
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-dark-900">
             {typedCourse.name}
           </h1>
           {(typedCourse.city || typedCourse.state) && (
-            <p className="text-gray-500 mt-1">
+            <p className="text-dark-600 mt-1">
               {[typedCourse.city, typedCourse.state].filter(Boolean).join(', ')}
             </p>
           )}
@@ -178,28 +178,28 @@ export default async function CourseDetailPage({
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-dark-600 uppercase tracking-wide">
               Total Par
             </p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{totalPar}</p>
+            <p className="text-3xl font-bold text-dark-900 mt-1">{totalPar}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-dark-600 uppercase tracking-wide">
               Front 9
             </p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">
+            <p className="text-3xl font-bold text-dark-900 mt-1">
               {frontNinePar}
             </p>
           </div>
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">
+            <p className="text-xs text-dark-600 uppercase tracking-wide">
               Back 9
             </p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">
+            <p className="text-3xl font-bold text-dark-900 mt-1">
               {backNinePar || '-'}
             </p>
           </div>
@@ -218,20 +218,20 @@ export default async function CourseDetailPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">
+                <tr className="border-b border-dark-300">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-dark-600">
                     Tee
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
                     Rating
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
                     Slope
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
                     Yardage
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-gray-500">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
                     Par
                   </th>
                 </tr>
@@ -251,21 +251,21 @@ export default async function CourseDetailPage({
                           <span
                             className={`w-4 h-4 rounded-full ${getTeeColorClass(tee.color)}`}
                           />
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-dark-900">
                             {tee.name}
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-center text-gray-700">
+                      <td className="py-3 px-3 text-center text-dark-800">
                         {tee.rating}
                       </td>
-                      <td className="py-3 px-3 text-center text-gray-700">
+                      <td className="py-3 px-3 text-center text-dark-800">
                         {tee.slope}
                       </td>
-                      <td className="py-3 px-3 text-center text-gray-700">
+                      <td className="py-3 px-3 text-center text-dark-800">
                         {(tee.yardage ?? totalYardage) || '-'}
                       </td>
-                      <td className="py-3 px-3 text-center font-medium text-gray-900">
+                      <td className="py-3 px-3 text-center font-medium text-dark-900">
                         {teePar}
                       </td>
                     </tr>
@@ -290,15 +290,15 @@ export default async function CourseDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">
+                  <tr className="border-b border-dark-300">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
                       Hole
                     </th>
                     {primaryTee.holes.map((h) => (
                       <th
                         key={h.number}
                         className={`
-                          text-center py-2 px-2 text-xs font-semibold text-gray-500 min-w-[2.5rem]
+                          text-center py-2 px-2 text-xs font-semibold text-dark-600 min-w-[2.5rem]
                           ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
@@ -307,30 +307,30 @@ export default async function CourseDetailPage({
                     ))}
                     {typedCourse.holes_count === 18 && (
                       <>
-                        <th className="text-center py-2 px-2 text-xs font-bold text-gray-700 bg-gray-50">
+                        <th className="text-center py-2 px-2 text-xs font-bold text-dark-800 bg-dark-50">
                           OUT
                         </th>
-                        <th className="text-center py-2 px-2 text-xs font-bold text-gray-700 bg-gray-50">
+                        <th className="text-center py-2 px-2 text-xs font-bold text-dark-800 bg-dark-50">
                           IN
                         </th>
                       </>
                     )}
-                    <th className="text-center py-2 px-2 text-xs font-bold text-gray-900 bg-gray-100">
+                    <th className="text-center py-2 px-2 text-xs font-bold text-dark-900 bg-gray-100">
                       TOT
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {/* Par row */}
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <td className="py-2 px-2 text-xs font-semibold text-gray-500">
+                  <tr className="border-b border-dark-300 bg-dark-50">
+                    <td className="py-2 px-2 text-xs font-semibold text-dark-600">
                       Par
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
                         key={h.number}
                         className={`
-                          text-center py-2 px-2 text-xs font-medium text-gray-700
+                          text-center py-2 px-2 text-xs font-medium text-dark-800
                           ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
@@ -347,21 +347,21 @@ export default async function CourseDetailPage({
                         </td>
                       </>
                     )}
-                    <td className="text-center py-2 px-2 text-xs font-bold text-gray-900 bg-gray-200">
+                    <td className="text-center py-2 px-2 text-xs font-bold text-dark-900 bg-gray-200">
                       {totalPar}
                     </td>
                   </tr>
 
                   {/* Yardage row */}
-                  <tr className="border-b border-gray-200">
-                    <td className="py-2 px-2 text-xs font-semibold text-gray-500">
+                  <tr className="border-b border-dark-300">
+                    <td className="py-2 px-2 text-xs font-semibold text-dark-600">
                       Yds
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
                         key={h.number}
                         className={`
-                          text-center py-2 px-2 text-xs text-gray-600
+                          text-center py-2 px-2 text-xs text-dark-700
                           ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
@@ -370,19 +370,19 @@ export default async function CourseDetailPage({
                     ))}
                     {typedCourse.holes_count === 18 && (
                       <>
-                        <td className="text-center py-2 px-2 text-xs font-bold text-gray-600 bg-gray-50">
+                        <td className="text-center py-2 px-2 text-xs font-bold text-dark-700 bg-dark-50">
                           {primaryTee.holes
                             .filter((h) => h.number <= 9)
                             .reduce((s, h) => s + (h.yardage ?? 0), 0) || '-'}
                         </td>
-                        <td className="text-center py-2 px-2 text-xs font-bold text-gray-600 bg-gray-50">
+                        <td className="text-center py-2 px-2 text-xs font-bold text-dark-700 bg-dark-50">
                           {primaryTee.holes
                             .filter((h) => h.number > 9)
                             .reduce((s, h) => s + (h.yardage ?? 0), 0) || '-'}
                         </td>
                       </>
                     )}
-                    <td className="text-center py-2 px-2 text-xs font-bold text-gray-700 bg-gray-100">
+                    <td className="text-center py-2 px-2 text-xs font-bold text-dark-800 bg-gray-100">
                       {primaryTee.holes.reduce(
                         (s, h) => s + (h.yardage ?? 0),
                         0
@@ -392,14 +392,14 @@ export default async function CourseDetailPage({
 
                   {/* Stroke Index row */}
                   <tr className="border-b border-gray-100">
-                    <td className="py-2 px-2 text-xs font-semibold text-gray-500">
+                    <td className="py-2 px-2 text-xs font-semibold text-dark-600">
                       SI
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
                         key={h.number}
                         className={`
-                          text-center py-2 px-2 text-xs text-gray-500
+                          text-center py-2 px-2 text-xs text-dark-600
                           ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
@@ -408,8 +408,8 @@ export default async function CourseDetailPage({
                     ))}
                     {typedCourse.holes_count === 18 && (
                       <>
-                        <td className="bg-gray-50" />
-                        <td className="bg-gray-50" />
+                        <td className="bg-dark-50" />
+                        <td className="bg-dark-50" />
                       </>
                     )}
                     <td className="bg-gray-100" />

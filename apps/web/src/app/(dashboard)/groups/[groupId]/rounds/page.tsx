@@ -74,16 +74,16 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
         >
           &larr; Back to {group.name}
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-3xl font-bold tracking-tight text-dark-900">
               Rounds
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-dark-600">
               All rounds for {group.name}.
             </p>
           </div>
@@ -120,7 +120,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
           {/* In Progress */}
           {inProgressRounds.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              <h2 className="text-lg font-semibold text-dark-900 mb-3">
                 In Progress
               </h2>
               <div className="space-y-3">
@@ -162,7 +162,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
           {/* Upcoming */}
           {upcomingRounds.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              <h2 className="text-lg font-semibold text-dark-900 mb-3">
                 Upcoming
               </h2>
               <div className="space-y-3">
@@ -208,7 +208,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
           {/* Completed */}
           {completedRounds.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              <h2 className="text-lg font-semibold text-dark-900 mb-3">
                 Completed
               </h2>
               <div className="space-y-3">

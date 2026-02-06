@@ -6,7 +6,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-dark-50 px-4 py-12 sm:px-6 lg:px-8">
       {/* Logo */}
       <div className="mb-8">
         <Link href="/" className="flex items-center gap-2">
@@ -19,13 +19,13 @@ export default function AuthLayout({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="h-10 w-10 text-green-600"
+            className="h-10 w-10 text-golf-600"
           >
             <circle cx="12" cy="12" r="10" />
             <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
             <path d="M2 12h20" />
           </svg>
-          <span className="text-2xl font-bold text-gray-900">WWG</span>
+          <span className="text-2xl font-bold text-dark-900">WWG</span>
         </Link>
       </div>
 
