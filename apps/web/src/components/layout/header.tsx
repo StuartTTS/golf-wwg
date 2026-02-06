@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui';
+import { logout } from '@/lib/actions/auth';
 
 export function Header() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-dark-300 bg-dark-100 px-4 lg:px-6">
@@ -27,9 +28,11 @@ export function Header() {
             <span className="text-sm text-dark-700">
               {profile?.display_name || user.email}
             </span>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              Sign Out
-            </Button>
+            <form action={async () => { await logout(); }}>
+              <Button variant="ghost" size="sm" type="submit">
+                Sign Out
+              </Button>
+            </form>
           </>
         )}
       </div>

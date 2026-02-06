@@ -1,5 +1,6 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   loginSchema,
@@ -112,7 +113,7 @@ export async function logout(): Promise<AuthActionResult> {
     return { error: error.message };
   }
 
-  return { success: true };
+  redirect('/login');
 }
 
 // ---------------------------------------------------------------------------
