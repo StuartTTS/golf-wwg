@@ -2,7 +2,7 @@ trigger:
   - main
 
 pool:
-  name: 'TTS-Server'
+  vmImage: 'ubuntu-latest'
 
 steps:
   - task: NodeTool@0
@@ -19,8 +19,10 @@ steps:
       NEXT_PUBLIC_SUPABASE_URL: $(NEXT_PUBLIC_SUPABASE_URL)
       NEXT_PUBLIC_SUPABASE_ANON_KEY: $(NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
-  - script: npm install -g @azure/static-web-apps-cli
-    displayName: 'Install SWA CLI'
-
-  - script: swa deploy --app-location apps/web --output-location .next --deployment-token $(SWA_DEPLOYMENT_TOKEN) --env production
+  - task: AzureStaticWebApp@0
+    inputs:
+      app_location: 'apps/web'
+      output_location: '.next'
+      skip_app_build: true
+      azure_static_web_apps_api_token: $(SWA_DEPLOYMENT_TOKEN)
     displayName: 'Deploy to Azure Static Web Apps'
