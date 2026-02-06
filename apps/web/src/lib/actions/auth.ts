@@ -82,21 +82,7 @@ export async function register(formData: FormData): Promise<AuthActionResult> {
     return { error: signUpError.message };
   }
 
-  // 2. Create a profile row so the rest of the app can query it.
-  if (data.user) {
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: data.user.id,
-      display_name: parsed.data.displayName,
-      email: parsed.data.email,
-    });
-
-    if (profileError) {
-      // Profile creation failed -- log but don't block the user.  A database
-      // trigger can act as a safety-net to back-fill missing profiles.
-      console.error('Failed to create profile row:', profileError.message);
-    }
-  }
-
+  // Profile row is created automatically by the on_auth_user_created trigger.
   return { success: true };
 }
 
