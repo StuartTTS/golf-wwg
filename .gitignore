@@ -37,3 +37,5 @@ Thumbs.db
 
 # supabase
 supabase/.temp/
+
+.vercel
