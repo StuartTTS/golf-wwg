@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { inviteMemberSchema } from '@golf/core';
 import { randomBytes } from 'crypto';
 
@@ -119,6 +120,15 @@ export async function inviteMember(groupId: string, formData: FormData) {
 
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message };
+  }
+
+  const { allowed } = await checkRateLimit({
+    key: `invite-member:${user.id}`,
+    maxAttempts: 10,
+    windowSeconds: 3600,
+  });
+  if (!allowed) {
+    return { error: 'Too many invitations sent. Please try again later.' };
   }
 
   // Check if user already a member

@@ -1,13 +1,20 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import {
   loginSchema,
   registerSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
 } from '@golf/core';
+
+async function getClientIp(): Promise<string> {
+  const headersList = await headers();
+  return headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+}
 
 // ---------------------------------------------------------------------------
 // Shared return type
@@ -32,6 +39,16 @@ export async function login(formData: FormData): Promise<AuthActionResult> {
 
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  }
+
+  const ip = await getClientIp();
+  const { allowed } = await checkRateLimit({
+    key: `login:${ip}`,
+    maxAttempts: 5,
+    windowSeconds: 900, // 15 minutes
+  });
+  if (!allowed) {
+    return { error: 'Too many login attempts. Please try again in 15 minutes.' };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -63,6 +80,16 @@ export async function register(formData: FormData): Promise<AuthActionResult> {
 
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  }
+
+  const ip = await getClientIp();
+  const { allowed } = await checkRateLimit({
+    key: `register:${ip}`,
+    maxAttempts: 3,
+    windowSeconds: 3600, // 1 hour
+  });
+  if (!allowed) {
+    return { error: 'Too many registration attempts. Please try again later.' };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -117,6 +144,24 @@ export async function forgotPassword(
 
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  }
+
+  const ip = await getClientIp();
+  const { allowed: ipAllowed } = await checkRateLimit({
+    key: `forgot-password:${ip}`,
+    maxAttempts: 5,
+    windowSeconds: 3600,
+  });
+  if (!ipAllowed) {
+    return { success: true }; // Don't reveal rate limiting on forgot-password
+  }
+  const { allowed: emailAllowed } = await checkRateLimit({
+    key: `forgot-password:${parsed.data.email}`,
+    maxAttempts: 3,
+    windowSeconds: 3600,
+  });
+  if (!emailAllowed) {
+    return { success: true }; // Don't reveal rate limiting
   }
 
   const supabase = await createServerSupabaseClient();
@@ -175,6 +220,16 @@ export async function resetPassword(
 export async function acceptInvite(token: string): Promise<AuthActionResult> {
   if (!token || typeof token !== 'string') {
     return { error: 'Invalid invite token' };
+  }
+
+  const ip = await getClientIp();
+  const { allowed } = await checkRateLimit({
+    key: `invite:${ip}`,
+    maxAttempts: 10,
+    windowSeconds: 3600,
+  });
+  if (!allowed) {
+    return { error: 'Too many attempts. Please try again later.' };
   }
 
   const supabase = await createServerSupabaseClient();
