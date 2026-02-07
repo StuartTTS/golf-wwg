@@ -179,7 +179,7 @@ export default function StatsPage() {
       try {
         setLoading(true);
 
-        // Fetch all scores for the player
+        // Fetch all scores for the player with round info
         const { data: scoresData } = await supabase
           .from('scores')
           .select(`
@@ -188,23 +188,46 @@ export default function StatsPage() {
             strokes,
             putts,
             fairway_hit,
-            green_in_regulation,
+            gir,
             rounds (
               id,
-              date,
+              round_date,
               status
-            ),
-            holes (
-              number,
-              par
             )
           `)
           .eq('player_id', user.id)
           .eq('rounds.status', 'completed');
 
-        const allScores = (scoresData ?? []).filter(
-          (s: any) => s.rounds && s.strokes !== null
-        );
+        // Fetch hole par data via round_players -> tee_box -> holes
+        const { data: roundPlayersData } = await supabase
+          .from('round_players')
+          .select(`
+            round_id,
+            tee_box_id,
+            tee_boxes:tee_box_id (
+              holes (
+                hole_number,
+                par
+              )
+            )
+          `)
+          .eq('user_id', user.id);
+
+        // Build a map of round_id + hole_number -> par
+        const parMap: Record<string, number> = {};
+        (roundPlayersData ?? []).forEach((rp: any) => {
+          const holes = rp.tee_boxes?.holes ?? [];
+          holes.forEach((h: any) => {
+            parMap[`${rp.round_id}_${h.hole_number}`] = h.par;
+          });
+        });
+
+        const allScores = (scoresData ?? [])
+          .filter((s: any) => s.rounds && s.strokes !== null)
+          .map((s: any) => ({
+            ...s,
+            par: parMap[`${s.round_id}_${s.hole_number}`] ?? null,
+          }));
 
         // Group by round
         const roundMap: Record<string, any[]> = {};
@@ -226,14 +249,14 @@ export default function StatsPage() {
           const yearAgo = new Date();
           yearAgo.setFullYear(yearAgo.getFullYear() - 1);
           filteredRounds = roundEntries.filter(([_, scores]) => {
-            const date = scores[0]?.rounds?.date;
+            const date = scores[0]?.rounds?.round_date;
             return date && new Date(date) >= yearAgo;
           });
         }
 
         const filteredScores = filteredRounds.flatMap(([_, scores]) => scores);
         const roundTotals = filteredRounds.map(([_, scores]) => ({
-          date: scores[0]?.rounds?.date ?? '',
+          date: scores[0]?.rounds?.round_date ?? '',
           total: scores.reduce((sum: number, s: any) => sum + (s.strokes ?? 0), 0),
         }));
 
@@ -254,7 +277,7 @@ export default function StatsPage() {
 
         // FIR%
         const fairwayEligible = filteredScores.filter(
-          (s: any) => s.fairway_hit !== null && s.holes?.par >= 4
+          (s: any) => s.fairway_hit !== null && s.par >= 4
         );
         const fairwayHits = fairwayEligible.filter(
           (s: any) => s.fairway_hit === true
@@ -266,10 +289,10 @@ export default function StatsPage() {
 
         // GIR%
         const girEligible = filteredScores.filter(
-          (s: any) => s.green_in_regulation !== null
+          (s: any) => s.gir !== null
         );
         const girHits = girEligible.filter(
-          (s: any) => s.green_in_regulation === true
+          (s: any) => s.gir === true
         );
         const girPct =
           girEligible.length > 0
@@ -294,9 +317,9 @@ export default function StatsPage() {
         let totalHoles = 0;
 
         filteredScores.forEach((s: any) => {
-          if (s.strokes !== null && s.holes?.par) {
+          if (s.strokes !== null && s.par) {
             totalHoles++;
-            const diff = s.strokes - s.holes.par;
+            const diff = s.strokes - s.par;
             if (diff <= -1) birdies++;
             else if (diff === 0) pars++;
             else if (diff === 1) bogeys++;
@@ -319,8 +342,8 @@ export default function StatsPage() {
         // Scoring by par
         const parGroups: Record<number, any[]> = {};
         filteredScores.forEach((s: any) => {
-          if (s.strokes !== null && s.holes?.par) {
-            const par = s.holes.par;
+          if (s.strokes !== null && s.par) {
+            const par = s.par;
             if (!parGroups[par]) parGroups[par] = [];
             parGroups[par].push(s);
           }

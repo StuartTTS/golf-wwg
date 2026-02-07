@@ -11,19 +11,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 interface HoleInfo {
-  number: number;
+  hole_number: number;
   par: number;
   yardage: number | null;
-  stroke_index: number;
+  handicap_index: number;
 }
 
 interface TeeBoxWithHoles {
   id: string;
   name: string;
   color: string | null;
-  rating: number;
-  slope: number;
-  yardage: number | null;
+  course_rating: number;
+  slope_rating: number;
+  total_yardage: number | null;
   holes: HoleInfo[];
 }
 
@@ -33,8 +33,7 @@ interface CourseDetail {
   city: string | null;
   state: string | null;
   country: string | null;
-  holes_count: number;
-  is_public: boolean;
+  num_holes: number;
   created_by: string;
   tee_boxes: TeeBoxWithHoles[];
 }
@@ -59,21 +58,20 @@ export default async function CourseDetailPage({
       city,
       state,
       country,
-      holes_count,
-      is_public,
+      num_holes,
       created_by,
       tee_boxes (
         id,
         name,
         color,
-        rating,
-        slope,
-        yardage,
+        course_rating,
+        slope_rating,
+        total_yardage,
         holes (
-          number,
+          hole_number,
           par,
           yardage,
-          stroke_index
+          handicap_index
         )
       )
     `)
@@ -87,9 +85,9 @@ export default async function CourseDetailPage({
   const typedCourse = course as unknown as CourseDetail;
   const isOwner = user?.id === typedCourse.created_by;
 
-  // Sort holes by number within each tee box
+  // Sort holes by hole_number within each tee box
   typedCourse.tee_boxes.forEach((tb) => {
-    tb.holes.sort((a, b) => a.number - b.number);
+    tb.holes.sort((a, b) => a.hole_number - b.hole_number);
   });
 
   const primaryTee = typedCourse.tee_boxes[0];
@@ -98,12 +96,12 @@ export default async function CourseDetailPage({
     : 0;
   const frontNinePar = primaryTee
     ? primaryTee.holes
-        .filter((h) => h.number <= 9)
+        .filter((h) => h.hole_number <= 9)
         .reduce((sum, h) => sum + h.par, 0)
     : 0;
   const backNinePar = primaryTee
     ? primaryTee.holes
-        .filter((h) => h.number > 9)
+        .filter((h) => h.hole_number > 9)
         .reduce((sum, h) => sum + h.par, 0)
     : 0;
 
@@ -162,8 +160,7 @@ export default async function CourseDetailPage({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {typedCourse.is_public && <Badge variant="secondary">Public</Badge>}
-          <Badge variant="secondary">{typedCourse.holes_count} holes</Badge>
+          <Badge variant="secondary">{typedCourse.num_holes} holes</Badge>
           {isOwner && (
             <Link href={`/courses/${courseId}/edit`}>
               <Button variant="outline" size="sm">
@@ -257,13 +254,13 @@ export default async function CourseDetailPage({
                         </div>
                       </td>
                       <td className="py-3 px-3 text-center text-dark-800">
-                        {tee.rating}
+                        {tee.course_rating}
                       </td>
                       <td className="py-3 px-3 text-center text-dark-800">
-                        {tee.slope}
+                        {tee.slope_rating}
                       </td>
                       <td className="py-3 px-3 text-center text-dark-800">
-                        {(tee.yardage ?? totalYardage) || '-'}
+                        {(tee.total_yardage ?? totalYardage) || '-'}
                       </td>
                       <td className="py-3 px-3 text-center font-medium text-dark-900">
                         {teePar}
@@ -296,16 +293,16 @@ export default async function CourseDetailPage({
                     </th>
                     {primaryTee.holes.map((h) => (
                       <th
-                        key={h.number}
+                        key={h.hole_number}
                         className={`
                           text-center py-2 px-2 text-xs font-semibold text-dark-600 min-w-[2.5rem]
-                          ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
-                        {h.number}
+                        {h.hole_number}
                       </th>
                     ))}
-                    {typedCourse.holes_count === 18 && (
+                    {typedCourse.num_holes === 18 && (
                       <>
                         <th className="text-center py-2 px-2 text-xs font-bold text-dark-800 bg-dark-50">
                           OUT
@@ -328,16 +325,16 @@ export default async function CourseDetailPage({
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
-                        key={h.number}
+                        key={h.hole_number}
                         className={`
                           text-center py-2 px-2 text-xs font-medium text-dark-800
-                          ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
                         {h.par}
                       </td>
                     ))}
-                    {typedCourse.holes_count === 18 && (
+                    {typedCourse.num_holes === 18 && (
                       <>
                         <td className="text-center py-2 px-2 text-xs font-bold text-gray-800 bg-gray-100">
                           {frontNinePar}
@@ -359,25 +356,25 @@ export default async function CourseDetailPage({
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
-                        key={h.number}
+                        key={h.hole_number}
                         className={`
                           text-center py-2 px-2 text-xs text-dark-700
-                          ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
                         {h.yardage ?? '-'}
                       </td>
                     ))}
-                    {typedCourse.holes_count === 18 && (
+                    {typedCourse.num_holes === 18 && (
                       <>
                         <td className="text-center py-2 px-2 text-xs font-bold text-dark-700 bg-dark-50">
                           {primaryTee.holes
-                            .filter((h) => h.number <= 9)
+                            .filter((h) => h.hole_number <= 9)
                             .reduce((s, h) => s + (h.yardage ?? 0), 0) || '-'}
                         </td>
                         <td className="text-center py-2 px-2 text-xs font-bold text-dark-700 bg-dark-50">
                           {primaryTee.holes
-                            .filter((h) => h.number > 9)
+                            .filter((h) => h.hole_number > 9)
                             .reduce((s, h) => s + (h.yardage ?? 0), 0) || '-'}
                         </td>
                       </>
@@ -397,16 +394,16 @@ export default async function CourseDetailPage({
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
-                        key={h.number}
+                        key={h.hole_number}
                         className={`
                           text-center py-2 px-2 text-xs text-dark-600
-                          ${h.number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
                         `}
                       >
-                        {h.stroke_index}
+                        {h.handicap_index}
                       </td>
                     ))}
-                    {typedCourse.holes_count === 18 && (
+                    {typedCourse.num_holes === 18 && (
                       <>
                         <td className="bg-dark-50" />
                         <td className="bg-dark-50" />

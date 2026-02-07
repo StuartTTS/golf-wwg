@@ -145,9 +145,9 @@ export default function EditCoursePage() {
             dbId: tb.id,
             name: tb.name,
             color: tb.color ?? '',
-            rating: tb.rating?.toString() ?? '',
-            slope: tb.slope?.toString() ?? '',
-            yardage: tb.yardage?.toString() ?? '',
+            rating: tb.course_rating?.toString() ?? '',
+            slope: tb.slope_rating?.toString() ?? '',
+            yardage: tb.total_yardage?.toString() ?? '',
           })
         );
         setTeeBoxes(loadedTeeBoxes);
@@ -156,12 +156,12 @@ export default function EditCoursePage() {
           (tb: any, idx: number) => ({
             teeBoxId: loadedTeeBoxes[idx].id,
             holes: (tb.holes ?? [])
-              .sort((a: any, b: any) => a.number - b.number)
+              .sort((a: any, b: any) => a.hole_number - b.hole_number)
               .map((h: any) => ({
-                number: h.number,
+                number: h.hole_number,
                 par: h.par?.toString() ?? '4',
                 yardage: h.yardage?.toString() ?? '',
-                strokeIndex: h.stroke_index?.toString() ?? '',
+                strokeIndex: h.handicap_index?.toString() ?? '',
               })),
           })
         );

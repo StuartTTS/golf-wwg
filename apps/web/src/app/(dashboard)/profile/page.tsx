@@ -72,12 +72,12 @@ export default function ProfilePage() {
           .select(`
             rounds (
               id,
-              date,
+              round_date,
               status,
               courses ( name )
             )
           `)
-          .eq('player_id', user.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(10);
 
@@ -103,7 +103,7 @@ export default function ProfilePage() {
                 )
               `)
               .in('id', roundIds)
-              .eq('round_players.player_id', user.id);
+              .eq('round_players.user_id', user.id);
 
             const rounds: RecentRound[] = roundsData
               .filter((rp: any) => rp.rounds && rp.rounds.status === 'completed')
@@ -119,7 +119,7 @@ export default function ProfilePage() {
 
                 return {
                   id: round.id,
-                  date: round.date,
+                  date: round.round_date,
                   courseName: round.courses?.name ?? 'Unknown',
                   grossScore,
                   toPar: 0,
