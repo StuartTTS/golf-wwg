@@ -38,7 +38,10 @@ export async function createRound(formData: FormData) {
     .select()
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
 
   // Add creator as a player
   await supabase.from('round_players').insert({
@@ -55,6 +58,25 @@ export async function addPlayerToRound(roundId: string, userId: string, teeBoxId
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
 
   // Get player's current handicap
   const { data: profile } = await supabase
@@ -87,7 +109,10 @@ export async function addPlayerToRound(roundId: string, userId: string, teeBoxId
     status: 'registered',
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -96,13 +121,35 @@ export async function removePlayerFromRound(roundId: string, userId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
+
   const { error } = await supabase
     .from('round_players')
     .delete()
     .eq('round_id', roundId)
     .eq('user_id', userId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -111,12 +158,34 @@ export async function startRound(roundId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
+
   const { error } = await supabase
     .from('rounds')
     .update({ status: 'in_progress' })
     .eq('id', roundId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
 
   // Update all registered players to 'playing'
   await supabase
@@ -133,6 +202,25 @@ export async function completeRound(roundId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
+
   const { error } = await supabase
     .from('rounds')
     .update({
@@ -141,7 +229,10 @@ export async function completeRound(roundId: string) {
     })
     .eq('id', roundId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
 
   // Update all playing players to 'completed'
   await supabase

@@ -42,7 +42,7 @@ export async function login(formData: FormData): Promise<AuthActionResult> {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: 'Invalid email or password' };
   }
 
   return { success: true };
@@ -79,7 +79,7 @@ export async function register(formData: FormData): Promise<AuthActionResult> {
   });
 
   if (signUpError) {
-    return { error: signUpError.message };
+    return { error: 'Unable to create account. Please try again.' };
   }
 
   // Profile row is created automatically by the on_auth_user_created trigger.
@@ -129,9 +129,10 @@ export async function forgotPassword(
   );
 
   if (error) {
-    return { error: error.message };
+    console.error('Password reset error:', error.message);
   }
 
+  // Always return success to prevent email enumeration
   return { success: true };
 }
 
@@ -161,7 +162,7 @@ export async function resetPassword(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: 'Unable to reset password. Please try again.' };
   }
 
   return { success: true };
@@ -186,15 +187,16 @@ export async function acceptInvite(token: string): Promise<AuthActionResult> {
 
   const userId = sessionData.session.user.id;
 
-  // Mark the invite as accepted
+  // Mark the invite as accepted (only if not expired)
   const { error } = await supabase
     .from('invitations')
     .update({ status: 'accepted' })
     .eq('token', token)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString());
 
   if (error) {
-    return { error: error.message };
+    return { error: 'Invalid or expired invitation' };
   }
 
   return { success: true };
@@ -215,10 +217,11 @@ export async function declineInvite(token: string): Promise<AuthActionResult> {
     .from('invitations')
     .update({ status: 'declined' })
     .eq('token', token)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString());
 
   if (error) {
-    return { error: error.message };
+    return { error: 'Invalid or expired invitation' };
   }
 
   return { success: true };

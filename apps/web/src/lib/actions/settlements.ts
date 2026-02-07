@@ -19,7 +19,10 @@ export async function createSettlements(
   }));
 
   const { error } = await supabase.from('settlements').insert(rows);
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -28,12 +31,24 @@ export async function markSettled(settlementId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: settlement } = await supabase
+    .from('settlements')
+    .select('payer_id')
+    .eq('id', settlementId)
+    .single();
+  if (!settlement || settlement.payer_id !== user.id) {
+    return { error: 'Not authorized' };
+  }
+
   const { error } = await supabase
     .from('settlements')
     .update({ status: 'settled' })
     .eq('id', settlementId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 

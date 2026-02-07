@@ -6,8 +6,34 @@ interface RequestBody {
 
 Deno.serve(async (req: Request) => {
   try {
+    // Verify authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { invitationId } = (await req.json()) as RequestBody;
 
+    // Create a client with the user's JWT to respect RLS
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Get the user's identity
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authorization' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Service role client for actual operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -31,10 +57,26 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Verify user is a group admin for this invitation's group
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', invitation.group_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership || membership.role !== 'admin') {
+      return new Response(
+        JSON.stringify({ error: 'Not authorized to send invitations for this group' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const group = invitation.groups as any;
     const inviter = invitation.profiles as any;
     const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3000';
     const inviteUrl = `${siteUrl}/invite/${invitation.token}`;
+    const mailFrom = Deno.env.get('MAIL_FROM_ADDRESS') || 'noreply@golfwwg.com';
 
     // Send email via Resend (or your preferred email service)
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -47,7 +89,7 @@ Deno.serve(async (req: Request) => {
           Authorization: `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: 'GolfApp <noreply@yourdomain.com>',
+          from: `GolfApp <${mailFrom}>`,
           to: [invitation.email],
           subject: `${inviter.display_name} invited you to join ${group.name} on GolfApp`,
           html: `

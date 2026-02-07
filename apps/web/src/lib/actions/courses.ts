@@ -33,7 +33,10 @@ export async function createCourse(formData: FormData) {
     .select()
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true, courseId: course.id };
 }
 
@@ -51,9 +54,13 @@ export async function updateCourse(courseId: string, formData: FormData) {
       country: (formData.get('country') as string) || 'US',
       num_holes: Number(formData.get('numHoles')) || 18,
     })
-    .eq('id', courseId);
+    .eq('id', courseId)
+    .eq('created_by', user.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -61,6 +68,15 @@ export async function createTeeBox(courseId: string, formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const { data: course } = await supabase
+    .from('courses')
+    .select('created_by')
+    .eq('id', courseId)
+    .single();
+  if (!course || course.created_by !== user.id) {
+    return { error: 'Not authorized' };
+  }
 
   const parsed = teeBoxSchema.safeParse({
     name: formData.get('name'),
@@ -87,7 +103,10 @@ export async function createTeeBox(courseId: string, formData: FormData) {
     .select()
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true, teeBoxId: teeBox.id };
 }
 
@@ -103,6 +122,17 @@ export async function createHoles(
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const { data: teeBox } = await supabase
+    .from('tee_boxes')
+    .select('course_id, courses(created_by)')
+    .eq('id', teeBoxId)
+    .single();
+  if (!teeBox) return { error: 'Tee box not found' };
+  const course = (teeBox as any).courses;
+  if (!course || course.created_by !== user.id) {
+    return { error: 'Not authorized' };
+  }
 
   for (const hole of holes) {
     const parsed = holeSchema.safeParse(hole);
@@ -121,7 +151,10 @@ export async function createHoles(
 
   const { error } = await supabase.from('holes').insert(rows);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -138,6 +171,17 @@ export async function updateHoles(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: teeBox } = await supabase
+    .from('tee_boxes')
+    .select('course_id, courses(created_by)')
+    .eq('id', teeBoxId)
+    .single();
+  if (!teeBox) return { error: 'Tee box not found' };
+  const course = (teeBox as any).courses;
+  if (!course || course.created_by !== user.id) {
+    return { error: 'Not authorized' };
+  }
+
   // Delete existing and re-insert
   await supabase.from('holes').delete().eq('tee_box_id', teeBoxId);
 
@@ -150,6 +194,9 @@ export async function updateHoles(
   }));
 
   const { error } = await supabase.from('holes').insert(rows);
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }

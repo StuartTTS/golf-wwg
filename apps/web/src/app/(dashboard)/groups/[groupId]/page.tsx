@@ -47,7 +47,7 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
       user_id,
       role,
       joined_at,
-      profile:profiles (id, full_name, avatar_url, handicap)
+      profile:profiles (id, display_name, avatar_url, current_handicap_index)
     `)
     .eq('group_id', groupId)
     .order('role', { ascending: true });
@@ -160,17 +160,17 @@ export default async function GroupDetailPage({ params }: GroupDetailPageProps) 
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
-                        {((member.profile as any)?.full_name ?? 'U')
+                        {((member.profile as any)?.display_name ?? 'U')
                           .charAt(0)
                           .toUpperCase()}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-dark-900">
-                          {(member.profile as any)?.full_name ?? 'Unknown'}
+                          {(member.profile as any)?.display_name ?? 'Unknown'}
                         </p>
-                        {(member.profile as any)?.handicap != null && (
+                        {(member.profile as any)?.current_handicap_index != null && (
                           <p className="text-xs text-dark-600">
-                            HCP: {(member.profile as any).handicap}
+                            HCP: {(member.profile as any).current_handicap_index}
                           </p>
                         )}
                       </div>

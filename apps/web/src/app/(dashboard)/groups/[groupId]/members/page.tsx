@@ -181,12 +181,12 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-semibold text-golf-600">
-                        {(profile?.full_name ?? 'U').charAt(0).toUpperCase()}
+                        {(profile?.display_name ?? 'U').charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-dark-900">
-                            {profile?.full_name ?? 'Unknown'}
+                            {profile?.display_name ?? 'Unknown'}
                           </p>
                           {isCurrentUser && (
                             <span className="text-xs text-dark-500">(you)</span>
@@ -194,8 +194,8 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
                         </div>
                         <p className="text-xs text-dark-600">
                           {profile?.email ?? ''}
-                          {profile?.handicap != null &&
-                            ` · HCP: ${profile.handicap}`}
+                          {profile?.current_handicap_index != null &&
+                            ` · HCP: ${profile.current_handicap_index}`}
                         </p>
                         <p className="text-xs text-dark-500">
                           Joined{' '}

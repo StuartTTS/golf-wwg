@@ -6,8 +6,40 @@ interface RequestBody {
 
 Deno.serve(async (req: Request) => {
   try {
+    // Verify authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { roundId } = (await req.json()) as RequestBody;
 
+    // Create a client with the user's JWT to respect RLS
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify user is a participant in this round
+    const { data: roundPlayer } = await userClient
+      .from('round_players')
+      .select('id')
+      .eq('round_id', roundId)
+      .limit(1)
+      .single();
+
+    if (!roundPlayer) {
+      return new Response(
+        JSON.stringify({ error: 'Not authorized for this round' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Service role client for actual operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!

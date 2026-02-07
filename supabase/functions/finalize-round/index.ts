@@ -6,8 +6,34 @@ interface RequestBody {
 
 Deno.serve(async (req: Request) => {
   try {
+    // Verify authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { roundId } = (await req.json()) as RequestBody;
 
+    // Create a client with the user's JWT to respect RLS
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Get the user's identity
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authorization' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Service role client for actual operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -24,6 +50,26 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: 'Round not found' }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user is round creator or group admin
+    const isCreator = round.created_by === user.id;
+    let isGroupAdmin = false;
+    if (!isCreator) {
+      const { data: membership } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', round.group_id)
+        .eq('user_id', user.id)
+        .single();
+      isGroupAdmin = membership?.role === 'admin';
+    }
+
+    if (!isCreator && !isGroupAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Not authorized to finalize this round' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
 

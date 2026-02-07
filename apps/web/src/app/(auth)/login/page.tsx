@@ -27,7 +27,8 @@ function LoginForm() {
         return;
       }
 
-      const redirectTo = searchParams.get('redirect') || '/home';
+      const rawRedirect = searchParams.get('redirect') || '/home';
+      const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/home';
       router.push(redirectTo);
       router.refresh();
     });

@@ -38,7 +38,10 @@ export async function createGame(input: {
     .select()
     .single();
 
-  if (gameError) return { error: gameError.message };
+  if (gameError) {
+    console.error('Action error:', gameError);
+    return { error: 'An error occurred. Please try again.' };
+  }
 
   // Create teams if needed
   const teamMap: Record<string, string> = {};
@@ -55,7 +58,10 @@ export async function createGame(input: {
         .select()
         .single();
 
-      if (teamError) return { error: teamError.message };
+      if (teamError) {
+        console.error('Action error:', teamError);
+        return { error: 'An error occurred. Please try again.' };
+      }
       for (const pid of team.playerIds) {
         teamMap[pid] = teamData.id;
       }
@@ -73,7 +79,10 @@ export async function createGame(input: {
     .from('game_players')
     .insert(playerRows);
 
-  if (playerError) return { error: playerError.message };
+  if (playerError) {
+    console.error('Action error:', playerError);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true, gameId: game.id };
 }
 
@@ -81,6 +90,26 @@ export async function finalizeGame(gameId: string, results: Record<string, unkno
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const { data: game } = await supabase
+    .from('games')
+    .select('round_id, rounds(created_by, group_id)')
+    .eq('id', gameId)
+    .single();
+  if (!game) return { error: 'Game not found' };
+
+  const round = (game as any).rounds;
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
 
   const { error } = await supabase
     .from('games')
@@ -90,7 +119,10 @@ export async function finalizeGame(gameId: string, results: Record<string, unkno
     })
     .eq('id', gameId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -99,11 +131,34 @@ export async function deleteGame(gameId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: game } = await supabase
+    .from('games')
+    .select('round_id, rounds(created_by, group_id)')
+    .eq('id', gameId)
+    .single();
+  if (!game) return { error: 'Game not found' };
+
+  const round = (game as any).rounds;
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
+
   // Delete game players and teams first
   await supabase.from('game_players').delete().eq('game_id', gameId);
   await supabase.from('game_teams').delete().eq('game_id', gameId);
   const { error } = await supabase.from('games').delete().eq('id', gameId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }

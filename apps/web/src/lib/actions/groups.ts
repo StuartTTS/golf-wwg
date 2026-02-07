@@ -24,7 +24,10 @@ export async function createGroup(data: { name: string; description?: string; de
     .select()
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
 
   // Add creator as admin
   await supabase.from('group_members').insert({
@@ -41,6 +44,16 @@ export async function updateGroup(data: { groupId: string; name: string; descrip
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', data.groupId)
+    .eq('user_id', user.id)
+    .single();
+  if (!membership || membership.role !== 'admin') {
+    return { error: 'Not authorized' };
+  }
+
   const { error } = await supabase
     .from('groups')
     .update({
@@ -50,7 +63,10 @@ export async function updateGroup(data: { groupId: string; name: string; descrip
     })
     .eq('id', data.groupId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -59,12 +75,25 @@ export async function deleteGroup(groupId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single();
+  if (!membership || membership.role !== 'admin') {
+    return { error: 'Not authorized' };
+  }
+
   const { error } = await supabase
     .from('groups')
     .delete()
     .eq('id', groupId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -72,6 +101,16 @@ export async function inviteMember(groupId: string, formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single();
+  if (!membership || membership.role !== 'admin') {
+    return { error: 'Not authorized' };
+  }
 
   const parsed = inviteMemberSchema.safeParse({
     email: formData.get('email'),
@@ -116,7 +155,10 @@ export async function inviteMember(groupId: string, formData: FormData) {
     expires_at: expiresAt.toISOString(),
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true, token };
 }
 
@@ -125,8 +167,26 @@ export async function removeMember(groupId: string, userId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single();
+  if (!membership || membership.role !== 'admin') {
+    return { error: 'Not authorized' };
+  }
+
   if (userId === user.id) {
-    return { error: 'Cannot remove yourself' };
+    // Prevent removing yourself if you're the only admin
+    const { data: adminMembers } = await supabase
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', groupId)
+      .eq('role', 'admin');
+    if (!adminMembers || adminMembers.length <= 1) {
+      return { error: 'Cannot remove yourself as the only admin' };
+    }
   }
 
   const { error } = await supabase
@@ -135,7 +195,10 @@ export async function removeMember(groupId: string, userId: string) {
     .eq('group_id', groupId)
     .eq('user_id', userId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
 
@@ -144,12 +207,30 @@ export async function updateMemberRole(groupId: string, userId: string, role: 'a
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single();
+  if (!membership || membership.role !== 'admin') {
+    return { error: 'Not authorized' };
+  }
+
+  // Prevent demoting yourself
+  if (userId === user.id && role !== 'admin') {
+    return { error: 'Cannot demote yourself' };
+  }
+
   const { error } = await supabase
     .from('group_members')
     .update({ role })
     .eq('group_id', groupId)
     .eq('user_id', userId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
   return { success: true };
 }
