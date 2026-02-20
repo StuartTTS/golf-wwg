@@ -266,6 +266,16 @@ export async function declineInvite(token: string): Promise<AuthActionResult> {
     return { error: 'Invalid invite token' };
   }
 
+  const ip = await getClientIp();
+  const { allowed } = await checkRateLimit({
+    key: `invite:${ip}`,
+    maxAttempts: 10,
+    windowSeconds: 3600,
+  });
+  if (!allowed) {
+    return { error: 'Too many attempts. Please try again later.' };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const { error } = await supabase

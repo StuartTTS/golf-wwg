@@ -18,24 +18,44 @@ Deno.serve(async (req: Request) => {
 
     const { userId, roundId } = (await req.json()) as RequestBody;
 
-    // Create a client with the user's JWT to respect RLS
+    // Create a client with the caller's token
     const userClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    // Verify the caller's identity
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authorization' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Security: verify the userId matches the authenticated caller.
+    // This prevents any participant from triggering handicap calculation
+    // for another user. Service role calls (from finalize-round) now use
+    // the inline calculation instead of this endpoint.
+    if (user.id !== userId) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot calculate handicap for another user' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Verify user is a participant in this round
     const { data: roundPlayer } = await userClient
       .from('round_players')
       .select('id')
       .eq('round_id', roundId)
-      .limit(1)
+      .eq('user_id', userId)
       .single();
 
     if (!roundPlayer) {
       return new Response(
-        JSON.stringify({ error: 'Not authorized for this round' }),
+        JSON.stringify({ error: 'Not a participant in this round' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
