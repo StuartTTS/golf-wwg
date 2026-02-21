@@ -48,7 +48,6 @@ export default async function CoursesPage() {
         slope_rating
       )
     `)
-    .eq('created_by', user.id)
     .order('name');
 
   if (error) {

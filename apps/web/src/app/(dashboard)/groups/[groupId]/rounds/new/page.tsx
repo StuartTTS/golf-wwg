@@ -108,10 +108,14 @@ export default function CreateRoundPage({ params }: CreateRoundPageProps) {
   // Fetch courses
   useEffect(() => {
     async function fetchCourses() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('courses')
         .select('id, name')
         .order('name', { ascending: true });
+      if (error) {
+        console.error('Failed to load courses:', error);
+        return;
+      }
       if (data) setCourses(data);
     }
     fetchCourses();
