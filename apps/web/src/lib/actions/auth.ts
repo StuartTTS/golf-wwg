@@ -217,7 +217,7 @@ export async function resetPassword(
 // Accept invite
 // ---------------------------------------------------------------------------
 
-export async function acceptInvite(token: string): Promise<AuthActionResult> {
+export async function acceptInvite(token: string): Promise<AuthActionResult & { groupId?: string }> {
   if (!token || typeof token !== 'string') {
     return { error: 'Invalid invite token' };
   }
@@ -235,26 +235,53 @@ export async function acceptInvite(token: string): Promise<AuthActionResult> {
   const supabase = await createServerSupabaseClient();
 
   const { data: sessionData } = await supabase.auth.getSession();
-
   if (!sessionData.session) {
     return { error: 'You must be logged in to accept an invite' };
   }
 
   const userId = sessionData.session.user.id;
 
-  // Mark the invite as accepted (only if not expired)
-  const { error } = await supabase
+  // Fetch the invitation first to get group_id and validate
+  const { data: invitation } = await supabase
     .from('invitations')
-    .update({ status: 'accepted' })
+    .select('id, group_id, status, expires_at')
     .eq('token', token)
     .eq('status', 'pending')
-    .gt('expires_at', new Date().toISOString());
+    .gt('expires_at', new Date().toISOString())
+    .single();
 
-  if (error) {
+  if (!invitation) {
     return { error: 'Invalid or expired invitation' };
   }
 
-  return { success: true };
+  // Mark as accepted
+  const { error: updateError } = await supabase
+    .from('invitations')
+    .update({ status: 'accepted' })
+    .eq('id', invitation.id);
+
+  if (updateError) {
+    return { error: 'Failed to accept invitation' };
+  }
+
+  // Add user to group_members
+  const { error: memberError } = await supabase
+    .from('group_members')
+    .insert({
+      group_id: invitation.group_id,
+      user_id: userId,
+      role: 'member',
+    });
+
+  if (memberError) {
+    // If unique constraint violation, user is already a member — that's fine
+    if (!memberError.code?.includes('23505')) {
+      console.error('Failed to add member:', memberError);
+      return { error: 'Failed to join group' };
+    }
+  }
+
+  return { success: true, groupId: invitation.group_id };
 }
 
 // ---------------------------------------------------------------------------
