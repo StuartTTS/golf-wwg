@@ -7,40 +7,35 @@ import { acceptInvite, declineInvite } from '@/lib/actions/auth';
 
 interface InviteActionsProps {
   token: string;
+  groupId: string;
 }
 
-export default function InviteActions({ token }: InviteActionsProps) {
+export default function InviteActions({ token, groupId }: InviteActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function handleAccept() {
     setError(null);
-
     startTransition(async () => {
       const result = await acceptInvite(token);
-
       if (result.error) {
         setError(result.error);
         return;
       }
-
-      router.push('/home');
+      router.push(`/groups/${result.groupId ?? groupId}`);
       router.refresh();
     });
   }
 
   function handleDecline() {
     setError(null);
-
     startTransition(async () => {
       const result = await declineInvite(token);
-
       if (result.error) {
         setError(result.error);
         return;
       }
-
       router.push('/home');
       router.refresh();
     });
@@ -49,23 +44,22 @@ export default function InviteActions({ token }: InviteActionsProps) {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="rounded-golf border border-red-500/20 bg-red-500/10 p-3">
+          <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
-
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-3">
         <Button
           onClick={handleAccept}
-          className="flex-1"
+          className="w-full bg-golf-600 hover:bg-golf-500 text-white font-semibold h-12 rounded-golf-lg"
           disabled={isPending}
         >
           {isPending ? 'Processing...' : 'Accept Invite'}
         </Button>
         <Button
           onClick={handleDecline}
-          variant="outline"
-          className="flex-1"
+          variant="ghost"
+          className="w-full text-surface-400 hover:text-surface-300"
           disabled={isPending}
         >
           Decline

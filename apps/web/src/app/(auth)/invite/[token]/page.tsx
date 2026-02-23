@@ -34,12 +34,12 @@ export default async function InvitePage({ params }: InvitePageProps) {
   // If the invite doesn't exist or has already been used, show an error
   if (error || !invite) {
     return (
-      <div className="w-full max-w-md space-y-6">
+      <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-dark-900">
+          <h1 className="font-display text-3xl font-bold text-surface-50">
             Invalid Invite
           </h1>
-          <p className="mt-4 text-sm text-dark-700">
+          <p className="mt-4 text-sm text-surface-300">
             This invite link is invalid or has expired. Please ask the group
             admin to send a new invite.
           </p>
@@ -50,12 +50,12 @@ export default async function InvitePage({ params }: InvitePageProps) {
 
   if (invite.status !== 'pending') {
     return (
-      <div className="w-full max-w-md space-y-6">
+      <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-dark-900">
+          <h1 className="font-display text-3xl font-bold text-surface-50">
             Invite Already Used
           </h1>
-          <p className="mt-4 text-sm text-dark-700">
+          <p className="mt-4 text-sm text-surface-300">
             This invite has already been{' '}
             {invite.status === 'accepted' ? 'accepted' : 'declined'}.
           </p>
@@ -72,7 +72,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
   if (!session) {
     // Redirect to login with a return URL so the user comes back after
     // authenticating.
-    redirect(`/login?returnTo=/invite/${token}`);
+    redirect(`/login?redirect=/invite/${token}`);
   }
 
   const { data: groupData } = await supabase
@@ -83,42 +83,41 @@ export default async function InvitePage({ params }: InvitePageProps) {
   const groupName = (groupData as { name: string } | null)?.name ?? 'a group';
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-dark-900">
-          You&apos;re Invited!
-        </h1>
-        <p className="mt-4 text-sm text-dark-700">
-          You&apos;ve been invited to join{' '}
-          <span className="font-semibold text-dark-900">{groupName}</span>.
+        <p className="text-sm text-surface-300">
+          You&apos;ve been invited to join
         </p>
+        <h1 className="mt-2 font-display text-2xl font-bold text-gold-500">
+          {groupName}
+        </h1>
       </div>
 
       {/* Invite details card */}
-      <div className="rounded-lg border border-dark-300 bg-dark-100 p-6 shadow-sm">
-        <dl className="space-y-4">
+      <div className="rounded-golf border border-surface-600/50 bg-surface-700/50 p-5">
+        <dl className="space-y-3">
           {invite.email && (
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-dark-600">
+              <dt className="text-xs font-medium uppercase tracking-wide text-surface-400">
                 Invited email
               </dt>
-              <dd className="mt-1 text-sm text-dark-900">
+              <dd className="mt-1 text-sm text-surface-100">
                 {invite.email}
               </dd>
             </div>
           )}
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-dark-600">
+            <dt className="text-xs font-medium uppercase tracking-wide text-surface-400">
               Group
             </dt>
-            <dd className="mt-1 text-sm text-dark-900">{groupName}</dd>
+            <dd className="mt-1 text-sm text-surface-100">{groupName}</dd>
           </div>
           {invite.type && (
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-dark-600">
+              <dt className="text-xs font-medium uppercase tracking-wide text-surface-400">
                 Invite type
               </dt>
-              <dd className="mt-1 text-sm capitalize text-dark-900">
+              <dd className="mt-1 text-sm capitalize text-surface-100">
                 {invite.type}
               </dd>
             </div>
@@ -128,7 +127,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
 
       {/* Accept / Decline buttons – rendered in a client component so they can
           handle transitions and error state. */}
-      <InviteActions token={token} />
+      <InviteActions token={token} groupId={invite.group_id} />
     </div>
   );
 }
