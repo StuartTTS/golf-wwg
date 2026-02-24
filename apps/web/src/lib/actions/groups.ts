@@ -155,7 +155,7 @@ export async function inviteMember(groupId: string, formData: FormData) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  const { error } = await supabase.from('invitations').insert({
+  const { data: invitation, error } = await supabase.from('invitations').insert({
     type: 'group',
     group_id: groupId,
     email: parsed.data.email,
@@ -163,12 +163,28 @@ export async function inviteMember(groupId: string, formData: FormData) {
     invited_by: user.id,
     status: 'pending',
     expires_at: expiresAt.toISOString(),
-  });
+  }).select('id').single();
 
   if (error) {
     console.error('Action error:', error);
     return { error: 'An error occurred. Please try again.' };
   }
+
+  // Trigger invitation email (fire-and-forget)
+  // Note: supabase.functions.invoke() doesn't pass auth from the SSR client,
+  // so we use fetch directly with the session's access token.
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invitation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ invitationId: invitation.id }),
+    }).catch((err) => console.error('Failed to send invitation email:', err));
+  }
+
   return { success: true, token };
 }
 

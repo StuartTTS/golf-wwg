@@ -81,10 +81,20 @@ export async function createRound(formData: FormData) {
       .select('id');
 
     // Trigger notification emails (fire-and-forget)
+    // Note: supabase.functions.invoke() doesn't pass auth from the SSR client,
+    // so we use fetch directly with the session's access token.
     if (createdInvites) {
-      supabase.functions.invoke('send-round-notification', {
-        body: { roundId: round.id, invitationIds: createdInvites.map(i => i.id) },
-      }).catch((err) => console.error('Failed to send round notifications:', err));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-round-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ roundId: round.id, invitationIds: createdInvites.map(i => i.id) }),
+        }).catch((err) => console.error('Failed to send round notifications:', err));
+      }
     }
   }
 
