@@ -155,6 +155,12 @@ export async function inviteMember(groupId: string, formData: FormData) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
+  // Get session token before creating the invitation
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return { error: 'Session expired. Please log in again.' };
+  }
+
   const { data: invitation, error } = await supabase.from('invitations').insert({
     type: 'group',
     group_id: groupId,
@@ -170,12 +176,9 @@ export async function inviteMember(groupId: string, formData: FormData) {
     return { error: 'An error occurred. Please try again.' };
   }
 
-  // Trigger invitation email (fire-and-forget)
-  // Note: supabase.functions.invoke() doesn't pass auth from the SSR client,
-  // so we use fetch directly with the session's access token.
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invitation`, {
+  // Send the invitation email — await so we can roll back on failure
+  try {
+    const emailRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invitation`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -183,7 +186,19 @@ export async function inviteMember(groupId: string, formData: FormData) {
         'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       },
       body: JSON.stringify({ invitationId: invitation.id }),
-    }).catch((err) => console.error('Failed to send invitation email:', err));
+    });
+
+    if (!emailRes.ok) {
+      const body = await emailRes.text();
+      console.error('Edge function error:', emailRes.status, body);
+      // Delete the orphaned invitation
+      await supabase.from('invitations').delete().eq('id', invitation.id);
+      return { error: 'Failed to send invitation email. Please try again.' };
+    }
+  } catch (err) {
+    console.error('Failed to call send-invitation:', err);
+    await supabase.from('invitations').delete().eq('id', invitation.id);
+    return { error: 'Failed to send invitation email. Please try again.' };
   }
 
   return { success: true, token };
