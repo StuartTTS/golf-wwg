@@ -91,6 +91,7 @@ export async function createRound(formData: FormData) {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           },
           body: JSON.stringify({ roundId: round.id, invitationIds: createdInvites.map(i => i.id) }),
         }).catch((err) => console.error('Failed to send round notifications:', err));

@@ -180,6 +180,7 @@ export async function inviteMember(groupId: string, formData: FormData) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       },
       body: JSON.stringify({ invitationId: invitation.id }),
     }).catch((err) => console.error('Failed to send invitation email:', err));
