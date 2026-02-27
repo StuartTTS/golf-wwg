@@ -3,6 +3,7 @@
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createRoundSchema } from '@golf/core';
+import { sendEmail, escapeHtml } from '@/lib/email';
 
 export async function createRound(formData: FormData) {
   const supabase = await createServerSupabaseClient();
@@ -15,12 +16,20 @@ export async function createRound(formData: FormData) {
     teeBoxId: formData.get('teeBoxId'),
     roundDate: formData.get('roundDate'),
     teeTime: formData.get('teeTime') || undefined,
-    scoringMode: formData.get('scoringMode'),
+    scoringMode: formData.get('scoringMode') || undefined,
     scorekeeperId: formData.get('scorekeeperId') || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message };
+  }
+
+  // Parse per-player tee assignments (format: "userId:teeBoxId")
+  const playerTeeEntries = formData.getAll('playerTeeBoxIds') as string[];
+  const playerTeeMap = new Map<string, string>();
+  for (const entry of playerTeeEntries) {
+    const [userId, teeBoxId] = entry.split(':');
+    if (userId && teeBoxId) playerTeeMap.set(userId, teeBoxId);
   }
 
   const { data: round, error } = await supabase
@@ -32,7 +41,7 @@ export async function createRound(formData: FormData) {
       round_date: parsed.data.roundDate,
       tee_time: parsed.data.teeTime ?? null,
       status: 'upcoming',
-      scoring_mode: parsed.data.scoringMode,
+      scoring_mode: parsed.data.scoringMode ?? 'shared',
       scorekeeper_id: parsed.data.scorekeeperId ?? null,
       created_by: user.id,
     })
@@ -44,11 +53,12 @@ export async function createRound(formData: FormData) {
     return { error: 'An error occurred. Please try again.' };
   }
 
-  // Add creator as a player
+  // Add creator as a player (use per-player tee assignment if available)
+  const creatorTeeBoxId = playerTeeMap.get(user.id) ?? parsed.data.teeBoxId;
   await supabase.from('round_players').insert({
     round_id: round.id,
     user_id: user.id,
-    tee_box_id: parsed.data.teeBoxId,
+    tee_box_id: creatorTeeBoxId,
     status: 'registered',
   });
 
@@ -80,28 +90,75 @@ export async function createRound(formData: FormData) {
       .insert(invitations)
       .select('id');
 
-    // Send notification emails — await so we can report failure
-    if (createdInvites) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        try {
-          const emailRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-round-notification`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            },
-            body: JSON.stringify({ roundId: round.id, invitationIds: createdInvites.map(i => i.id) }),
-          });
+    // Send notification emails directly via Microsoft Graph API
+    if (createdInvites && createdInvites.length > 0) {
+      const { data: course } = await supabase
+        .from('courses')
+        .select('name')
+        .eq('id', parsed.data.courseId)
+        .single();
 
-          if (!emailRes.ok) {
-            console.error('Round notification error:', emailRes.status, await emailRes.text());
-            return { success: true, roundId: round.id, warning: 'Round created but failed to send notification emails.' };
+      const { data: group } = await supabase
+        .from('groups')
+        .select('name')
+        .eq('id', parsed.data.groupId)
+        .single();
+
+      const { data: organizer } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single();
+
+      const { data: invitationsWithTokens } = await supabase
+        .from('invitations')
+        .select('id, email, token')
+        .in('id', createdInvites.map(i => i.id));
+
+      if (invitationsWithTokens && invitationsWithTokens.length > 0) {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        const courseName = course?.name ?? 'the course';
+        const groupName = group?.name ?? 'your group';
+        const organizerName = organizer?.display_name ?? 'Someone';
+        const roundDate = new Date(parsed.data.roundDate).toLocaleDateString('en-US', {
+          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+        });
+
+        const safeCourseName = escapeHtml(courseName);
+        const safeGroupName = escapeHtml(groupName);
+        const safeOrganizerName = escapeHtml(organizerName);
+        const safeTeeTime = parsed.data.teeTime ? escapeHtml(parsed.data.teeTime) : '';
+
+        let failCount = 0;
+        for (const inv of invitationsWithTokens) {
+          const rsvpUrl = `${siteUrl}/rounds/${round.id}/rsvp?token=${inv.token}`;
+          try {
+            await sendEmail(
+              inv.email,
+              `Round scheduled: ${courseName} on ${roundDate}`,
+              `
+                <h2>${safeOrganizerName} scheduled a round!</h2>
+                <p><strong>Group:</strong> ${safeGroupName}</p>
+                <p><strong>Course:</strong> ${safeCourseName}</p>
+                <p><strong>Date:</strong> ${roundDate}</p>
+                ${safeTeeTime ? `<p><strong>Tee Time:</strong> ${safeTeeTime}</p>` : ''}
+                <p style="margin-top:24px;">
+                  <a href="${rsvpUrl}" style="display:inline-block;padding:12px 24px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;">
+                    RSVP Now
+                  </a>
+                </p>
+                <p>Or copy this link: ${rsvpUrl}</p>
+                <p style="color:#888;font-size:12px;">This invitation expires in 7 days.</p>
+              `
+            );
+          } catch (err) {
+            console.error(`Failed to send round notification to ${inv.email}:`, err);
+            failCount++;
           }
-        } catch (err) {
-          console.error('Failed to send round notifications:', err);
-          return { success: true, roundId: round.id, warning: 'Round created but failed to send notification emails.' };
+        }
+
+        if (failCount > 0) {
+          return { success: true, roundId: round.id, warning: `Round created but failed to send ${failCount} notification email(s).` };
         }
       }
     }
@@ -312,7 +369,7 @@ export async function acceptRoundInvite(token: string) {
   // Fetch the invitation
   const { data: invitation } = await supabase
     .from('invitations')
-    .select('id, round_id, group_id, status, expires_at')
+    .select('id, round_id, group_id, email, status, expires_at')
     .eq('token', token)
     .eq('type', 'round')
     .eq('status', 'pending')
@@ -321,6 +378,11 @@ export async function acceptRoundInvite(token: string) {
 
   if (!invitation || !invitation.round_id) {
     return { error: 'Invalid or expired invitation' };
+  }
+
+  // Verify the authenticated user's email matches the invitation
+  if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
+    return { error: 'This invitation was sent to a different email address' };
   }
 
   // Get round details for tee_box_id
@@ -352,13 +414,7 @@ export async function acceptRoundInvite(token: string) {
     );
   }
 
-  // Mark invitation as accepted
-  await supabase
-    .from('invitations')
-    .update({ status: 'accepted' })
-    .eq('id', invitation.id);
-
-  // Add player to round (upsert in case they were already invited)
+  // Add player to round first (upsert in case they were already invited)
   const { error: insertError } = await supabase.from('round_players').upsert({
     round_id: invitation.round_id,
     user_id: user.id,
@@ -373,6 +429,12 @@ export async function acceptRoundInvite(token: string) {
     console.error('Failed to add player to round:', insertError);
     return { error: 'Failed to join round' };
   }
+
+  // Mark invitation as accepted only after player was successfully added
+  await supabase
+    .from('invitations')
+    .update({ status: 'accepted' })
+    .eq('id', invitation.id);
 
   return { success: true, roundId: invitation.round_id };
 }
