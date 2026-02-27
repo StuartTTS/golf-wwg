@@ -1,133 +1,159 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { acceptInvite } from '@/lib/actions/auth';
+import Link from 'next/link';
 import InviteActions from './invite-actions';
 
 interface InvitePageProps {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ email?: string }>;
 }
 
-export default async function InvitePage({ params }: InvitePageProps) {
+export default async function InvitePage({ params, searchParams }: InvitePageProps) {
   const { token } = await params;
+  const { email } = await searchParams;
 
   const supabase = await createServerSupabaseClient();
 
-  // Fetch the invite details
-  const { data, error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Not authenticated — redirect to register (or they can click through to login)
+  if (!user) {
+    const redirectPath = `/invite/${token}`;
+    const registerUrl = email
+      ? `/register?redirect=${encodeURIComponent(redirectPath)}&email=${encodeURIComponent(email)}`
+      : `/register?redirect=${encodeURIComponent(redirectPath)}`;
+    redirect(registerUrl);
+  }
+
+  // Authenticated — check if this user matches the invite recipient
+  if (email && user.email?.toLowerCase() !== email.toLowerCase()) {
+    // Wrong account is logged in — sign them out and redirect to register
+    await supabase.auth.signOut();
+    const redirectPath = `/invite/${token}`;
+    const registerUrl = `/register?redirect=${encodeURIComponent(redirectPath)}&email=${encodeURIComponent(email)}`;
+    redirect(registerUrl);
+  }
+
+  // Look up the invitation to validate state and get group details
+  const { data: invitation } = await supabase
     .from('invitations')
-    .select('*')
+    .select('id, group_id, email, status, expires_at, invited_by')
     .eq('token', token)
     .single();
 
-  const invite = data as {
-    id: string;
-    status: string;
-    group_id: string;
-    email: string;
-    type: string;
-    token: string;
-    invited_by: string;
-    round_id: string | null;
-    created_at: string;
-    expires_at: string;
-  } | null;
-
-  // If the invite doesn't exist or has already been used, show an error
-  if (error || !invite) {
+  if (!invitation) {
     return (
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="font-display text-3xl font-bold text-surface-50">
-            Invalid Invite
+            Invalid Invitation
           </h1>
           <p className="mt-4 text-sm text-surface-300">
-            This invite link is invalid or has expired. Please ask the group
-            admin to send a new invite.
+            This invitation link is invalid or has expired.
           </p>
+          <Link
+            href="/home"
+            className="mt-4 inline-block text-sm font-medium text-golf-400 hover:text-golf-300"
+          >
+            Go to Home
+          </Link>
         </div>
       </div>
     );
   }
 
-  if (invite.status !== 'pending') {
+  if (invitation.status !== 'pending') {
     return (
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="font-display text-3xl font-bold text-surface-50">
-            Invite Already Used
+            Invitation Already {invitation.status === 'accepted' ? 'Accepted' : invitation.status === 'declined' ? 'Declined' : 'Used'}
           </h1>
           <p className="mt-4 text-sm text-surface-300">
-            This invite has already been{' '}
-            {invite.status === 'accepted' ? 'accepted' : 'declined'}.
+            This invitation has already been {invitation.status}.
           </p>
+          <Link
+            href="/home"
+            className="mt-4 inline-block text-sm font-medium text-golf-400 hover:text-golf-300"
+          >
+            Go to Home
+          </Link>
         </div>
       </div>
     );
   }
 
-  // Check whether the user is logged in
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    // Redirect to login with a return URL so the user comes back after
-    // authenticating.
-    redirect(`/login?redirect=/invite/${token}`);
+  if (new Date(invitation.expires_at) < new Date()) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="font-display text-3xl font-bold text-surface-50">
+            Invitation Expired
+          </h1>
+          <p className="mt-4 text-sm text-surface-300">
+            This invitation has expired. Please ask the group admin to send a new one.
+          </p>
+          <Link
+            href="/home"
+            className="mt-4 inline-block text-sm font-medium text-golf-400 hover:text-golf-300"
+          >
+            Go to Home
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  const { data: groupData } = await supabase
+  // Fetch group name and inviter name for display
+  const { data: group } = await supabase
     .from('groups')
     .select('name')
-    .eq('id', invite.group_id)
+    .eq('id', invitation.group_id)
     .single();
-  const groupName = (groupData as { name: string } | null)?.name ?? 'a group';
 
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <p className="text-sm text-surface-300">
-          You&apos;ve been invited to join
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-bold text-gold-500">
-          {groupName}
-        </h1>
-      </div>
+  const { data: inviterProfile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', invitation.invited_by)
+    .single();
 
-      {/* Invite details card */}
-      <div className="rounded-golf border border-surface-600/50 bg-surface-700/50 p-5">
-        <dl className="space-y-3">
-          {invite.email && (
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-surface-400">
-                Invited email
-              </dt>
-              <dd className="mt-1 text-sm text-surface-100">
-                {invite.email}
-              </dd>
-            </div>
-          )}
-          <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-surface-400">
-              Group
-            </dt>
-            <dd className="mt-1 text-sm text-surface-100">{groupName}</dd>
+  const groupName = group?.name ?? 'a golf group';
+  const inviterName = inviterProfile?.display_name ?? 'Someone';
+
+  // New user (just registered via invite flow) — auto-accept
+  const profileCompleted = user.user_metadata?.profile_completed;
+  if (profileCompleted === false) {
+    const result = await acceptInvite(token);
+
+    if (result.error) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="font-display text-3xl font-bold text-surface-50">
+              Invitation Error
+            </h1>
+            <p className="mt-4 text-sm text-surface-300">{result.error}</p>
+            <p className="mt-2 text-sm text-surface-400">
+              Please ask the group admin to send a new invite if needed.
+            </p>
+            <Link
+              href="/home"
+              className="mt-4 inline-block text-sm font-medium text-golf-400 hover:text-golf-300"
+            >
+              Go to Home
+            </Link>
           </div>
-          {invite.type && (
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-surface-400">
-                Invite type
-              </dt>
-              <dd className="mt-1 text-sm capitalize text-surface-100">
-                {invite.type}
-              </dd>
-            </div>
-          )}
-        </dl>
-      </div>
+        </div>
+      );
+    }
 
-      {/* Accept / Decline buttons – rendered in a client component so they can
-          handle transitions and error state. */}
-      <InviteActions token={token} groupId={invite.group_id} />
-    </div>
-  );
+    // Send to profile setup with groupId so they land in the group after
+    redirect(`/settings?setup=true&groupId=${result.groupId}`);
+  }
+
+  // Existing user — show accept/decline UI
+  return <InviteActions token={token} groupName={groupName} inviterName={inviterName} />;
 }

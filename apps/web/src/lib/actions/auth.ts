@@ -101,12 +101,26 @@ export async function register(formData: FormData): Promise<AuthActionResult> {
     options: {
       data: {
         display_name: parsed.data.displayName,
+        profile_completed: false,
       },
     },
   });
 
   if (signUpError) {
     return { error: 'Unable to create account. Please try again.' };
+  }
+
+  // If email confirmation is enabled, signUp creates the user but no session.
+  // Sign in explicitly to ensure the user has an active session for redirect.
+  if (!data.session) {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+
+    if (signInError) {
+      return { error: 'Account created but sign-in failed. Please try logging in.' };
+    }
   }
 
   // Profile row is created automatically by the on_auth_user_created trigger.
@@ -169,7 +183,7 @@ export async function forgotPassword(
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
     {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
     },
   );
 
@@ -214,7 +228,7 @@ export async function resetPassword(
 }
 
 // ---------------------------------------------------------------------------
-// Accept invite
+// Accept invite (called server-side from the invite page)
 // ---------------------------------------------------------------------------
 
 export async function acceptInvite(token: string): Promise<AuthActionResult & { groupId?: string }> {
@@ -222,29 +236,17 @@ export async function acceptInvite(token: string): Promise<AuthActionResult & { 
     return { error: 'Invalid invite token' };
   }
 
-  const ip = await getClientIp();
-  const { allowed } = await checkRateLimit({
-    key: `invite:${ip}`,
-    maxAttempts: 10,
-    windowSeconds: 3600,
-  });
-  if (!allowed) {
-    return { error: 'Too many attempts. Please try again later.' };
-  }
-
   const supabase = await createServerSupabaseClient();
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return { error: 'You must be logged in to accept an invite' };
   }
 
-  const userId = sessionData.session.user.id;
-
-  // Fetch the invitation first to get group_id and validate
+  // Fetch the invitation and validate
   const { data: invitation } = await supabase
     .from('invitations')
-    .select('id, group_id, status, expires_at')
+    .select('id, group_id, email, status, expires_at')
     .eq('token', token)
     .eq('status', 'pending')
     .gt('expires_at', new Date().toISOString())
@@ -252,6 +254,11 @@ export async function acceptInvite(token: string): Promise<AuthActionResult & { 
 
   if (!invitation) {
     return { error: 'Invalid or expired invitation' };
+  }
+
+  // Verify the authenticated user's email matches the invitation
+  if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
+    return { error: 'This invitation was sent to a different email address' };
   }
 
   // Mark as accepted
@@ -269,7 +276,7 @@ export async function acceptInvite(token: string): Promise<AuthActionResult & { 
     .from('group_members')
     .insert({
       group_id: invitation.group_id,
-      user_id: userId,
+      user_id: user.id,
       role: 'member',
     });
 
@@ -293,27 +300,36 @@ export async function declineInvite(token: string): Promise<AuthActionResult> {
     return { error: 'Invalid invite token' };
   }
 
-  const ip = await getClientIp();
-  const { allowed } = await checkRateLimit({
-    key: `invite:${ip}`,
-    maxAttempts: 10,
-    windowSeconds: 3600,
-  });
-  if (!allowed) {
-    return { error: 'Too many attempts. Please try again later.' };
+  const supabase = await createServerSupabaseClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'You must be logged in to decline an invite' };
   }
 
-  const supabase = await createServerSupabaseClient();
+  const { data: invitation } = await supabase
+    .from('invitations')
+    .select('id, email, status, expires_at')
+    .eq('token', token)
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString())
+    .single();
+
+  if (!invitation) {
+    return { error: 'Invalid or expired invitation' };
+  }
+
+  if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
+    return { error: 'This invitation was sent to a different email address' };
+  }
 
   const { error } = await supabase
     .from('invitations')
     .update({ status: 'declined' })
-    .eq('token', token)
-    .eq('status', 'pending')
-    .gt('expires_at', new Date().toISOString());
+    .eq('id', invitation.id);
 
   if (error) {
-    return { error: 'Invalid or expired invitation' };
+    return { error: 'Failed to decline invitation' };
   }
 
   return { success: true };

@@ -85,14 +85,14 @@ export default function CreateGroupPage() {
       <div>
         <Link
           href="/groups"
-          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
+          className="text-sm text-surface-300 hover:text-surface-100 mb-2 inline-block"
         >
           &larr; Back to Groups
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+        <h1 className="text-3xl font-bold tracking-tight text-surface-50">
           Create a Group
         </h1>
-        <p className="mt-1 text-sm text-dark-600">
+        <p className="mt-1 text-sm text-surface-300">
           Set up a new golf group and invite your friends.
         </p>
       </div>
@@ -117,7 +117,7 @@ export default function CreateGroupPage() {
           <div className="space-y-2">
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-dark-800"
+              className="block text-sm font-medium text-surface-100"
             >
               Group Name <span className="text-red-500">*</span>
             </label>
@@ -138,13 +138,13 @@ export default function CreateGroupPage() {
           <div className="space-y-2">
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-dark-800"
+              className="block text-sm font-medium text-surface-100"
             >
               Description
             </label>
             <textarea
               id="description"
-              className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-dark-100 px-3 py-2 text-sm placeholder:text-dark-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[80px] w-full rounded-md border border-surface-500 bg-surface-800 px-3 py-2 text-sm text-surface-50 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-golf-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="What is this group about?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -157,7 +157,7 @@ export default function CreateGroupPage() {
           <div className="space-y-2">
             <label
               htmlFor="defaultCourse"
-              className="block text-sm font-medium text-dark-800"
+              className="block text-sm font-medium text-surface-100"
             >
               Default Course
             </label>
@@ -168,7 +168,7 @@ export default function CreateGroupPage() {
               options={courses.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="Select a course (optional)"
             />
-            <p className="text-xs text-dark-600">
+            <p className="text-xs text-surface-300">
               This will be the default course when creating rounds for this group.
             </p>
           </div>

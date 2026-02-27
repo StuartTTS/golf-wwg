@@ -56,18 +56,18 @@ export function HoleEntry({
   const scoreButtonColor = (strokes: number, isActive: boolean) => {
     if (!isActive) {
       const diff = strokes - hole.par;
-      if (diff <= -2) return 'border-yellow-400 hover:bg-yellow-50';
-      if (diff === -1) return 'border-red-300 hover:bg-red-50';
-      if (diff === 0) return 'border-slate-300 hover:bg-slate-50';
-      if (diff === 1) return 'border-blue-300 hover:bg-blue-50';
-      return 'border-blue-400 hover:bg-blue-50';
+      if (diff <= -2) return 'border-score-eagle hover:bg-score-eagle/10';
+      if (diff === -1) return 'border-score-birdie hover:bg-score-birdie/10';
+      if (diff === 0) return 'border-surface-500 hover:bg-surface-700';
+      if (diff === 1) return 'border-score-bogey hover:bg-score-bogey/10';
+      return 'border-score-double hover:bg-score-double/10';
     }
     const diff = strokes - hole.par;
-    if (diff <= -2) return 'bg-yellow-200 border-yellow-400';
-    if (diff === -1) return 'bg-red-100 border-red-400';
-    if (diff === 0) return 'bg-slate-200 border-slate-400';
-    if (diff === 1) return 'bg-blue-100 border-blue-400';
-    return 'bg-blue-200 border-blue-400';
+    if (diff <= -2) return 'bg-score-eagle/20 border-score-eagle';
+    if (diff === -1) return 'bg-score-birdie/20 border-score-birdie';
+    if (diff === 0) return 'bg-surface-700 border-surface-400';
+    if (diff === 1) return 'bg-score-bogey/20 border-score-bogey';
+    return 'bg-score-double/20 border-score-double';
   };
 
   return (
@@ -106,20 +106,20 @@ export function HoleEntry({
           return (
             <div
               key={player.playerId}
-              className="bg-white rounded-lg border border-slate-200 p-4"
+              className="bg-surface-800 rounded-lg border border-surface-600 p-4"
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <div className="font-medium text-slate-900">
+                  <div className="font-medium text-surface-50">
                     {player.displayName}
                   </div>
                   {player.playingHandicap > 0 && (
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-surface-400">
                       Hdcp {player.playingHandicap}
                     </div>
                   )}
                 </div>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-2xl font-bold text-surface-50">
                   {score?.strokes ?? '-'}
                 </div>
               </div>
@@ -136,7 +136,7 @@ export function HoleEntry({
                     )}`}
                   >
                     <div className="text-lg font-bold">{s}</div>
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-[10px] text-surface-400">
                       {scoreLabel(s)}
                     </div>
                   </button>
@@ -148,7 +148,7 @@ export function HoleEntry({
                 onClick={() =>
                   setExpandedStats(isExpanded ? null : player.playerId)
                 }
-                className="mt-2 text-xs text-slate-400 hover:text-slate-600"
+                className="mt-2 text-xs text-surface-400 hover:text-surface-200"
               >
                 {isExpanded ? 'Hide stats' : 'Add stats'}
               </button>
@@ -156,21 +156,21 @@ export function HoleEntry({
               {isExpanded && (
                 <div className="mt-2 flex gap-4 text-xs">
                   <label className="flex items-center gap-1">
-                    <span className="text-slate-500">Putts:</span>
+                    <span className="text-surface-400">Putts:</span>
                     <input
                       type="number"
                       min={0}
                       max={10}
-                      className="w-12 rounded border border-slate-200 px-1 py-0.5 text-center"
+                      className="w-12 rounded border border-surface-500 bg-surface-700 px-1 py-0.5 text-center text-surface-100"
                     />
                   </label>
                   <label className="flex items-center gap-1">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-slate-500">FIR</span>
+                    <input type="checkbox" className="rounded border-surface-500" />
+                    <span className="text-surface-400">FIR</span>
                   </label>
                   <label className="flex items-center gap-1">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-slate-500">GIR</span>
+                    <input type="checkbox" className="rounded border-surface-500" />
+                    <span className="text-surface-400">GIR</span>
                   </label>
                 </div>
               )}

@@ -90,26 +90,34 @@ export async function createRound(formData: FormData) {
       .insert(invitations)
       .select('id');
 
+    // Fetch shared context for email + push notifications
+    const { data: course } = await supabase
+      .from('courses')
+      .select('name')
+      .eq('id', parsed.data.courseId)
+      .single();
+
+    const { data: group } = await supabase
+      .from('groups')
+      .select('name')
+      .eq('id', parsed.data.groupId)
+      .single();
+
+    const { data: organizer } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single();
+
+    const courseName = course?.name ?? 'the course';
+    const groupName = group?.name ?? 'your group';
+    const organizerName = organizer?.display_name ?? 'Someone';
+    const roundDate = new Date(parsed.data.roundDate).toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    });
+
     // Send notification emails directly via Microsoft Graph API
     if (createdInvites && createdInvites.length > 0) {
-      const { data: course } = await supabase
-        .from('courses')
-        .select('name')
-        .eq('id', parsed.data.courseId)
-        .single();
-
-      const { data: group } = await supabase
-        .from('groups')
-        .select('name')
-        .eq('id', parsed.data.groupId)
-        .single();
-
-      const { data: organizer } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', user.id)
-        .single();
-
       const { data: invitationsWithTokens } = await supabase
         .from('invitations')
         .select('id, email, token')
@@ -117,12 +125,6 @@ export async function createRound(formData: FormData) {
 
       if (invitationsWithTokens && invitationsWithTokens.length > 0) {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-        const courseName = course?.name ?? 'the course';
-        const groupName = group?.name ?? 'your group';
-        const organizerName = organizer?.display_name ?? 'Someone';
-        const roundDate = new Date(parsed.data.roundDate).toLocaleDateString('en-US', {
-          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-        });
 
         const safeCourseName = escapeHtml(courseName);
         const safeGroupName = escapeHtml(groupName);
@@ -160,6 +162,22 @@ export async function createRound(formData: FormData) {
         if (failCount > 0) {
           return { success: true, roundId: round.id, warning: `Round created but failed to send ${failCount} notification email(s).` };
         }
+      }
+    }
+
+    // Send push notifications to group members (exclude creator)
+    const memberUserIds = members.map(m => m.user_id).filter(id => id !== user.id);
+    if (memberUserIds.length > 0) {
+      try {
+        const { sendPushToUsers } = await import('@/lib/push');
+        await sendPushToUsers(memberUserIds, {
+          title: 'New Round Scheduled',
+          body: `${organizerName} scheduled a round at ${courseName} on ${roundDate}`,
+          url: `/rounds/${round.id}`,
+        });
+      } catch (err) {
+        console.error('Push notification error:', err);
+        // Don't fail the round creation if push fails
       }
     }
   }
@@ -306,6 +324,29 @@ export async function startRound(roundId: string) {
     .update({ status: 'playing' })
     .eq('round_id', roundId)
     .in('status', ['registered', 'confirmed']);
+
+  // Send push notifications to all players (exclude the user who started the round)
+  const { data: roundPlayers } = await supabase
+    .from('round_players')
+    .select('user_id')
+    .eq('round_id', roundId)
+    .not('user_id', 'is', null);
+
+  if (roundPlayers && roundPlayers.length > 0) {
+    const playerIds = roundPlayers.map(p => p.user_id!).filter(id => id !== user.id);
+    if (playerIds.length > 0) {
+      try {
+        const { sendPushToUsers } = await import('@/lib/push');
+        await sendPushToUsers(playerIds, {
+          title: 'Round Started!',
+          body: 'A round you\'re playing in has started. Open the scorecard.',
+          url: `/rounds/${roundId}/scorecard`,
+        });
+      } catch (err) {
+        console.error('Push notification error:', err);
+      }
+    }
+  }
 
   return { success: true };
 }
@@ -465,6 +506,105 @@ export async function acceptRoundInvite(token: string) {
     .eq('id', invitation.id);
 
   return { success: true, roundId: invitation.round_id };
+}
+
+export async function addGuestToRound(roundId: string, guestName: string, guestHandicap: number | null, teeBoxId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  if (!guestName?.trim()) return { error: 'Guest name is required' };
+
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  // Must be round creator or group admin
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
+
+  // Calculate course handicap for guest
+  let courseHandicap: number | null = null;
+  if (guestHandicap != null) {
+    const { data: teeBox } = await supabase
+      .from('tee_boxes')
+      .select('slope_rating')
+      .eq('id', teeBoxId)
+      .single();
+    if (teeBox) {
+      courseHandicap = Math.round(guestHandicap * (teeBox.slope_rating / 113));
+    }
+  }
+
+  const { data: roundPlayer, error } = await supabase.from('round_players').insert({
+    round_id: roundId,
+    user_id: null,
+    guest_name: guestName.trim(),
+    guest_handicap_index: guestHandicap,
+    tee_box_id: teeBoxId,
+    handicap_index_at_round: guestHandicap,
+    course_handicap: courseHandicap,
+    playing_handicap: courseHandicap,
+    status: 'registered',
+  } as any).select('id').single();
+
+  if (error) {
+    console.error('Add guest error:', error);
+    return { error: 'Failed to add guest player' };
+  }
+
+  return { success: true, roundPlayerId: roundPlayer.id };
+}
+
+export async function removeGuestFromRound(roundId: string, roundPlayerId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
+
+  const { error } = await supabase
+    .from('round_players')
+    .delete()
+    .eq('id', roundPlayerId)
+    .eq('round_id', roundId)
+    .is('user_id', null); // Only allow deleting guest players
+
+  if (error) {
+    console.error('Remove guest error:', error);
+    return { error: 'Failed to remove guest' };
+  }
+
+  return { success: true };
 }
 
 export async function declineRoundInvite(token: string) {

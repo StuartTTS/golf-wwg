@@ -133,7 +133,7 @@ export default function HandicapPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -141,7 +141,7 @@ export default function HandicapPage() {
   if (!data) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-dark-600">Unable to load handicap data</p>
+        <p className="text-surface-300">Unable to load handicap data</p>
       </div>
     );
   }
@@ -162,24 +162,24 @@ export default function HandicapPage() {
       <div>
         <button
           onClick={() => router.push('/profile')}
-          className="text-sm text-dark-600 hover:text-dark-800 flex items-center gap-1 mb-2"
+          className="text-sm text-surface-300 hover:text-surface-100 flex items-center gap-1 mb-2"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Profile
         </button>
-        <h1 className="text-2xl font-bold text-dark-900">Handicap Index</h1>
+        <h1 className="text-2xl font-bold text-surface-50">Handicap Index</h1>
       </div>
 
       {/* Current handicap */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-dark-600 uppercase tracking-wide">
+            <p className="text-xs text-surface-300 uppercase tracking-wide">
               Current
             </p>
-            <p className="text-3xl font-bold text-dark-900 mt-1">
+            <p className="text-3xl font-bold text-surface-50 mt-1">
               {data.currentHandicap !== null
                 ? data.currentHandicap.toFixed(1)
                 : 'N/A'}
@@ -188,7 +188,7 @@ export default function HandicapPage() {
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-dark-600 uppercase tracking-wide">
+            <p className="text-xs text-surface-300 uppercase tracking-wide">
               Low
             </p>
             <p className="text-3xl font-bold text-golf-600 mt-1">
@@ -198,7 +198,7 @@ export default function HandicapPage() {
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-dark-600 uppercase tracking-wide">
+            <p className="text-xs text-surface-300 uppercase tracking-wide">
               High
             </p>
             <p className="text-3xl font-bold text-red-500 mt-1">
@@ -218,7 +218,7 @@ export default function HandicapPage() {
         </CardHeader>
         <div className="px-4 pb-4">
           {chartEntries.length === 0 ? (
-            <p className="text-sm text-dark-500 text-center py-8">
+            <p className="text-sm text-surface-400 text-center py-8">
               Not enough rounds to show trend
             </p>
           ) : (
@@ -235,11 +235,11 @@ export default function HandicapPage() {
                       key={idx}
                       className="flex-1 flex flex-col items-center justify-end h-full"
                     >
-                      <div className="text-[9px] text-dark-600 mb-1">
+                      <div className="text-[9px] text-surface-300 mb-1">
                         {entry.handicapIndex.toFixed(1)}
                       </div>
                       <div
-                        className="w-full bg-green-500 rounded-t-sm min-h-[4px] transition-all"
+                        className="w-full bg-golf-500 rounded-t-sm min-h-[4px] transition-all"
                         style={{ height: `${barHeight}%` }}
                       />
                     </div>
@@ -251,7 +251,7 @@ export default function HandicapPage() {
                 {chartEntries.map((entry, idx) => (
                   <div
                     key={idx}
-                    className="flex-1 text-center text-[8px] text-dark-500 truncate"
+                    className="flex-1 text-center text-[8px] text-surface-400 truncate"
                   >
                     {idx === 0 ||
                     idx === chartEntries.length - 1 ||
@@ -278,7 +278,7 @@ export default function HandicapPage() {
           </CardDescription>
         </CardHeader>
         <div className="px-4 pb-4">
-          <div className="text-xs text-dark-600 mb-3 p-3 bg-dark-50 rounded-lg">
+          <div className="text-xs text-surface-300 mb-3 p-3 bg-surface-700 rounded-lg">
             <p>
               <strong>Formula:</strong> Handicap Index = (Average of lowest
               differentials) x 0.96
@@ -291,7 +291,7 @@ export default function HandicapPage() {
 
           {data.usedDifferentials > 0 && data.differentials.length > 0 && (
             <div className="space-y-1 mt-3">
-              <p className="text-xs font-semibold text-dark-600 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-surface-300 uppercase tracking-wide mb-2">
                 Differentials Used in Calculation
               </p>
               {data.differentials
@@ -301,8 +301,8 @@ export default function HandicapPage() {
                     key={diff.roundId}
                     className="flex items-center justify-between py-2 text-sm"
                   >
-                    <span className="text-dark-800">{diff.courseName}</span>
-                    <span className="font-mono text-dark-900 font-medium">
+                    <span className="text-surface-100">{diff.courseName}</span>
+                    <span className="font-mono text-surface-50 font-medium">
                       {diff.differential.toFixed(1)}
                     </span>
                   </div>
@@ -324,23 +324,23 @@ export default function HandicapPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-dark-300">
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                <tr className="border-b border-surface-500">
+                  <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                     Date
                   </th>
-                  <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                  <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                     Course
                   </th>
-                  <th className="text-center py-2 px-2 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-2 text-xs font-semibold text-surface-300">
                     Score
                   </th>
-                  <th className="text-center py-2 px-2 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-2 text-xs font-semibold text-surface-300">
                     Rating/Slope
                   </th>
-                  <th className="text-center py-2 px-2 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-2 text-xs font-semibold text-surface-300">
                     Diff
                   </th>
-                  <th className="text-center py-2 px-2 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-2 text-xs font-semibold text-surface-300">
                     Used
                   </th>
                 </tr>
@@ -349,26 +349,26 @@ export default function HandicapPage() {
                 {data.differentials.map((diff) => (
                   <tr
                     key={diff.roundId}
-                    className={`border-b border-gray-100 ${
-                      diff.isUsed ? 'bg-green-50' : ''
+                    className={`border-b border-surface-600 ${
+                      diff.isUsed ? 'bg-golf-900/30' : ''
                     }`}
                   >
-                    <td className="py-2 px-2 text-dark-700">
+                    <td className="py-2 px-2 text-surface-200">
                       {new Date(diff.date).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                       })}
                     </td>
-                    <td className="py-2 px-2 text-dark-900 font-medium">
+                    <td className="py-2 px-2 text-surface-50 font-medium">
                       {diff.courseName}
                     </td>
-                    <td className="py-2 px-2 text-center tabular-nums text-dark-900">
+                    <td className="py-2 px-2 text-center tabular-nums text-surface-50">
                       {diff.grossScore}
                     </td>
-                    <td className="py-2 px-2 text-center text-dark-700">
+                    <td className="py-2 px-2 text-center text-surface-200">
                       {diff.courseRating}/{diff.slope}
                     </td>
-                    <td className="py-2 px-2 text-center font-mono font-medium text-dark-900">
+                    <td className="py-2 px-2 text-center font-mono font-medium text-surface-50">
                       {diff.differential.toFixed(1)}
                     </td>
                     <td className="py-2 px-2 text-center">
@@ -385,7 +385,7 @@ export default function HandicapPage() {
           </div>
 
           {data.differentials.length === 0 && (
-            <p className="text-sm text-dark-500 text-center py-8">
+            <p className="text-sm text-surface-400 text-center py-8">
               No score differentials recorded yet. Complete some rounds to start
               tracking your handicap.
             </p>

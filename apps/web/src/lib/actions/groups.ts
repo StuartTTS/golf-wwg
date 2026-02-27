@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { inviteMemberSchema } from '@golf/core';
 import { randomBytes } from 'crypto';
@@ -326,5 +326,38 @@ export async function deleteInvitation(groupId: string, invitationId: string) {
     console.error('Delete invitation error:', error);
     return { error: 'Failed to delete invitation' };
   }
+  return { success: true };
+}
+
+export async function deleteUser(userId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  // Verify caller is a site admin
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('is_site_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (!callerProfile?.is_site_admin) {
+    return { error: 'Not authorized' };
+  }
+
+  // Prevent deleting yourself
+  if (userId === user.id) {
+    return { error: 'Cannot delete your own account' };
+  }
+
+  // Delete from auth.users — cascades to profiles, group_members, scores, etc.
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient.auth.admin.deleteUser(userId);
+
+  if (error) {
+    console.error('Delete user error:', error);
+    return { error: 'Failed to delete user' };
+  }
+
   return { success: true };
 }

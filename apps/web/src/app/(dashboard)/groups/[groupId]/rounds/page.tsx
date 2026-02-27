@@ -74,16 +74,16 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
+          className="text-sm text-surface-300 hover:text-surface-100 mb-2 inline-block"
         >
           &larr; Back to {group.name}
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+            <h1 className="text-3xl font-bold tracking-tight text-surface-50">
               Rounds
             </h1>
-            <p className="mt-1 text-sm text-dark-600">
+            <p className="mt-1 text-sm text-surface-300">
               All rounds for {group.name}.
             </p>
           </div>
@@ -92,6 +92,40 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
           </Link>
         </div>
       </div>
+
+      {/* Navigation Tabs */}
+      <nav className="flex gap-4 border-b border-surface-500 pb-2">
+        <Link
+          href={`/groups/${groupId}`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Overview
+        </Link>
+        <Link
+          href={`/groups/${groupId}/members`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Members
+        </Link>
+        <Link
+          href={`/groups/${groupId}/rounds`}
+          className="text-sm font-medium text-gold-500 border-b-2 border-gold-500 pb-2"
+        >
+          Rounds
+        </Link>
+        <Link
+          href={`/groups/${groupId}/leaderboard`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Leaderboard
+        </Link>
+        <Link
+          href={`/groups/${groupId}/seasons`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Seasons
+        </Link>
+      </nav>
 
       {roundsError ? (
         <Card>
@@ -120,7 +154,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
           {/* In Progress */}
           {inProgressRounds.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-dark-900 mb-3">
+              <h2 className="text-lg font-semibold text-surface-50 mb-3">
                 In Progress
               </h2>
               <div className="space-y-3">
@@ -130,7 +164,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
                     href={`/rounds/${round.id}`}
                     className="block"
                   >
-                    <Card className="transition-shadow hover:shadow-md border-green-200 bg-green-50/30">
+                    <Card className="transition-shadow hover:shadow-md border-golf-500 bg-golf-900/30">
                       <CardHeader className="flex flex-row items-center justify-between py-4">
                         <div>
                           <CardTitle className="text-base">
@@ -162,7 +196,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
           {/* Upcoming */}
           {upcomingRounds.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-dark-900 mb-3">
+              <h2 className="text-lg font-semibold text-surface-50 mb-3">
                 Upcoming
               </h2>
               <div className="space-y-3">
@@ -208,7 +242,7 @@ export default async function GroupRoundsPage({ params }: GroupRoundsPageProps) 
           {/* Completed */}
           {completedRounds.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-dark-900 mb-3">
+              <h2 className="text-lg font-semibold text-surface-50 mb-3">
                 Completed
               </h2>
               <div className="space-y-3">

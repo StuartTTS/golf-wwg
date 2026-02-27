@@ -53,7 +53,7 @@ interface TeeBoxHoles {
 }
 
 const TEE_COLORS = [
-  'Black', 'Blue', 'White', 'Gold', 'Green', 'Red', 'Silver', 'Combo',
+  'Black', 'Blue', 'White', 'Gold', 'Green', 'Red', 'Silver', 'Copper', 'Combo',
 ];
 
 const US_STATES = [
@@ -285,8 +285,10 @@ export default function EditCoursePage() {
         }
       }
 
+      setSaving(false);
       router.push(`/courses/${courseId}`);
     } catch (err: any) {
+      console.error('Course save failed:', err);
       setError(err.message ?? 'Failed to save course');
       setSaving(false);
     }
@@ -295,7 +297,7 @@ export default function EditCoursePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -308,14 +310,14 @@ export default function EditCoursePage() {
       <div>
         <button
           onClick={() => router.push(`/courses/${courseId}`)}
-          className="text-sm text-dark-600 hover:text-dark-800 flex items-center gap-1 mb-2"
+          className="text-sm text-surface-300 hover:text-surface-100 flex items-center gap-1 mb-2"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Course
         </button>
-        <h1 className="text-2xl font-bold text-dark-900">Edit Course</h1>
+        <h1 className="text-2xl font-bold text-surface-50">Edit Course</h1>
       </div>
 
       {error && (
@@ -325,14 +327,14 @@ export default function EditCoursePage() {
       )}
 
       {/* Step tabs */}
-      <div className="flex gap-2 border-b border-dark-300 pb-2">
+      <div className="flex gap-2 border-b border-surface-500 pb-2">
         {(['details', 'teeboxes', 'holes'] as Step[]).map((s) => (
           <button
             key={s}
             onClick={() => setStep(s)}
             className={`
               px-4 py-2 rounded-lg text-sm font-medium transition-colors
-              ${step === s ? 'bg-emerald-900/40 text-golf-600' : 'text-dark-600 hover:text-dark-800'}
+              ${step === s ? 'bg-emerald-900/40 text-golf-600' : 'text-surface-300 hover:text-surface-100'}
             `}
           >
             {s === 'details'
@@ -352,7 +354,7 @@ export default function EditCoursePage() {
           </CardHeader>
           <div className="px-6 pb-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-dark-800 mb-1">
+              <label className="block text-sm font-medium text-surface-100 mb-1">
                 Course Name *
               </label>
               <Input
@@ -365,7 +367,7 @@ export default function EditCoursePage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-dark-800 mb-1">
+                <label className="block text-sm font-medium text-surface-100 mb-1">
                   City
                 </label>
                 <Input
@@ -376,7 +378,7 @@ export default function EditCoursePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-dark-800 mb-1">
+                <label className="block text-sm font-medium text-surface-100 mb-1">
                   State
                 </label>
                 <Select
@@ -397,7 +399,7 @@ export default function EditCoursePage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-dark-800 mb-1">
+              <label className="block text-sm font-medium text-surface-100 mb-1">
                 Holes
               </label>
               <Select
@@ -423,9 +425,9 @@ export default function EditCoursePage() {
                 onChange={(e) =>
                   setDetails({ ...details, isPublic: e.target.checked })
                 }
-                className="rounded border-gray-300 text-golf-600 focus:ring-green-500"
+                className="rounded border-surface-500 text-golf-600 focus:ring-golf-500"
               />
-              <label htmlFor="isPublic" className="text-sm text-dark-800">
+              <label htmlFor="isPublic" className="text-sm text-surface-100">
                 Public course
               </label>
             </div>
@@ -443,10 +445,10 @@ export default function EditCoursePage() {
             {teeBoxes.map((tb, idx) => (
               <div
                 key={tb.id}
-                className="p-4 border border-dark-300 rounded-lg space-y-3"
+                className="p-4 border border-surface-500 rounded-lg space-y-3"
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-dark-800">
+                  <h4 className="text-sm font-semibold text-surface-100">
                     Tee Box {idx + 1}
                   </h4>
                   {teeBoxes.length > 1 && (
@@ -460,7 +462,7 @@ export default function EditCoursePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-dark-700 mb-1">
+                    <label className="block text-xs font-medium text-surface-200 mb-1">
                       Name
                     </label>
                     <Input
@@ -471,7 +473,7 @@ export default function EditCoursePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-dark-700 mb-1">
+                    <label className="block text-xs font-medium text-surface-200 mb-1">
                       Color
                     </label>
                     <Select
@@ -493,7 +495,7 @@ export default function EditCoursePage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-dark-700 mb-1">
+                    <label className="block text-xs font-medium text-surface-200 mb-1">
                       Rating
                     </label>
                     <Input
@@ -506,7 +508,7 @@ export default function EditCoursePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-dark-700 mb-1">
+                    <label className="block text-xs font-medium text-surface-200 mb-1">
                       Slope
                     </label>
                     <Input
@@ -518,7 +520,7 @@ export default function EditCoursePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-dark-700 mb-1">
+                    <label className="block text-xs font-medium text-surface-200 mb-1">
                       Yardage
                     </label>
                     <Input
@@ -535,7 +537,7 @@ export default function EditCoursePage() {
 
             <button
               onClick={addTeeBox}
-              className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-dark-600 hover:border-green-400 hover:text-golf-600 transition-colors"
+              className="w-full p-3 border-2 border-dashed border-surface-500 rounded-lg text-sm text-surface-300 hover:border-golf-400 hover:text-golf-600 transition-colors"
             >
               + Add Another Tee Box
             </button>
@@ -551,14 +553,14 @@ export default function EditCoursePage() {
           </CardHeader>
           <div className="px-6 pb-6 space-y-4">
             {teeBoxes.length > 1 && (
-              <div className="flex gap-2 border-b border-dark-300 pb-2">
+              <div className="flex gap-2 border-b border-surface-500 pb-2">
                 {teeBoxes.map((tb, idx) => (
                   <button
                     key={tb.id}
                     onClick={() => setActiveTeeBox(idx)}
                     className={`
                       px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                      ${idx === activeTeeBox ? 'bg-emerald-900/40 text-golf-600' : 'text-dark-600 hover:text-dark-800'}
+                      ${idx === activeTeeBox ? 'bg-emerald-900/40 text-golf-600' : 'text-surface-300 hover:text-surface-100'}
                     `}
                   >
                     {tb.name || `Tee ${idx + 1}`}
@@ -570,17 +572,17 @@ export default function EditCoursePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-dark-300">
-                    <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600 w-16">
+                  <tr className="border-b border-surface-500">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300 w-16">
                       Hole
                     </th>
-                    <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                       Par
                     </th>
-                    <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                       Yardage
                     </th>
-                    <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                       SI
                     </th>
                   </tr>
@@ -589,11 +591,11 @@ export default function EditCoursePage() {
                   {currentTeeBoxHoles.map((hole, idx) => (
                     <tr
                       key={hole.number}
-                      className={`border-b border-gray-100 ${
-                        hole.number === 10 ? 'border-t-2 border-t-gray-300' : ''
+                      className={`border-b border-surface-600 ${
+                        hole.number === 10 ? 'border-t-2 border-t-surface-500' : ''
                       }`}
                     >
-                      <td className="py-1.5 px-2 text-sm font-medium text-dark-800">
+                      <td className="py-1.5 px-2 text-sm font-medium text-surface-100">
                         {hole.number}
                       </td>
                       <td className="py-1.5 px-2">
@@ -646,7 +648,7 @@ export default function EditCoursePage() {
               </table>
             </div>
 
-            <div className="flex justify-between text-sm text-dark-700 bg-dark-50 p-3 rounded-lg">
+            <div className="flex justify-between text-sm text-surface-200 bg-surface-700 p-3 rounded-lg">
               <span>
                 Front 9:{' '}
                 <strong>

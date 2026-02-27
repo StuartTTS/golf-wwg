@@ -46,9 +46,11 @@ export type Database = {
           country: string
           created_at: string
           created_by: string
+          external_id: string | null
           id: string
           name: string
           num_holes: number
+          source: string | null
           state: string | null
         }
         Insert: {
@@ -57,9 +59,11 @@ export type Database = {
           country?: string
           created_at?: string
           created_by: string
+          external_id?: string | null
           id?: string
           name: string
           num_holes?: number
+          source?: string | null
           state?: string | null
         }
         Update: {
@@ -68,9 +72,11 @@ export type Database = {
           country?: string
           created_at?: string
           created_by?: string
+          external_id?: string | null
           id?: string
           name?: string
           num_holes?: number
+          source?: string | null
           state?: string | null
         }
         Relationships: [
@@ -96,6 +102,7 @@ export type Database = {
           id: string
           player_id: string
           playing_handicap: number | null
+          round_player_id: string | null
           team_id: string | null
         }
         Insert: {
@@ -103,6 +110,7 @@ export type Database = {
           id?: string
           player_id: string
           playing_handicap?: number | null
+          round_player_id?: string | null
           team_id?: string | null
         }
         Update: {
@@ -110,6 +118,7 @@ export type Database = {
           id?: string
           player_id?: string
           playing_handicap?: number | null
+          round_player_id?: string | null
           team_id?: string | null
         }
         Relationships: [
@@ -461,6 +470,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          is_site_admin: boolean
           profile_completed: boolean
           updated_at: string
         }
@@ -472,6 +482,7 @@ export type Database = {
           display_name: string
           email: string
           id: string
+          is_site_admin?: boolean
           profile_completed?: boolean
           updated_at?: string
         }
@@ -483,6 +494,7 @@ export type Database = {
           display_name?: string
           email?: string
           id?: string
+          is_site_admin?: boolean
           profile_completed?: boolean
           updated_at?: string
         }
@@ -491,33 +503,39 @@ export type Database = {
       round_players: {
         Row: {
           course_handicap: number | null
+          guest_handicap_index: number | null
+          guest_name: string | null
           handicap_index_at_round: number | null
           id: string
           playing_handicap: number | null
           round_id: string
           status: string
           tee_box_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           course_handicap?: number | null
+          guest_handicap_index?: number | null
+          guest_name?: string | null
           handicap_index_at_round?: number | null
           id?: string
           playing_handicap?: number | null
           round_id: string
           status?: string
           tee_box_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           course_handicap?: number | null
+          guest_handicap_index?: number | null
+          guest_name?: string | null
           handicap_index_at_round?: number | null
           id?: string
           playing_handicap?: number | null
           round_id?: string
           status?: string
           tee_box_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -634,6 +652,7 @@ export type Database = {
           player_id: string
           putts: number | null
           round_id: string
+          round_player_id: string | null
           strokes: number | null
           up_and_down: boolean | null
           updated_at: string
@@ -647,6 +666,7 @@ export type Database = {
           player_id: string
           putts?: number | null
           round_id: string
+          round_player_id?: string | null
           strokes?: number | null
           up_and_down?: boolean | null
           updated_at?: string
@@ -660,6 +680,7 @@ export type Database = {
           player_id?: string
           putts?: number | null
           round_id?: string
+          round_player_id?: string | null
           strokes?: number | null
           up_and_down?: boolean | null
           updated_at?: string
@@ -684,6 +705,92 @@ export type Database = {
             columns: ["round_id"]
             isOneToOne: false
             referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          created_by: string
+          end_date: string
+          group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          points_config: Json
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          end_date: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          points_config?: Json
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          points_config?: Json
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
         ]

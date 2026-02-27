@@ -9,6 +9,7 @@ import {
   Button,
   Badge,
 } from '@/components/ui';
+import { AddGuestForm } from '@/components/rounds/add-guest-form';
 
 interface RoundPageProps {
   params: Promise<{ roundId: string }>;
@@ -48,11 +49,14 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
   const { data: players } = await supabase
     .from('round_players')
     .select(`
+      id,
       user_id,
       tee_box_id,
       status,
       handicap_index_at_round,
       course_handicap,
+      guest_name,
+      guest_handicap_index,
       profile:profiles (id, display_name, current_handicap_index),
       tee_box:tee_boxes (id, name, color)
     `)
@@ -101,7 +105,9 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
 
     // Map each player to their tee box
     const playerTeeMap = new Map<string, string>();
-    players?.forEach(p => playerTeeMap.set(p.user_id, p.tee_box_id));
+    players?.forEach(p => {
+      if (p.user_id) playerTeeMap.set(p.user_id, p.tee_box_id);
+    });
 
     if (scores && scores.length > 0 && players) {
       const playerScores = new Map<string, { strokes: number; holesPlayed: number; totalPar: number }>();
@@ -116,12 +122,12 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       }
 
       leaderboard = players
-        .filter((p) => playerScores.has(p.user_id))
+        .filter((p) => p.user_id && playerScores.has(p.user_id))
         .map((p) => {
-          const stats = playerScores.get(p.user_id)!;
+          const stats = playerScores.get(p.user_id!)!;
           return {
-            userId: p.user_id,
-            name: (p.profile as any)?.display_name ?? 'Unknown',
+            userId: p.user_id!,
+            name: (p.profile as any)?.display_name ?? p.guest_name ?? 'Unknown',
             totalStrokes: stats.strokes,
             holesPlayed: stats.holesPlayed,
             totalPar: stats.totalPar,
@@ -345,56 +351,79 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             <p className="text-sm text-surface-300">No players registered yet.</p>
           ) : (
             <ul className="space-y-3">
-              {players.map((player) => (
-                <li
-                  key={player.user_id}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
-                      {((player.profile as any)?.display_name ?? 'U')
-                        .charAt(0)
-                        .toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-surface-50">
-                        {(player.profile as any)?.display_name ?? 'Unknown'}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        {(player.tee_box as any)?.name && (
-                          <span className="flex items-center gap-1 text-xs text-surface-400">
-                            {(player.tee_box as any).color && (
-                              <span
-                                className="w-2.5 h-2.5 rounded-full border border-surface-500 inline-block"
-                                style={{ backgroundColor: (player.tee_box as any).color }}
-                              />
-                            )}
-                            {(player.tee_box as any).name}
-                          </span>
-                        )}
-                        {player.course_handicap != null && (
-                          <span className="text-xs text-surface-400">
-                            {(player.tee_box as any)?.name ? '· ' : ''}HCP {player.course_handicap}
-                          </span>
-                        )}
+              {players.map((player) => {
+                const isGuest = !player.user_id;
+                const displayName = isGuest
+                  ? (player as any).guest_name ?? 'Guest'
+                  : (player.profile as any)?.display_name ?? 'Unknown';
+
+                return (
+                  <li
+                    key={player.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-medium ${
+                        isGuest
+                          ? 'bg-surface-600 text-surface-300'
+                          : 'bg-emerald-900/40 text-golf-600'
+                      }`}>
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-surface-50 flex items-center gap-2">
+                          {displayName}
+                          {isGuest && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              Guest
+                            </Badge>
+                          )}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {(player.tee_box as any)?.name && (
+                            <span className="flex items-center gap-1 text-xs text-surface-400">
+                              {(player.tee_box as any).color && (
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full border border-surface-500 inline-block"
+                                  style={{ backgroundColor: (player.tee_box as any).color }}
+                                />
+                              )}
+                              {(player.tee_box as any).name}
+                            </span>
+                          )}
+                          {player.course_handicap != null && (
+                            <span className="text-xs text-surface-400">
+                              {(player.tee_box as any)?.name ? '· ' : ''}HCP {player.course_handicap}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <Badge
-                    variant={
-                      player.status === 'playing'
-                        ? 'secondary'
-                        : player.status === 'completed'
-                          ? 'default'
-                          : 'outline'
-                    }
-                    className="capitalize text-xs"
-                  >
-                    {player.status}
-                  </Badge>
-                </li>
-              ))}
+                    <Badge
+                      variant={
+                        player.status === 'playing'
+                          ? 'secondary'
+                          : player.status === 'completed'
+                            ? 'default'
+                            : 'outline'
+                      }
+                      className="capitalize text-xs"
+                    >
+                      {player.status}
+                    </Badge>
+                  </li>
+                );
+              })}
             </ul>
+          )}
+          {/* Add Guest form - shown to round creator/admin when round is not completed */}
+          {isCreator && round.status !== 'completed' && (
+            <div className="mt-4">
+              <AddGuestForm
+                roundId={roundId}
+                defaultTeeBoxId={(round.tee_box as any)?.id ?? ''}
+              />
+            </div>
           )}
         </div>
       </Card>

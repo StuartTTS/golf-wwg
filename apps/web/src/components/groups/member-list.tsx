@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge, Button } from '@/components/ui';
+import { Avatar } from '@/components/ui/avatar';
 
 interface Member {
   id: string;
@@ -27,21 +28,19 @@ export function MemberList({
   onToggleRole,
 }: MemberListProps) {
   return (
-    <div className="divide-y divide-slate-100">
+    <div className="divide-y divide-surface-600">
       {members.map((member) => (
         <div key={member.id} className="flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-golf-100 flex items-center justify-center text-golf-700 font-medium text-sm">
-              {member.displayName.charAt(0).toUpperCase()}
-            </div>
+            <Avatar name={member.displayName} size="sm" />
             <div>
-              <div className="text-sm font-medium text-slate-900">
+              <div className="text-sm font-medium text-surface-50">
                 {member.displayName}
                 {member.userId === currentUserId && (
-                  <span className="ml-1 text-slate-400">(you)</span>
+                  <span className="ml-1 text-surface-400">(you)</span>
                 )}
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-surface-300">
                 {member.email}
                 {member.handicapIndex !== null && ` • Hdcp ${member.handicapIndex}`}
               </div>
@@ -72,7 +71,7 @@ export function MemberList({
                     variant="ghost"
                     size="sm"
                     onClick={() => onRemove(member.userId)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-400"
                   >
                     Remove
                   </Button>

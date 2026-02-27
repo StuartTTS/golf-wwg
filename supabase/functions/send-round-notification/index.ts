@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendEmail } from '../_shared/email.ts';
+import { sendEmail, escapeHtml } from '../_shared/email.ts';
 
 interface RequestBody {
   roundId: string;
@@ -73,6 +73,11 @@ Deno.serve(async (req: Request) => {
       weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
     });
 
+    const safeCourseName = escapeHtml(course?.name ?? '');
+    const safeGroupName = escapeHtml(group?.name ?? '');
+    const safeOrganizerName = escapeHtml(organizer?.display_name ?? '');
+    const safeTeeTime = round.tee_time ? escapeHtml(round.tee_time) : '';
+
     let sentCount = 0;
     for (const inv of invitations) {
       const rsvpUrl = `${siteUrl}/rounds/${roundId}/rsvp?token=${inv.token}`;
@@ -81,11 +86,11 @@ Deno.serve(async (req: Request) => {
           inv.email,
           `Round scheduled: ${course?.name} on ${roundDate}`,
           `
-            <h2>${organizer?.display_name} scheduled a round!</h2>
-            <p><strong>Group:</strong> ${group?.name}</p>
-            <p><strong>Course:</strong> ${course?.name}</p>
+            <h2>${safeOrganizerName} scheduled a round!</h2>
+            <p><strong>Group:</strong> ${safeGroupName}</p>
+            <p><strong>Course:</strong> ${safeCourseName}</p>
             <p><strong>Date:</strong> ${roundDate}</p>
-            ${round.tee_time ? `<p><strong>Tee Time:</strong> ${round.tee_time}</p>` : ''}
+            ${safeTeeTime ? `<p><strong>Tee Time:</strong> ${safeTeeTime}</p>` : ''}
             <p style="margin-top:24px;">
               <a href="${rsvpUrl}" style="display:inline-block;padding:12px 24px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;">
                 RSVP Now

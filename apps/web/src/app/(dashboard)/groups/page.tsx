@@ -47,10 +47,10 @@ export default async function GroupsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+          <h1 className="text-3xl font-bold tracking-tight text-surface-50">
             My Groups
           </h1>
-          <p className="mt-1 text-sm text-dark-600">
+          <p className="mt-1 text-sm text-surface-300">
             Manage your golf groups and see recent activity.
           </p>
         </div>
@@ -99,7 +99,7 @@ export default async function GroupsPage() {
                       {group.description}
                     </CardDescription>
                   )}
-                  <div className="mt-3 flex items-center gap-4 text-sm text-dark-600">
+                  <div className="mt-3 flex items-center gap-4 text-sm text-surface-300">
                     <span>
                       {group.memberCount}{' '}
                       {group.memberCount === 1 ? 'member' : 'members'}

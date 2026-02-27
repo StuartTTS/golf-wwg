@@ -40,15 +40,32 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/rounds') ||
     request.nextUrl.pathname.startsWith('/courses') ||
     request.nextUrl.pathname.startsWith('/profile') ||
-    request.nextUrl.pathname.startsWith('/settings');
+    request.nextUrl.pathname.startsWith('/settings') ||
+    request.nextUrl.pathname.startsWith('/admin');
 
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    const pathname = request.nextUrl.pathname;
-    const safeRedirect = pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/home';
+    const fullPath = request.nextUrl.pathname + request.nextUrl.search;
+    const safeRedirect = fullPath.startsWith('/') && !fullPath.startsWith('//') ? fullPath : '/home';
     url.searchParams.set('redirect', safeRedirect);
     return NextResponse.redirect(url);
+  }
+
+  // Profile completion redirect — new users must finish setup before using the app
+  if (user && isProtectedRoute) {
+    const profileCompleted = user.user_metadata?.profile_completed;
+    const pathname = request.nextUrl.pathname;
+    if (
+      profileCompleted === false &&
+      !pathname.startsWith('/settings') &&
+      !pathname.startsWith('/invite')
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/settings';
+      url.searchParams.set('setup', 'true');
+      return NextResponse.redirect(url);
+    }
   }
 
   // Auth routes - redirect to home if already authenticated
@@ -57,7 +74,9 @@ export async function updateSession(request: NextRequest) {
 
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/home';
+    const rawRedirect = request.nextUrl.searchParams.get('redirect') || '/home';
+    url.pathname = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/home';
+    url.searchParams.delete('redirect');
     return NextResponse.redirect(url);
   }
 

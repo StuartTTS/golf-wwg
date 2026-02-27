@@ -9,6 +9,7 @@ export interface Profile {
   avatar_url: string | null;
   default_tee_tier: number | null;
   current_handicap_index: number | null;
+  is_site_admin: boolean;
   profile_completed: boolean;
   created_at: string;
   updated_at: string;
@@ -213,21 +214,25 @@ export type RoundPlayerStatus = 'registered' | 'confirmed' | 'playing' | 'comple
 export interface RoundPlayer {
   id: string;
   round_id: string;
-  user_id: string;
+  user_id: string | null;
   tee_box_id: string;
   handicap_index_at_round: number | null;
   course_handicap: number | null;
   playing_handicap: number | null;
+  guest_name: string | null;
+  guest_handicap_index: number | null;
   status: RoundPlayerStatus;
 }
 
 export interface RoundPlayerInsert {
   round_id: string;
-  user_id: string;
+  user_id?: string | null;
   tee_box_id: string;
   handicap_index_at_round?: number | null;
   course_handicap?: number | null;
   playing_handicap?: number | null;
+  guest_name?: string | null;
+  guest_handicap_index?: number | null;
   status?: RoundPlayerStatus;
 }
 
@@ -236,6 +241,8 @@ export interface RoundPlayerUpdate {
   handicap_index_at_round?: number | null;
   course_handicap?: number | null;
   playing_handicap?: number | null;
+  guest_name?: string | null;
+  guest_handicap_index?: number | null;
   status?: RoundPlayerStatus;
 }
 
@@ -244,6 +251,7 @@ export interface Score {
   id: string;
   round_id: string;
   player_id: string;
+  round_player_id: string | null;
   hole_number: number;
   strokes: number | null;
   putts: number | null;
@@ -257,6 +265,7 @@ export interface Score {
 export interface ScoreInsert {
   round_id: string;
   player_id: string;
+  round_player_id?: string | null;
   hole_number: number;
   strokes?: number | null;
   putts?: number | null;
@@ -317,6 +326,7 @@ export interface GamePlayer {
   id: string;
   game_id: string;
   player_id: string;
+  round_player_id: string | null;
   team_id: string | null;
   playing_handicap: number | null;
 }
@@ -324,11 +334,13 @@ export interface GamePlayer {
 export interface GamePlayerInsert {
   game_id: string;
   player_id: string;
+  round_player_id?: string | null;
   team_id?: string | null;
   playing_handicap?: number | null;
 }
 
 export interface GamePlayerUpdate {
+  round_player_id?: string | null;
   team_id?: string | null;
   playing_handicap?: number | null;
 }

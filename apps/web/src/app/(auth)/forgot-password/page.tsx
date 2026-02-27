@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { forgotPassword } from '@/lib/actions/auth';
@@ -30,13 +31,13 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="space-y-6">
       {/* Heading */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-dark-900">
-          Reset your password
+        <h1 className="font-display text-3xl font-bold text-surface-50">
+          Reset Password
         </h1>
-        <p className="mt-2 text-sm text-dark-700">
+        <p className="mt-2 text-sm text-surface-300">
           Enter your email and we&apos;ll send you a link to reset your
           password.
         </p>
@@ -45,8 +46,11 @@ export default function ForgotPasswordPage() {
       {/* Success state */}
       {submitted ? (
         <div className="space-y-6">
-          <div className="rounded-md bg-green-50 p-4">
-            <p className="text-sm text-golf-600">
+          <div className="flex flex-col items-center gap-3 rounded-golf border border-golf-500/20 bg-golf-500/10 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-golf-500/20">
+              <Check className="h-5 w-5 text-golf-500" />
+            </div>
+            <p className="text-center text-sm text-golf-400">
               If an account exists with that email, you will receive a password
               reset link shortly. Please check your inbox.
             </p>
@@ -54,7 +58,7 @@ export default function ForgotPasswordPage() {
           <div className="text-center">
             <Link
               href="/login"
-              className="text-sm font-medium text-golf-600 hover:text-golf-700"
+              className="text-sm font-medium text-golf-400 hover:text-golf-300"
             >
               Back to sign in
             </Link>
@@ -64,21 +68,21 @@ export default function ForgotPasswordPage() {
         <>
           {/* Error banner */}
           {error && (
-            <div className="rounded-md bg-red-900/30 p-4">
+            <div className="rounded-golf border border-red-500/20 bg-red-500/10 p-3">
               <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-dark-800"
+                className="block text-sm font-medium text-surface-300"
               >
                 Email address
               </label>
-              <div className="mt-1">
+              <div className="mt-1.5">
                 <Input
                   id="email"
                   name="email"
@@ -87,11 +91,16 @@ export default function ForgotPasswordPage() {
                   required
                   placeholder="you@example.com"
                   disabled={isPending}
+                  className="border-surface-600 bg-surface-700/50 text-surface-100 placeholder:text-surface-400 focus:border-golf-500 focus:ring-2 focus:ring-gold-500/30"
                 />
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isPending}>
+            <Button
+              type="submit"
+              className="w-full bg-golf-600 hover:bg-golf-500 text-white font-semibold h-12 rounded-golf-lg"
+              disabled={isPending}
+            >
               {isPending ? 'Sending link...' : 'Send reset link'}
             </Button>
           </form>
@@ -99,7 +108,7 @@ export default function ForgotPasswordPage() {
           <div className="text-center">
             <Link
               href="/login"
-              className="text-sm font-medium text-golf-600 hover:text-golf-700"
+              className="text-sm font-medium text-golf-400 hover:text-golf-300"
             >
               Back to sign in
             </Link>

@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import type { Database } from './database.types';
-import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type TypedSupabaseClient = SupabaseClient<Database, 'public'>;
 
@@ -29,4 +29,16 @@ export async function createServerSupabaseClient(): Promise<TypedSupabaseClient>
       },
     }
   ) as unknown as TypedSupabaseClient;
+}
+
+/**
+ * Service role client for admin operations (e.g. deleting auth users).
+ * Never expose this to the client — server actions only.
+ */
+export function createServiceRoleClient() {
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 }

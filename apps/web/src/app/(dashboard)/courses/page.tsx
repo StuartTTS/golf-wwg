@@ -13,10 +13,34 @@ interface Course {
   tee_boxes: {
     id: string;
     name: string;
+    color: string | null;
     course_rating: number;
     slope_rating: number;
   }[];
 }
+
+const getTeeColorClass = (color: string | null) => {
+  switch (color?.toLowerCase()) {
+    case 'black':
+      return 'bg-surface-900';
+    case 'blue':
+      return 'bg-blue-600';
+    case 'white':
+      return 'bg-white border border-surface-500';
+    case 'gold':
+      return 'bg-yellow-500';
+    case 'green':
+      return 'bg-golf-600';
+    case 'red':
+      return 'bg-red-600';
+    case 'silver':
+      return 'bg-gray-400';
+    case 'copper':
+      return 'bg-amber-700';
+    default:
+      return 'bg-surface-500';
+  }
+};
 
 export default async function CoursesPage() {
   const supabase = await createServerSupabaseClient();
@@ -28,7 +52,7 @@ export default async function CoursesPage() {
   if (!user) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-dark-600">Please sign in to view courses.</p>
+        <p className="text-surface-300">Please sign in to view courses.</p>
       </div>
     );
   }
@@ -44,6 +68,7 @@ export default async function CoursesPage() {
       tee_boxes (
         id,
         name,
+        color,
         course_rating,
         slope_rating
       )
@@ -63,8 +88,8 @@ export default async function CoursesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-dark-900">Courses</h1>
-          <p className="text-sm text-dark-600">
+          <h1 className="text-2xl font-bold text-surface-50">Courses</h1>
+          <p className="text-sm text-surface-300">
             {courses?.length ?? 0} courses available
           </p>
         </div>
@@ -92,7 +117,7 @@ export default async function CoursesPage() {
       {(!courses || courses.length === 0) ? (
         <Card>
           <div className="p-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-green-50 mx-auto flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-full bg-golf-900/30 mx-auto flex items-center justify-center mb-3">
               <svg
                 className="w-6 h-6 text-golf-600"
                 fill="none"
@@ -107,10 +132,10 @@ export default async function CoursesPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-dark-900 mb-1">
+            <h3 className="text-lg font-semibold text-surface-50 mb-1">
               No courses yet
             </h3>
-            <p className="text-dark-600 mb-4">
+            <p className="text-surface-300 mb-4">
               Add your home course to get started
             </p>
             <Link href="/courses/new">
@@ -146,12 +171,13 @@ export default async function CoursesPage() {
                       {course.tee_boxes.map((tee) => (
                         <div
                           key={tee.id}
-                          className="text-xs bg-gray-100 rounded-md px-2 py-1"
+                          className="text-xs bg-surface-700 rounded-md px-2 py-1 flex items-center gap-1.5"
                         >
-                          <span className="font-medium text-dark-800">
+                          <span className={`w-3 h-3 rounded-full shrink-0 ${getTeeColorClass(tee.color)}`} />
+                          <span className="font-medium text-surface-100">
                             {tee.name}
                           </span>
-                          <span className="text-dark-600 ml-1">
+                          <span className="text-surface-300">
                             {tee.course_rating}/{tee.slope_rating}
                           </span>
                         </div>

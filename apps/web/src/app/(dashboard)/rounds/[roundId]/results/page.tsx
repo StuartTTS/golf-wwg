@@ -259,7 +259,7 @@ export default function ResultsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -267,7 +267,7 @@ export default function ResultsPage() {
   if (!results) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-dark-600">Results not available</p>
+        <p className="text-surface-300">Results not available</p>
         <Button variant="outline" className="mt-4" onClick={() => router.back()}>
           Go Back
         </Button>
@@ -279,8 +279,8 @@ export default function ResultsPage() {
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-dark-900">Round Results</h1>
-        <p className="text-sm text-dark-600">
+        <h1 className="text-2xl font-bold text-surface-50">Round Results</h1>
+        <p className="text-sm text-surface-300">
           {results.courseName} &middot;{' '}
           {new Date(results.date).toLocaleDateString('en-US', {
             weekday: 'long',
@@ -298,7 +298,7 @@ export default function ResultsPage() {
         </CardHeader>
         <div className="px-4 pb-4">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 text-xs font-semibold text-dark-600 uppercase tracking-wide pb-2 border-b border-dark-300">
+          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 text-xs font-semibold text-surface-300 uppercase tracking-wide pb-2 border-b border-surface-500">
             <span>Player</span>
             <span className="w-12 text-center">OUT</span>
             <span className="w-12 text-center">IN</span>
@@ -306,7 +306,7 @@ export default function ResultsPage() {
             <span className="w-14 text-center">Net</span>
           </div>
 
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-surface-600">
             {results.players.map((player) => (
               <div
                 key={player.playerId}
@@ -318,34 +318,34 @@ export default function ResultsPage() {
                       w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
                       ${
                         player.position === 1
-                          ? 'bg-yellow-900/40 text-yellow-400'
-                          : 'bg-gray-100 text-dark-600'
+                          ? 'bg-gold-500/20 text-gold-500'
+                          : 'bg-surface-700 text-surface-300'
                       }
                     `}
                   >
                     {player.position}
                   </span>
                   <div>
-                    <p className="text-sm font-medium text-dark-900">
+                    <p className="text-sm font-medium text-surface-50">
                       {player.displayName}
                     </p>
                     {player.handicap !== null && (
-                      <p className="text-xs text-dark-500">
+                      <p className="text-xs text-surface-400">
                         HCP {player.handicap}
                       </p>
                     )}
                   </div>
                 </div>
-                <span className="w-12 text-center text-sm tabular-nums text-dark-800">
+                <span className="w-12 text-center text-sm tabular-nums text-surface-100">
                   {player.frontNine || '-'}
                 </span>
-                <span className="w-12 text-center text-sm tabular-nums text-dark-800">
+                <span className="w-12 text-center text-sm tabular-nums text-surface-100">
                   {player.backNine || '-'}
                 </span>
-                <span className="w-14 text-center text-sm font-bold tabular-nums text-dark-900">
+                <span className="w-14 text-center text-sm font-bold tabular-nums text-surface-50">
                   {player.grossTotal || '-'}
                 </span>
-                <span className="w-14 text-center text-sm tabular-nums text-dark-700">
+                <span className="w-14 text-center text-sm tabular-nums text-surface-200">
                   {player.netTotal || '-'}
                 </span>
               </div>
@@ -353,11 +353,11 @@ export default function ResultsPage() {
           </div>
 
           {/* To par display */}
-          <div className="mt-3 pt-3 border-t border-dark-300">
+          <div className="mt-3 pt-3 border-t border-surface-500">
             <div className="flex flex-wrap gap-3">
               {results.players.map((player) => (
                 <div key={player.playerId} className="flex items-center gap-1">
-                  <span className="text-xs text-dark-600">
+                  <span className="text-xs text-surface-300">
                     {player.displayName}:
                   </span>
                   <span
@@ -366,7 +366,7 @@ export default function ResultsPage() {
                         ? 'text-red-400'
                         : player.toPar > 0
                         ? 'text-blue-600'
-                        : 'text-dark-700'
+                        : 'text-surface-200'
                     }`}
                   >
                     {player.toPar === 0
@@ -396,7 +396,7 @@ export default function ResultsPage() {
             {results.games.map((game) => (
               <div key={game.gameId} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-dark-900">
+                  <h4 className="text-sm font-semibold text-surface-50">
                     {game.gameName}
                   </h4>
                   <Badge variant="secondary" className="text-xs">
@@ -410,13 +410,13 @@ export default function ResultsPage() {
                       className="flex items-center justify-between text-sm py-1"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-dark-500 text-xs w-4">
+                        <span className="text-surface-400 text-xs w-4">
                           {s.position}.
                         </span>
-                        <span className="text-dark-800">{s.displayName}</span>
+                        <span className="text-surface-100">{s.displayName}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-dark-700">{s.score}</span>
+                        <span className="text-surface-200">{s.score}</span>
                         {s.payout !== 0 && (
                           <span
                             className={`text-xs font-bold ${
@@ -450,14 +450,14 @@ export default function ResultsPage() {
               {results.settlements.map((settlement, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 bg-dark-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-surface-700 rounded-lg"
                 >
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-medium text-red-400">
                       {settlement.fromName}
                     </span>
                     <svg
-                      className="w-4 h-4 text-dark-500"
+                      className="w-4 h-4 text-surface-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -473,7 +473,7 @@ export default function ResultsPage() {
                       {settlement.toName}
                     </span>
                   </div>
-                  <span className="text-sm font-bold text-dark-900">
+                  <span className="text-sm font-bold text-surface-50">
                     ${settlement.amount}
                   </span>
                 </div>

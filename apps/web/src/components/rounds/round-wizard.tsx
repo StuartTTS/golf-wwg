@@ -83,13 +83,13 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
                 step === s
                   ? 'bg-golf-600 text-white'
                   : i < ['course', 'details', 'players'].indexOf(step)
-                    ? 'bg-golf-100 text-golf-700'
-                    : 'bg-dark-200 text-dark-500'
+                    ? 'bg-golf-900/30 text-golf-400'
+                    : 'bg-surface-600 text-surface-400'
               }`}
             >
               {i + 1}
             </div>
-            {i < 2 && <div className="h-px w-8 bg-slate-200" />}
+            {i < 2 && <div className="h-px w-8 bg-surface-600" />}
           </div>
         ))}
       </div>
@@ -171,7 +171,7 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
       {step === 'players' && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Add Players</h2>
-          <p className="text-sm text-dark-600">
+          <p className="text-sm text-surface-300">
             Select group members to include in this round.
           </p>
           <div className="space-y-2">
@@ -180,15 +180,15 @@ export function RoundWizard({ courses, groupMembers, groupId, onSubmit }: RoundW
                 key={member.userId}
                 className={`flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors ${
                   selectedPlayers.includes(member.userId)
-                    ? 'border-golf-400 bg-golf-50'
-                    : 'border-dark-300 hover:border-dark-300'
+                    ? 'border-golf-500 bg-golf-900/30'
+                    : 'border-surface-500 hover:border-surface-400'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={selectedPlayers.includes(member.userId)}
                   onChange={() => togglePlayer(member.userId)}
-                  className="rounded border-dark-300 text-golf-600 focus:ring-golf-500"
+                  className="rounded border-surface-500 text-golf-500 focus:ring-golf-500"
                 />
                 <span className="text-sm font-medium">{member.displayName}</span>
               </label>

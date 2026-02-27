@@ -124,7 +124,7 @@ export default function GameDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -132,7 +132,7 @@ export default function GameDetailPage() {
   if (!game) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-dark-600">Game not found</p>
+        <p className="text-surface-300">Game not found</p>
         <Button
           variant="outline"
           className="mt-4"
@@ -153,14 +153,14 @@ export default function GameDetailPage() {
         <div>
           <button
             onClick={() => router.push(`/rounds/${roundId}/games`)}
-            className="text-sm text-dark-600 hover:text-dark-800 mb-1 flex items-center gap-1"
+            className="text-sm text-surface-300 hover:text-surface-100 mb-1 flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             All Games
           </button>
-          <h1 className="text-2xl font-bold text-dark-900">{game.name}</h1>
+          <h1 className="text-2xl font-bold text-surface-50">{game.name}</h1>
         </div>
         <Badge variant={game.status === 'active' ? 'default' : 'secondary'}>
           {game.status === 'active' ? 'Live' : game.status}
@@ -172,17 +172,17 @@ export default function GameDetailPage() {
         <div className="p-4">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-xs text-dark-600 uppercase tracking-wide">Type</p>
-              <p className="text-sm font-semibold text-dark-900 mt-1">{game.name}</p>
+              <p className="text-xs text-surface-300 uppercase tracking-wide">Type</p>
+              <p className="text-sm font-semibold text-surface-50 mt-1">{game.name}</p>
             </div>
             <div>
-              <p className="text-xs text-dark-600 uppercase tracking-wide">Buy-in</p>
-              <p className="text-sm font-semibold text-dark-900 mt-1">
+              <p className="text-xs text-surface-300 uppercase tracking-wide">Buy-in</p>
+              <p className="text-sm font-semibold text-surface-50 mt-1">
                 {game.buyIn > 0 ? `$${game.buyIn}` : 'Free'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-dark-600 uppercase tracking-wide">Pot</p>
+              <p className="text-xs text-surface-300 uppercase tracking-wide">Pot</p>
               <p className="text-sm font-semibold text-golf-600 mt-1">
                 {totalPot > 0 ? `$${totalPot}` : '-'}
               </p>
@@ -208,7 +208,7 @@ export default function GameDetailPage() {
                 key={standing.playerId}
                 className={`
                   flex items-center justify-between p-3 rounded-lg
-                  ${idx === 0 && game.status === 'completed' ? 'bg-yellow-50 border border-yellow-200' : 'hover:bg-dark-50'}
+                  ${idx === 0 && game.status === 'completed' ? 'bg-gold-500/20 border border-gold-400' : 'hover:bg-surface-700'}
                 `}
               >
                 <div className="flex items-center gap-3">
@@ -217,22 +217,22 @@ export default function GameDetailPage() {
                       w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
                       ${
                         standing.position === 1
-                          ? 'bg-yellow-900/40 text-yellow-400'
+                          ? 'bg-gold-500/20 text-gold-500'
                           : standing.position === 2
-                          ? 'bg-gray-200 text-dark-700'
+                          ? 'bg-surface-600 text-surface-200'
                           : standing.position === 3
-                          ? 'bg-orange-100 text-orange-700'
-                          : 'bg-gray-100 text-dark-600'
+                          ? 'bg-amber-700/20 text-amber-700'
+                          : 'bg-surface-700 text-surface-300'
                       }
                     `}
                   >
                     {standing.position}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-dark-900">
+                    <p className="text-sm font-semibold text-surface-50">
                       {standing.displayName}
                     </p>
-                    <p className="text-xs text-dark-600">{standing.score}</p>
+                    <p className="text-xs text-surface-300">{standing.score}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -264,13 +264,13 @@ export default function GameDetailPage() {
               {((gameResults as any).holeResults as HoleResult[]).map((hr) => (
                 <div
                   key={hr.holeNumber}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-dark-50"
+                  className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-surface-700"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-dark-600 w-8">
+                    <span className="text-xs font-medium text-surface-300 w-8">
                       #{hr.holeNumber}
                     </span>
-                    <span className="text-sm text-dark-900">
+                    <span className="text-sm text-surface-50">
                       {hr.winnerName ?? (hr.carried ? 'Carried over' : 'Push')}
                     </span>
                   </div>
@@ -303,7 +303,7 @@ export default function GameDetailPage() {
 
               return (
                 <div key={segment}>
-                  <h4 className="text-xs font-semibold text-dark-600 uppercase tracking-wide mb-2">
+                  <h4 className="text-xs font-semibold text-surface-300 uppercase tracking-wide mb-2">
                     {segment === 'front'
                       ? 'Front 9'
                       : segment === 'back'
@@ -316,7 +316,7 @@ export default function GameDetailPage() {
                         key={s.playerId}
                         className="flex justify-between text-sm py-1"
                       >
-                        <span className="text-dark-800">{s.displayName}</span>
+                        <span className="text-surface-100">{s.displayName}</span>
                         <span className="font-medium">{s.score}</span>
                       </div>
                     ))}
@@ -343,9 +343,9 @@ export default function GameDetailPage() {
                 .map((s) => (
                   <div
                     key={s.playerId}
-                    className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+                    className="flex items-center justify-between py-2 border-b border-surface-600 last:border-0"
                   >
-                    <span className="text-sm text-dark-800">
+                    <span className="text-sm text-surface-100">
                       {s.displayName}
                     </span>
                     <span

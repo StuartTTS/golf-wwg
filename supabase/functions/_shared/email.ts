@@ -1,5 +1,18 @@
 // Microsoft Graph API email sender using client credentials flow
 
+/**
+ * Escape a string for safe inclusion in HTML content.
+ * Prevents HTML injection when interpolating user-controlled values into email templates.
+ */
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 async function getGraphToken(): Promise<string> {

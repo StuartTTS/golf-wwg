@@ -200,3 +200,108 @@ export async function updateHoles(
   }
   return { success: true };
 }
+
+export async function searchCoursesExternal(query: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  if (!query || query.trim().length < 2) {
+    return { error: 'Search query must be at least 2 characters' };
+  }
+
+  try {
+    const { searchCourses } = await import('@/lib/golf-course-api');
+    const results = await searchCourses(query.trim());
+    return { courses: results };
+  } catch (err: any) {
+    console.error('Course search error:', err);
+    return { error: 'Failed to search courses. Please try again.' };
+  }
+}
+
+export async function importCourse(externalId: number) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  // Check if already imported
+  const { data: existing } = await supabase
+    .from('courses')
+    .select('id')
+    .eq('external_id', String(externalId))
+    .maybeSingle();
+
+  if (existing) {
+    return { success: true, courseId: existing.id, alreadyExists: true };
+  }
+
+  try {
+    const { getCourseDetail } = await import('@/lib/golf-course-api');
+    const detail = await getCourseDetail(externalId);
+    if (!detail) return { error: 'Course not found in database' };
+
+    // Create course
+    const courseName = detail.course_name || detail.club_name;
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .insert({
+        name: courseName,
+        city: detail.location?.city ?? null,
+        state: detail.location?.state ?? null,
+        country: detail.location?.country ?? 'US',
+        num_holes: detail.holes ?? 18,
+        external_id: String(detail.id),
+        source: 'golfcourseapi',
+        created_by: user.id,
+      })
+      .select('id')
+      .single();
+
+    if (courseError) throw courseError;
+
+    // Create tee boxes and holes
+    for (const tee of (detail.tees ?? [])) {
+      const { data: teeBox, error: teeError } = await supabase
+        .from('tee_boxes')
+        .insert({
+          course_id: course.id,
+          name: tee.tee_name,
+          course_rating: tee.course_rating ?? 72,
+          slope_rating: tee.slope_rating ?? 113,
+          total_yardage: tee.total_yardage ?? null,
+        })
+        .select('id')
+        .single();
+
+      if (teeError) {
+        console.error('Tee box insert error:', teeError);
+        continue;
+      }
+
+      // Insert holes
+      if (tee.holes && tee.holes.length > 0) {
+        const holesInsert = tee.holes.map(h => ({
+          tee_box_id: teeBox.id,
+          hole_number: h.hole_number,
+          par: h.par ?? 4,
+          yardage: h.yardage ?? null,
+          handicap_index: h.handicap ?? h.hole_number,
+        }));
+
+        const { error: holesError } = await supabase
+          .from('holes')
+          .insert(holesInsert);
+
+        if (holesError) {
+          console.error('Holes insert error:', holesError);
+        }
+      }
+    }
+
+    return { success: true, courseId: course.id };
+  } catch (err: any) {
+    console.error('Course import error:', err);
+    return { error: 'Failed to import course' };
+  }
+}

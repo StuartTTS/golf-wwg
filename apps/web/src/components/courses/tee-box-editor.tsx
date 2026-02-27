@@ -65,7 +65,7 @@ export function TeeBoxEditor({ numHoles, onSave }: TeeBoxEditorProps) {
           placeholder="e.g., Blue"
         />
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-slate-700">Color</label>
+          <label className="block text-sm font-medium text-surface-200">Color</label>
           <input
             type="color"
             value={teeBox.color}
@@ -96,7 +96,7 @@ export function TeeBoxEditor({ numHoles, onSave }: TeeBoxEditorProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+            <tr className="border-b border-surface-600 text-left text-xs text-surface-400">
               <th className="pb-2 pr-2">Hole</th>
               <th className="pb-2 pr-2">Par</th>
               <th className="pb-2 pr-2">Yards</th>
@@ -105,13 +105,13 @@ export function TeeBoxEditor({ numHoles, onSave }: TeeBoxEditorProps) {
           </thead>
           <tbody>
             {teeBox.holes.map((hole, i) => (
-              <tr key={hole.holeNumber} className="border-b border-slate-100">
+              <tr key={hole.holeNumber} className="border-b border-surface-700">
                 <td className="py-1.5 pr-2 font-medium">{hole.holeNumber}</td>
                 <td className="py-1.5 pr-2">
                   <select
                     value={hole.par}
                     onChange={(e) => updateHole(i, 'par', Number(e.target.value))}
-                    className="w-16 rounded border border-slate-200 px-1 py-0.5 text-sm"
+                    className="w-16 rounded border border-surface-600 bg-surface-800 text-surface-50 px-1 py-0.5 text-sm"
                   >
                     <option value={3}>3</option>
                     <option value={4}>4</option>
@@ -123,7 +123,7 @@ export function TeeBoxEditor({ numHoles, onSave }: TeeBoxEditorProps) {
                     type="number"
                     value={hole.yardage}
                     onChange={(e) => updateHole(i, 'yardage', Number(e.target.value))}
-                    className="w-20 rounded border border-slate-200 px-2 py-0.5 text-sm"
+                    className="w-20 rounded border border-surface-600 bg-surface-800 text-surface-50 px-2 py-0.5 text-sm"
                     min={50}
                     max={700}
                   />
@@ -133,7 +133,7 @@ export function TeeBoxEditor({ numHoles, onSave }: TeeBoxEditorProps) {
                     type="number"
                     value={hole.handicapIndex}
                     onChange={(e) => updateHole(i, 'handicapIndex', Number(e.target.value))}
-                    className="w-16 rounded border border-slate-200 px-2 py-0.5 text-sm"
+                    className="w-16 rounded border border-surface-600 bg-surface-800 text-surface-50 px-2 py-0.5 text-sm"
                     min={1}
                     max={18}
                   />

@@ -28,18 +28,18 @@ export function GameCard({ game, result, formatName }: GameCardProps) {
   return (
     <Link
       href={`/rounds/${game.roundId}/games/${game.id}`}
-      className="block rounded-lg border border-slate-200 bg-white p-4 hover:border-golf-300 transition-colors"
+      className="block rounded-golf border border-surface-500 bg-surface-800 p-4 hover:border-golf-500 transition-colors"
     >
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold text-slate-900">
+        <h3 className="font-semibold text-surface-50">
           {game.name || formatName}
         </h3>
         <Badge variant={statusVariant}>{game.status}</Badge>
       </div>
 
       {game.moneyPerUnit && (
-        <p className="text-sm text-slate-500 mb-2">
-          ${game.moneyPerUnit} per unit • {game.holes === 'all' ? '18 holes' : game.holes}
+        <p className="text-sm text-surface-300 mb-2">
+          <span className="text-gold-500">${game.moneyPerUnit}</span> per unit • {game.holes === 'all' ? '18 holes' : game.holes}
         </p>
       )}
 
@@ -47,18 +47,18 @@ export function GameCard({ game, result, formatName }: GameCardProps) {
         <div className="mt-2 space-y-1">
           {result.playerStandings.slice(0, 3).map((standing, i) => (
             <div key={standing.playerId} className="flex items-center justify-between text-sm">
-              <span className={i === 0 ? 'font-medium text-slate-900' : 'text-slate-600'}>
+              <span className={i === 0 ? 'font-medium text-surface-50' : 'text-surface-300'}>
                 {standing.position}. {standing.playerId}
               </span>
               {standing.moneyWon > 0 && (
-                <span className="text-green-600 font-medium">
+                <span className="text-gold-500 font-medium">
                   +${standing.moneyWon.toFixed(2)}
                 </span>
               )}
             </div>
           ))}
           {result.playerStandings.length > 3 && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-surface-400">
               +{result.playerStandings.length - 3} more players
             </p>
           )}

@@ -18,11 +18,71 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 interface UserSettings {
   displayName: string;
   email: string;
   defaultTeeTier: number | null;
+}
+
+function NotificationSettings() {
+  const { isSupported, isSubscribed, isLoading, subscribe, unsubscribe } = usePushNotifications();
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isSupported) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>
+            Push notifications are not supported in this browser.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  const handleToggle = async () => {
+    setError(null);
+    const result = isSubscribed ? await unsubscribe() : await subscribe();
+    if (result.error) setError(result.error);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Notifications</CardTitle>
+        <CardDescription>
+          Get notified about round invitations, tee times, and score updates.
+        </CardDescription>
+      </CardHeader>
+      <div className="px-6 pb-6 space-y-4">
+        <div className="flex items-center justify-between p-4 bg-surface-700 rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-surface-50">Push Notifications</p>
+            <p className="text-xs text-surface-300">
+              {isSubscribed
+                ? 'You will receive push notifications'
+                : 'Enable push notifications to stay updated'}
+            </p>
+          </div>
+          <Button
+            variant={isSubscribed ? 'outline' : 'primary'}
+            onClick={handleToggle}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading...' : isSubscribed ? 'Disable' : 'Enable'}
+          </Button>
+        </div>
+        {error && (
+          <div className="p-3 bg-red-900/30 border border-red-200 rounded-lg text-sm text-red-400">
+            {error}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 function SettingsForm() {
@@ -31,6 +91,7 @@ function SettingsForm() {
   const { supabase, user } = useSupabase();
 
   const isSetupMode = searchParams.get('setup') === 'true';
+  const setupGroupId = searchParams.get('groupId');
 
   const [settings, setSettings] = useState<UserSettings>({
     displayName: '',
@@ -105,7 +166,7 @@ function SettingsForm() {
       });
 
       if (isSetupMode) {
-        router.push('/home');
+        router.push(setupGroupId ? `/groups/${setupGroupId}` : '/home');
         router.refresh();
         return;
       }
@@ -266,6 +327,9 @@ function SettingsForm() {
           </Button>
         </div>
       </Card>
+
+      {/* Notifications */}
+      <NotificationSettings />
 
       {/* Change password */}
       <Card>

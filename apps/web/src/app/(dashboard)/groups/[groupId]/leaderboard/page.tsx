@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSeasonStandings } from '@/lib/actions/seasons';
 import {
   Card,
   CardHeader,
@@ -39,6 +40,24 @@ export default async function GroupLeaderboardPage({
 
   if (groupError || !group) {
     notFound();
+  }
+
+  // Fetch active season for this group
+  const { data: activeSeason } = await supabase
+    .from('seasons')
+    .select('id, name, start_date, end_date')
+    .eq('group_id', groupId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let activeSeasonStandings: any[] = [];
+  if (activeSeason) {
+    const seasonResult = await getSeasonStandings(activeSeason.id);
+    if ('standings' in seasonResult && seasonResult.standings) {
+      activeSeasonStandings = seasonResult.standings.slice(0, 3);
+    }
   }
 
   // Fetch leaderboard data: members with their round stats
@@ -113,13 +132,13 @@ export default async function GroupLeaderboardPage({
   function getMedalColor(rank: number): string {
     switch (rank) {
       case 0:
-        return 'bg-yellow-900/40 text-yellow-800 border-yellow-300';
+        return 'bg-gold-500/20 text-gold-500 border-gold-400';
       case 1:
-        return 'bg-gray-100 text-dark-800 border-gray-300';
+        return 'bg-surface-700 text-surface-100 border-surface-500';
       case 2:
-        return 'bg-orange-100 text-orange-800 border-orange-300';
+        return 'bg-amber-700/20 text-amber-700 border-amber-700';
       default:
-        return 'bg-dark-100 text-dark-700 border-dark-300';
+        return 'bg-surface-800 text-surface-200 border-surface-500';
     }
   }
 
@@ -129,17 +148,116 @@ export default async function GroupLeaderboardPage({
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
+          className="text-sm text-surface-300 hover:text-surface-100 mb-2 inline-block"
         >
           &larr; Back to {group.name}
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+        <h1 className="text-3xl font-bold tracking-tight text-surface-50">
           Leaderboard
         </h1>
-        <p className="mt-1 text-sm text-dark-600">
+        <p className="mt-1 text-sm text-surface-300">
           Player rankings for {group.name}.
         </p>
       </div>
+
+      {/* Navigation Tabs */}
+      <nav className="flex gap-4 border-b border-surface-500 pb-2">
+        <Link
+          href={`/groups/${groupId}`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Overview
+        </Link>
+        <Link
+          href={`/groups/${groupId}/members`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Members
+        </Link>
+        <Link
+          href={`/groups/${groupId}/rounds`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Rounds
+        </Link>
+        <Link
+          href={`/groups/${groupId}/leaderboard`}
+          className="text-sm font-medium text-gold-500 border-b-2 border-gold-500 pb-2"
+        >
+          Leaderboard
+        </Link>
+        <Link
+          href={`/groups/${groupId}/seasons`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Seasons
+        </Link>
+      </nav>
+
+      {/* Active Season Standings Summary */}
+      {activeSeason && activeSeasonStandings.length > 0 && (
+        <Card className="border-golf-500 bg-golf-900/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">{activeSeason.name}</CardTitle>
+                <CardDescription>
+                  Active season standings &middot;{' '}
+                  {new Date(activeSeason.start_date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                  {' - '}
+                  {new Date(activeSeason.end_date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </CardDescription>
+              </div>
+              <Link href={`/groups/${groupId}/seasons/${activeSeason.id}`}>
+                <Button variant="outline" size="sm">
+                  Full Standings
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <div className="px-6 pb-6">
+            <div className="space-y-3">
+              {activeSeasonStandings.map((player: any, index: number) => (
+                <div
+                  key={player.userId}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold border ${getMedalColor(
+                        index
+                      )}`}
+                    >
+                      {index + 1}
+                    </span>
+                    <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
+                      {player.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-medium text-surface-50">
+                      {player.name}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-semibold text-surface-50">
+                      {player.points} pts
+                    </span>
+                    <span className="text-xs text-surface-300 ml-2">
+                      {player.wins}W
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Average Score Leaderboard */}
       <Card>
@@ -151,30 +269,30 @@ export default async function GroupLeaderboardPage({
         </CardHeader>
         <div className="px-6 pb-6">
           {leaderboard.length === 0 ? (
-            <p className="text-sm text-dark-600 text-center py-6">
+            <p className="text-sm text-surface-300 text-center py-6">
               No players found.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-dark-300">
-                    <th className="text-left py-3 px-2 font-medium text-dark-600 w-12">
+                  <tr className="border-b border-surface-500">
+                    <th className="text-left py-3 px-2 font-medium text-surface-300 w-12">
                       #
                     </th>
-                    <th className="text-left py-3 px-2 font-medium text-dark-600">
+                    <th className="text-left py-3 px-2 font-medium text-surface-300">
                       Player
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-dark-600">
+                    <th className="text-center py-3 px-2 font-medium text-surface-300">
                       Rounds
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-dark-600">
+                    <th className="text-center py-3 px-2 font-medium text-surface-300">
                       Avg Score
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-dark-600">
+                    <th className="text-center py-3 px-2 font-medium text-surface-300">
                       Best
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-dark-600">
+                    <th className="text-center py-3 px-2 font-medium text-surface-300">
                       HCP
                     </th>
                   </tr>
@@ -183,7 +301,7 @@ export default async function GroupLeaderboardPage({
                   {leaderboard.map((player, index) => (
                     <tr
                       key={player.userId}
-                      className="border-b border-gray-50 hover:bg-dark-50"
+                      className="border-b border-surface-600 hover:bg-surface-700"
                     >
                       <td className="py-3 px-2">
                         <span
@@ -199,33 +317,33 @@ export default async function GroupLeaderboardPage({
                           <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
                             {player.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium text-dark-900">
+                          <span className="font-medium text-surface-50">
                             {player.name}
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 px-2 text-center text-dark-700">
+                      <td className="py-3 px-2 text-center text-surface-200">
                         {player.roundsPlayed}
                       </td>
                       <td className="py-3 px-2 text-center">
                         {player.roundsPlayed > 0 ? (
-                          <span className="font-semibold text-dark-900">
+                          <span className="font-semibold text-surface-50">
                             {player.averageScore}
                           </span>
                         ) : (
-                          <span className="text-dark-500">--</span>
+                          <span className="text-surface-400">--</span>
                         )}
                       </td>
                       <td className="py-3 px-2 text-center">
                         {player.bestScore > 0 ? (
-                          <span className="text-dark-800">
+                          <span className="text-surface-100">
                             {player.bestScore}
                           </span>
                         ) : (
-                          <span className="text-dark-500">--</span>
+                          <span className="text-surface-400">--</span>
                         )}
                       </td>
-                      <td className="py-3 px-2 text-center text-dark-700">
+                      <td className="py-3 px-2 text-center text-surface-200">
                         {player.handicap != null ? player.handicap : '--'}
                       </td>
                     </tr>
@@ -250,17 +368,17 @@ export default async function GroupLeaderboardPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-dark-300">
-                    <th className="text-left py-3 px-2 font-medium text-dark-600 w-12">
+                  <tr className="border-b border-surface-500">
+                    <th className="text-left py-3 px-2 font-medium text-surface-300 w-12">
                       #
                     </th>
-                    <th className="text-left py-3 px-2 font-medium text-dark-600">
+                    <th className="text-left py-3 px-2 font-medium text-surface-300">
                       Player
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-dark-600">
+                    <th className="text-center py-3 px-2 font-medium text-surface-300">
                       Total Points
                     </th>
-                    <th className="text-center py-3 px-2 font-medium text-dark-600">
+                    <th className="text-center py-3 px-2 font-medium text-surface-300">
                       Rounds
                     </th>
                   </tr>
@@ -269,7 +387,7 @@ export default async function GroupLeaderboardPage({
                   {pointsLeaderboard.map((player, index) => (
                     <tr
                       key={player.userId}
-                      className="border-b border-gray-50 hover:bg-dark-50"
+                      className="border-b border-surface-600 hover:bg-surface-700"
                     >
                       <td className="py-3 px-2">
                         <span
@@ -285,17 +403,17 @@ export default async function GroupLeaderboardPage({
                           <div className="h-8 w-8 rounded-full bg-emerald-900/40 flex items-center justify-center text-sm font-medium text-golf-600">
                             {player.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium text-dark-900">
+                          <span className="font-medium text-surface-50">
                             {player.name}
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-2 text-center">
-                        <span className="font-semibold text-dark-900">
+                        <span className="font-semibold text-surface-50">
                           {player.totalPoints}
                         </span>
                       </td>
-                      <td className="py-3 px-2 text-center text-dark-700">
+                      <td className="py-3 px-2 text-center text-surface-200">
                         {player.roundsPlayed}
                       </td>
                     </tr>

@@ -48,7 +48,7 @@ export function InviteForm({ groupId }: InviteFormProps) {
         Invite
       </Button>
       {message && (
-        <p className={`self-center text-sm ${message.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>
+        <p className={`self-center text-sm ${message.type === 'error' ? 'text-red-400' : 'text-golf-400'}`}>
           {message.text}
         </p>
       )}

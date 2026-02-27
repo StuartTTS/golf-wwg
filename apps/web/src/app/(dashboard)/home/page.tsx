@@ -20,31 +20,38 @@ export default async function DashboardHomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: recentRounds } = await supabase
+  // Use US Central time so round dates align with the user's local day
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+
+  // Upcoming rounds the user is playing in (today or future, not completed)
+  const { data: upcomingRounds } = await supabase
     .from('rounds')
-    .select('id, round_date, course:courses(name), status')
-    .eq('created_by', user?.id ?? '')
+    .select('id, round_date, tee_time, status, course:courses(name), group:groups(name), round_players!inner(user_id)')
+    .eq('round_players.user_id', user?.id ?? '')
+    .neq('status', 'completed')
+    .gte('round_date', today)
+    .order('round_date', { ascending: true })
+    .limit(10);
+
+  // Past rounds the user played in (before today, most recent first)
+  const { data: pastRounds } = await supabase
+    .from('rounds')
+    .select('id, round_date, tee_time, status, course:courses(name), group:groups(name), round_players!inner(user_id)')
+    .eq('round_players.user_id', user?.id ?? '')
+    .lt('round_date', today)
     .order('round_date', { ascending: false })
     .limit(5);
 
-  const { data: upcomingRounds } = await supabase
-    .from('rounds')
-    .select('id, round_date, course:courses(name), status, group:groups(name)')
-    .gte('round_date', new Date().toISOString())
-    .eq('status', 'upcoming')
-    .order('round_date', { ascending: true })
-    .limit(5);
-
-  const displayName = user?.user_metadata?.full_name ?? user?.email ?? 'Golfer';
+  const displayName = user?.user_metadata?.display_name ?? user?.email ?? 'Golfer';
 
   return (
     <div className="space-y-8">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+        <h1 className="text-3xl font-bold tracking-tight text-surface-50">
           Welcome back, {displayName}
         </h1>
-        <p className="mt-1 text-sm text-dark-600">
+        <p className="mt-1 text-sm text-surface-300">
           Track your rounds, compete with friends, and improve your game.
         </p>
       </div>
@@ -85,58 +92,10 @@ export default async function DashboardHomePage() {
         </Link>
       </div>
 
-      {/* Recent Rounds */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-dark-900">Recent Rounds</h2>
-        </div>
-
-        {!recentRounds || recentRounds.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardDescription className="text-center py-6">
-                No rounds played yet. Join a group and start your first round!
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {recentRounds.map((round) => (
-              <Link key={round.id} href={`/rounds/${round.id}`} className="block">
-                <Card className="transition-shadow hover:shadow-md">
-                  <CardHeader className="flex flex-row items-center justify-between py-4">
-                    <div>
-                      <CardTitle className="text-base">
-                        {(round.course as any)?.name ?? 'Unknown Course'}
-                      </CardTitle>
-                      <CardDescription>
-                        {new Date(round.round_date).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={round.status === 'completed' ? 'default' : 'secondary'}
-                      >
-                        {round.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
       {/* Upcoming Rounds */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-dark-900">Upcoming Rounds</h2>
+          <h2 className="text-xl font-semibold text-surface-50">Upcoming Rounds</h2>
         </div>
 
         {!upcomingRounds || upcomingRounds.length === 0 ? (
@@ -158,20 +117,22 @@ export default async function DashboardHomePage() {
                         {(round.course as any)?.name ?? 'Unknown Course'}
                       </CardTitle>
                       <CardDescription>
-                        {(round.group as any)?.name ?? ''} &middot;{' '}
+                        {(round.group as any)?.name ? `${(round.group as any).name} · ` : ''}
                         {new Date(round.round_date).toLocaleDateString('en-US', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
-                        })}{' '}
-                        at{' '}
-                        {new Date(round.round_date).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
+                          year: 'numeric',
                         })}
+                        {round.tee_time && ` at ${round.tee_time}`}
                       </CardDescription>
                     </div>
-                    <Badge variant="outline">Scheduled</Badge>
+                    <Badge
+                      variant={round.status === 'in_progress' ? 'secondary' : 'outline'}
+                      className="capitalize"
+                    >
+                      {round.status?.replace('_', ' ')}
+                    </Badge>
                   </CardHeader>
                 </Card>
               </Link>
@@ -179,6 +140,56 @@ export default async function DashboardHomePage() {
           </div>
         )}
       </section>
+
+      {/* Past Rounds (collapsible) */}
+      {pastRounds && pastRounds.length > 0 && (
+        <section>
+          <details className="group">
+            <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-surface-300 hover:text-surface-100 transition-colors mb-3">
+              <svg
+                className="w-4 h-4 transition-transform group-open:rotate-90"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              Past Rounds ({pastRounds.length})
+            </summary>
+            <div className="space-y-3">
+              {pastRounds.map((round) => (
+                <Link key={round.id} href={`/rounds/${round.id}`} className="block">
+                  <Card className="transition-shadow hover:shadow-md">
+                    <CardHeader className="flex flex-row items-center justify-between py-4">
+                      <div>
+                        <CardTitle className="text-base">
+                          {(round.course as any)?.name ?? 'Unknown Course'}
+                        </CardTitle>
+                        <CardDescription>
+                          {(round.group as any)?.name ? `${(round.group as any).name} · ` : ''}
+                          {new Date(round.round_date).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </CardDescription>
+                      </div>
+                      <Badge
+                        variant={round.status === 'completed' ? 'default' : 'outline'}
+                        className="capitalize"
+                      >
+                        {round.status?.replace('_', ' ')}
+                      </Badge>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </details>
+        </section>
+      )}
     </div>
   );
 }

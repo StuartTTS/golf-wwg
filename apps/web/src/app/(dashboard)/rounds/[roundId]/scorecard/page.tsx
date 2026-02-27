@@ -21,6 +21,7 @@ interface Player {
   displayName: string;
   handicap: number | null;
   teeBoxId: string;
+  isGuest?: boolean;
 }
 
 interface Score {
@@ -286,11 +287,22 @@ function MobileHoleView({
               className="w-full flex items-center justify-between p-4 rounded-xl bg-surface-800 border border-surface-500 hover:border-golf-400 hover:shadow-sm transition-all active:scale-[0.98]"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 font-semibold text-sm">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${
+                  player.isGuest
+                    ? 'bg-surface-600 text-surface-300'
+                    : 'bg-emerald-900/40 text-golf-600'
+                }`}>
                   {player.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-surface-50">{player.displayName}</p>
+                  <p className="font-medium text-surface-50">
+                    {player.displayName}
+                    {player.isGuest && (
+                      <span className="ml-2 text-[10px] font-normal text-surface-400 border border-surface-500 rounded px-1 py-0.5">
+                        Guest
+                      </span>
+                    )}
+                  </p>
                   {total !== null && (
                     <p className="text-xs text-surface-300">Total: {total}</p>
                   )}
@@ -551,8 +563,11 @@ export default function ScorecardPage() {
               name
             ),
             round_players (
+              id,
               user_id,
               tee_box_id,
+              guest_name,
+              guest_handicap_index,
               profiles:profiles!round_players_user_id_fkey (
                 id,
                 display_name,
@@ -598,12 +613,16 @@ export default function ScorecardPage() {
           courseName: roundData.courses?.name ?? 'Unknown Course',
           status: roundData.status as any,
           date: roundData.round_date,
-          players: roundData.round_players.map((rp: any) => ({
-            id: rp.profiles.id,
-            displayName: rp.profiles.display_name,
-            handicap: rp.profiles.handicap,
-            teeBoxId: rp.tee_box_id,
-          })),
+          players: roundData.round_players.map((rp: any) => {
+            const isGuest = !rp.user_id;
+            return {
+              id: isGuest ? rp.id : rp.profiles.id,
+              displayName: isGuest ? rp.guest_name : rp.profiles.display_name,
+              handicap: isGuest ? rp.guest_handicap_index : rp.profiles.handicap,
+              teeBoxId: rp.tee_box_id,
+              isGuest,
+            };
+          }),
           holes: defaultHoles,
           holesByTeeBox,
         });

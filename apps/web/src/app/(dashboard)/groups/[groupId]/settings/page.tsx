@@ -205,6 +205,40 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
         </p>
       </div>
 
+      {/* Navigation Tabs */}
+      <nav className="flex gap-4 border-b border-surface-500 pb-2">
+        <Link
+          href={`/groups/${groupId}`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Overview
+        </Link>
+        <Link
+          href={`/groups/${groupId}/members`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Members
+        </Link>
+        <Link
+          href={`/groups/${groupId}/rounds`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Rounds
+        </Link>
+        <Link
+          href={`/groups/${groupId}/leaderboard`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Leaderboard
+        </Link>
+        <Link
+          href={`/groups/${groupId}/seasons`}
+          className="text-sm font-medium text-surface-300 hover:text-surface-100 pb-2"
+        >
+          Seasons
+        </Link>
+      </nav>
+
       {/* Success Message */}
       {success && (
         <div className="rounded-md bg-golf-900/30 p-4 text-sm text-golf-600">

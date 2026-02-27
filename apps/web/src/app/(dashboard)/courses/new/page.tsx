@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CourseSearchPanel } from '@/components/courses/course-search-panel';
 
 type Step = 'details' | 'teeboxes' | 'holes';
 
@@ -59,6 +60,7 @@ const TEE_COLORS = [
   'Green',
   'Red',
   'Silver',
+  'Copper',
   'Combo',
 ];
 
@@ -93,7 +95,7 @@ function StepIndicator({ currentStep }: { currentStep: Step }) {
               ${
                 idx <= currentIndex
                   ? 'bg-emerald-900/40 text-golf-600 font-medium'
-                  : 'bg-gray-100 text-dark-500'
+                  : 'bg-surface-700 text-surface-400'
               }
             `}
           >
@@ -102,10 +104,10 @@ function StepIndicator({ currentStep }: { currentStep: Step }) {
                 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold
                 ${
                   idx < currentIndex
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-golf-600 text-white'
                     : idx === currentIndex
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-300 text-white'
+                    ? 'bg-golf-600 text-white'
+                    : 'bg-surface-500 text-white'
                 }
               `}
             >
@@ -122,7 +124,7 @@ function StepIndicator({ currentStep }: { currentStep: Step }) {
           {idx < steps.length - 1 && (
             <div
               className={`w-8 h-0.5 ${
-                idx < currentIndex ? 'bg-green-300' : 'bg-gray-200'
+                idx < currentIndex ? 'bg-golf-400' : 'bg-surface-600'
               }`}
             />
           )}
@@ -153,7 +155,7 @@ function CourseDetailsStep({
       </CardHeader>
       <div className="px-6 pb-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-dark-800 mb-1">
+          <label className="block text-sm font-medium text-surface-100 mb-1">
             Course Name *
           </label>
           <Input
@@ -165,7 +167,7 @@ function CourseDetailsStep({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
+            <label className="block text-sm font-medium text-surface-100 mb-1">
               City
             </label>
             <Input
@@ -175,7 +177,7 @@ function CourseDetailsStep({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
+            <label className="block text-sm font-medium text-surface-100 mb-1">
               State
             </label>
             <Select
@@ -197,7 +199,7 @@ function CourseDetailsStep({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-dark-800 mb-1">
+          <label className="block text-sm font-medium text-surface-100 mb-1">
             Number of Holes
           </label>
           <Select
@@ -224,9 +226,9 @@ function CourseDetailsStep({
             onChange={(e) =>
               onChange({ ...details, isPublic: e.target.checked })
             }
-            className="rounded border-gray-300 text-golf-600 focus:ring-green-500"
+            className="rounded border-surface-500 text-golf-600 focus:ring-golf-500"
           />
-          <label htmlFor="isPublic" className="text-sm text-dark-800">
+          <label htmlFor="isPublic" className="text-sm text-surface-100">
             Make this course visible to other users
           </label>
         </div>
@@ -297,10 +299,10 @@ function TeeBoxesStep({
         {teeBoxes.map((teeBox, idx) => (
           <div
             key={teeBox.id}
-            className="p-4 border border-dark-300 rounded-lg space-y-3"
+            className="p-4 border border-surface-500 rounded-lg space-y-3"
           >
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-dark-800">
+              <h4 className="text-sm font-semibold text-surface-100">
                 Tee Box {idx + 1}
               </h4>
               {teeBoxes.length > 1 && (
@@ -315,7 +317,7 @@ function TeeBoxesStep({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-dark-700 mb-1">
+                <label className="block text-xs font-medium text-surface-200 mb-1">
                   Name *
                 </label>
                 <Input
@@ -327,7 +329,7 @@ function TeeBoxesStep({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-dark-700 mb-1">
+                <label className="block text-xs font-medium text-surface-200 mb-1">
                   Color
                 </label>
                 <Select
@@ -350,7 +352,7 @@ function TeeBoxesStep({
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-dark-700 mb-1">
+                <label className="block text-xs font-medium text-surface-200 mb-1">
                   Rating *
                 </label>
                 <Input
@@ -364,7 +366,7 @@ function TeeBoxesStep({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-dark-700 mb-1">
+                <label className="block text-xs font-medium text-surface-200 mb-1">
                   Slope *
                 </label>
                 <Input
@@ -377,7 +379,7 @@ function TeeBoxesStep({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-dark-700 mb-1">
+                <label className="block text-xs font-medium text-surface-200 mb-1">
                   Yardage
                 </label>
                 <Input
@@ -395,7 +397,7 @@ function TeeBoxesStep({
 
         <button
           onClick={addTeeBox}
-          className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-dark-600 hover:border-green-400 hover:text-golf-600 transition-colors"
+          className="w-full p-3 border-2 border-dashed border-surface-500 rounded-lg text-sm text-surface-300 hover:border-golf-400 hover:text-golf-600 transition-colors"
         >
           + Add Another Tee Box
         </button>
@@ -477,7 +479,7 @@ function HolesStep({
       <div className="px-6 pb-6 space-y-4">
         {/* Tee box tabs */}
         {teeBoxes.length > 1 && (
-          <div className="flex gap-2 border-b border-dark-300 pb-2">
+          <div className="flex gap-2 border-b border-surface-500 pb-2">
             {teeBoxes.map((tb, idx) => (
               <button
                 key={tb.id}
@@ -487,7 +489,7 @@ function HolesStep({
                   ${
                     idx === activeTeeBox
                       ? 'bg-emerald-900/40 text-golf-600'
-                      : 'text-dark-600 hover:text-dark-800'
+                      : 'text-surface-300 hover:text-surface-100'
                   }
                 `}
               >
@@ -510,17 +512,17 @@ function HolesStep({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-dark-300">
-                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600 w-16">
+              <tr className="border-b border-surface-500">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300 w-16">
                   Hole
                 </th>
-                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                   Par
                 </th>
-                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                   Yardage
                 </th>
-                <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                   SI
                 </th>
               </tr>
@@ -529,12 +531,12 @@ function HolesStep({
               {currentTeeBoxHoles.map((hole, idx) => (
                 <tr
                   key={hole.number}
-                  className={`border-b border-gray-100 ${
-                    hole.number === 10 ? 'border-t-2 border-t-gray-300' : ''
+                  className={`border-b border-surface-600 ${
+                    hole.number === 10 ? 'border-t-2 border-t-surface-500' : ''
                   }`}
                 >
                   <td className="py-1.5 px-2">
-                    <span className="text-sm font-medium text-dark-800">
+                    <span className="text-sm font-medium text-surface-100">
                       {hole.number}
                     </span>
                   </td>
@@ -585,7 +587,7 @@ function HolesStep({
         </div>
 
         {/* Summary */}
-        <div className="flex justify-between text-sm text-dark-700 bg-dark-50 p-3 rounded-lg">
+        <div className="flex justify-between text-sm text-surface-200 bg-surface-700 p-3 rounded-lg">
           <span>
             Front 9 Par:{' '}
             <strong>
@@ -636,6 +638,7 @@ export default function NewCoursePage() {
   const router = useRouter();
   const { supabase, user } = useSupabase();
 
+  const [mode, setMode] = useState<'search' | 'manual'>('search');
   const [step, setStep] = useState<Step>('details');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -745,8 +748,10 @@ export default function NewCoursePage() {
         }
       }
 
+      setSaving(false);
       router.push(`/courses/${courseId}`);
     } catch (err: any) {
+      console.error('Course creation failed:', err);
       setError(err.message ?? 'Failed to create course');
       setSaving(false);
     }
@@ -757,51 +762,90 @@ export default function NewCoursePage() {
       <div className="mb-6">
         <button
           onClick={() => router.push('/courses')}
-          className="text-sm text-dark-600 hover:text-dark-800 flex items-center gap-1 mb-2"
+          className="text-sm text-surface-300 hover:text-surface-100 flex items-center gap-1 mb-2"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Courses
         </button>
-        <h1 className="text-2xl font-bold text-dark-900">New Course</h1>
+        <h1 className="text-2xl font-bold text-surface-50">New Course</h1>
       </div>
 
-      <StepIndicator currentStep={step} />
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setMode('search')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            mode === 'search'
+              ? 'bg-emerald-900/40 text-golf-600'
+              : 'bg-surface-700 text-surface-300 hover:text-surface-100'
+          }`}
+        >
+          Search Database
+        </button>
+        <button
+          onClick={() => setMode('manual')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            mode === 'manual'
+              ? 'bg-emerald-900/40 text-golf-600'
+              : 'bg-surface-700 text-surface-300 hover:text-surface-100'
+          }`}
+        >
+          Create Manually
+        </button>
+      </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-900/30 border border-red-200 rounded-lg text-sm text-red-400">
-          {error}
-        </div>
-      )}
+      {mode === 'search' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Search Course Database</CardTitle>
+            <CardDescription>
+              Search our database of golf courses to quickly add one with all tee boxes and hole data pre-filled.
+            </CardDescription>
+          </CardHeader>
+          <div className="px-6 pb-6">
+            <CourseSearchPanel />
+          </div>
+        </Card>
+      ) : (
+        <>
+          <StepIndicator currentStep={step} />
 
-      {step === 'details' && (
-        <CourseDetailsStep
-          details={details}
-          onChange={setDetails}
-          onNext={() => setStep('teeboxes')}
-        />
-      )}
+          {error && (
+            <div className="mb-4 p-3 bg-red-900/30 border border-red-200 rounded-lg text-sm text-red-400">
+              {error}
+            </div>
+          )}
 
-      {step === 'teeboxes' && (
-        <TeeBoxesStep
-          teeBoxes={teeBoxes}
-          onChange={setTeeBoxes}
-          onBack={() => setStep('details')}
-          onNext={handleGoToHoles}
-        />
-      )}
+          {step === 'details' && (
+            <CourseDetailsStep
+              details={details}
+              onChange={setDetails}
+              onNext={() => setStep('teeboxes')}
+            />
+          )}
 
-      {step === 'holes' && (
-        <HolesStep
-          teeBoxes={teeBoxes}
-          holesCount={parseInt(details.holesCount)}
-          teeBoxHoles={teeBoxHoles}
-          onChange={setTeeBoxHoles}
-          onBack={() => setStep('teeboxes')}
-          onSubmit={handleSubmit}
-          saving={saving}
-        />
+          {step === 'teeboxes' && (
+            <TeeBoxesStep
+              teeBoxes={teeBoxes}
+              onChange={setTeeBoxes}
+              onBack={() => setStep('details')}
+              onNext={handleGoToHoles}
+            />
+          )}
+
+          {step === 'holes' && (
+            <HolesStep
+              teeBoxes={teeBoxes}
+              holesCount={parseInt(details.holesCount)}
+              teeBoxHoles={teeBoxHoles}
+              onChange={setTeeBoxHoles}
+              onBack={() => setStep('teeboxes')}
+              onSubmit={handleSubmit}
+              saving={saving}
+            />
+          )}
+        </>
       )}
     </div>
   );

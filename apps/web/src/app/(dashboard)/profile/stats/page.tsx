@@ -79,15 +79,15 @@ function StatCard({
       ? 'text-red-400'
       : highlight === 'blue'
       ? 'text-blue-600'
-      : 'text-dark-900';
+      : 'text-surface-50';
 
   return (
-    <div className="p-3 bg-dark-100 rounded-lg border border-dark-300">
-      <p className="text-[10px] text-dark-600 uppercase tracking-wide font-semibold">
+    <div className="p-3 bg-surface-800 rounded-lg border border-surface-500">
+      <p className="text-[10px] text-surface-300 uppercase tracking-wide font-semibold">
         {label}
       </p>
       <p className={`text-xl font-bold mt-0.5 ${colorClass}`}>{value}</p>
-      {subtext && <p className="text-[10px] text-dark-500 mt-0.5">{subtext}</p>}
+      {subtext && <p className="text-[10px] text-surface-400 mt-0.5">{subtext}</p>}
     </div>
   );
 }
@@ -105,7 +105,7 @@ function TrendChart({
 }) {
   if (data.length < 2) {
     return (
-      <p className="text-sm text-dark-500 text-center py-4">
+      <p className="text-sm text-surface-400 text-center py-4">
         Not enough data for trend
       </p>
     );
@@ -118,7 +118,7 @@ function TrendChart({
 
   return (
     <div>
-      <p className="text-xs font-semibold text-dark-600 uppercase tracking-wide mb-2">
+      <p className="text-xs font-semibold text-surface-300 uppercase tracking-wide mb-2">
         {label}
       </p>
       <div className="flex items-end gap-[2px] h-24">
@@ -131,7 +131,7 @@ function TrendChart({
               key={idx}
               className="flex-1 flex flex-col items-center justify-end h-full group relative"
             >
-              <div className="hidden group-hover:block absolute -top-6 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+              <div className="hidden group-hover:block absolute -top-6 bg-surface-900 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
                 {formatValue(point.value)}
               </div>
               <div
@@ -143,7 +143,7 @@ function TrendChart({
         })}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-[9px] text-dark-500">
+        <span className="text-[9px] text-surface-400">
           {data[0]
             ? new Date(data[0].date).toLocaleDateString('en-US', {
                 month: 'short',
@@ -151,7 +151,7 @@ function TrendChart({
               })
             : ''}
         </span>
-        <span className="text-[9px] text-dark-500">
+        <span className="text-[9px] text-surface-400">
           {data[data.length - 1]
             ? new Date(data[data.length - 1].date).toLocaleDateString('en-US', {
                 month: 'short',
@@ -429,7 +429,7 @@ export default function StatsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -437,7 +437,7 @@ export default function StatsPage() {
   if (!data) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-dark-600">Unable to load statistics</p>
+        <p className="text-surface-300">Unable to load statistics</p>
       </div>
     );
   }
@@ -451,14 +451,14 @@ export default function StatsPage() {
         <div>
           <button
             onClick={() => router.push('/profile')}
-            className="text-sm text-dark-600 hover:text-dark-800 flex items-center gap-1 mb-2"
+            className="text-sm text-surface-300 hover:text-surface-100 flex items-center gap-1 mb-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Profile
           </button>
-          <h1 className="text-2xl font-bold text-dark-900">Statistics</h1>
+          <h1 className="text-2xl font-bold text-surface-50">Statistics</h1>
         </div>
         <Select value={period} onValueChange={(v) => setPeriod(v as TimePeriod)}>
           <SelectTrigger className="w-36">
@@ -473,7 +473,7 @@ export default function StatsPage() {
         </Select>
       </div>
 
-      <p className="text-sm text-dark-600">
+      <p className="text-sm text-surface-300">
         Based on {summary.totalRounds} round{summary.totalRounds !== 1 ? 's' : ''}
       </p>
 
@@ -576,45 +576,45 @@ export default function StatsPage() {
             {data.scoringByPar.map((sp) => (
               <div key={sp.par}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-dark-800">
+                  <span className="text-sm font-semibold text-surface-100">
                     Par {sp.par}
                   </span>
-                  <span className="text-sm font-bold text-dark-900">
+                  <span className="text-sm font-bold text-surface-50">
                     Avg: {sp.average.toFixed(2)}
                   </span>
                 </div>
                 {/* Stacked bar */}
-                <div className="flex h-4 rounded-full overflow-hidden bg-gray-100">
+                <div className="flex h-4 rounded-full overflow-hidden bg-surface-700">
                   {sp.birdieOrBetterPct > 0 && (
                     <div
-                      className="bg-red-900/300 transition-all"
+                      className="bg-score-birdie transition-all"
                       style={{ width: `${sp.birdieOrBetterPct}%` }}
                       title={`Birdie+: ${sp.birdieOrBetterPct.toFixed(0)}%`}
                     />
                   )}
                   {sp.parPct > 0 && (
                     <div
-                      className="bg-green-500 transition-all"
+                      className="bg-golf-500 transition-all"
                       style={{ width: `${sp.parPct}%` }}
                       title={`Par: ${sp.parPct.toFixed(0)}%`}
                     />
                   )}
                   {sp.bogeyPct > 0 && (
                     <div
-                      className="bg-blue-500 transition-all"
+                      className="bg-score-bogey transition-all"
                       style={{ width: `${sp.bogeyPct}%` }}
                       title={`Bogey: ${sp.bogeyPct.toFixed(0)}%`}
                     />
                   )}
                   {sp.doublePlusPct > 0 && (
                     <div
-                      className="bg-blue-800 transition-all"
+                      className="bg-score-double transition-all"
                       style={{ width: `${sp.doublePlusPct}%` }}
                       title={`Double+: ${sp.doublePlusPct.toFixed(0)}%`}
                     />
                   )}
                 </div>
-                <div className="flex justify-between mt-1 text-[10px] text-dark-500">
+                <div className="flex justify-between mt-1 text-[10px] text-surface-400">
                   <span>Birdie+ {sp.birdieOrBetterPct.toFixed(0)}%</span>
                   <span>Par {sp.parPct.toFixed(0)}%</span>
                   <span>Bogey {sp.bogeyPct.toFixed(0)}%</span>
@@ -636,7 +636,7 @@ export default function StatsPage() {
             data={data.scoringTrend}
             label="Scoring Average"
             formatValue={(v) => v.toString()}
-            color="bg-green-500"
+            color="bg-golf-500"
           />
         </div>
       </Card>

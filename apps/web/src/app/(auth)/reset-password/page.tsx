@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { resetPassword } from '@/lib/actions/auth';
@@ -47,13 +48,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="space-y-6">
       {/* Heading */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-dark-900">
-          Set a new password
+        <h1 className="font-display text-3xl font-bold text-surface-50">
+          Set New Password
         </h1>
-        <p className="mt-2 text-sm text-dark-700">
+        <p className="mt-2 text-sm text-surface-300">
           Enter your new password below.
         </p>
       </div>
@@ -61,8 +62,11 @@ export default function ResetPasswordPage() {
       {/* Success state */}
       {success ? (
         <div className="space-y-6">
-          <div className="rounded-md bg-green-50 p-4">
-            <p className="text-sm text-golf-600">
+          <div className="flex flex-col items-center gap-3 rounded-golf border border-golf-500/20 bg-golf-500/10 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-golf-500/20">
+              <Check className="h-5 w-5 text-golf-500" />
+            </div>
+            <p className="text-center text-sm text-golf-400">
               Your password has been updated successfully. Redirecting you to
               sign in...
             </p>
@@ -70,7 +74,7 @@ export default function ResetPasswordPage() {
           <div className="text-center">
             <Link
               href="/login"
-              className="text-sm font-medium text-golf-600 hover:text-golf-700"
+              className="text-sm font-medium text-golf-400 hover:text-golf-300"
             >
               Go to sign in
             </Link>
@@ -80,21 +84,21 @@ export default function ResetPasswordPage() {
         <>
           {/* Error banner */}
           {error && (
-            <div className="rounded-md bg-red-900/30 p-4">
+            <div className="rounded-golf border border-red-500/20 bg-red-500/10 p-3">
               <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-dark-800"
+                className="block text-sm font-medium text-surface-300"
               >
                 New password
               </label>
-              <div className="mt-1">
+              <div className="mt-1.5">
                 <Input
                   id="password"
                   name="password"
@@ -103,9 +107,10 @@ export default function ResetPasswordPage() {
                   required
                   placeholder="••••••••"
                   disabled={isPending}
+                  className="border-surface-600 bg-surface-700/50 text-surface-100 placeholder:text-surface-400 focus:border-golf-500 focus:ring-2 focus:ring-gold-500/30"
                 />
               </div>
-              <p className="mt-1 text-xs text-dark-600">
+              <p className="mt-1.5 text-xs text-surface-400">
                 Must be at least 8 characters
               </p>
             </div>
@@ -113,11 +118,11 @@ export default function ResetPasswordPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-dark-800"
+                className="block text-sm font-medium text-surface-300"
               >
                 Confirm new password
               </label>
-              <div className="mt-1">
+              <div className="mt-1.5">
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -126,11 +131,16 @@ export default function ResetPasswordPage() {
                   required
                   placeholder="••••••••"
                   disabled={isPending}
+                  className="border-surface-600 bg-surface-700/50 text-surface-100 placeholder:text-surface-400 focus:border-golf-500 focus:ring-2 focus:ring-gold-500/30"
                 />
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isPending}>
+            <Button
+              type="submit"
+              className="w-full bg-golf-600 hover:bg-golf-500 text-white font-semibold h-12 rounded-golf-lg"
+              disabled={isPending}
+            >
               {isPending ? 'Updating password...' : 'Update password'}
             </Button>
           </form>
@@ -138,7 +148,7 @@ export default function ResetPasswordPage() {
           <div className="text-center">
             <Link
               href="/login"
-              className="text-sm font-medium text-golf-600 hover:text-golf-700"
+              className="text-sm font-medium text-golf-400 hover:text-golf-300"
             >
               Back to sign in
             </Link>

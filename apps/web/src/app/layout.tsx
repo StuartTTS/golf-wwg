@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SupabaseProvider } from '@/providers/supabase-provider';
 import { AuthProvider } from '@/providers/auth-provider';
+import '@fontsource-variable/plus-jakarta-sans';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-dark-50 font-sans antialiased">
+      <body className="min-h-screen bg-surface-900 font-sans antialiased">
         <SupabaseProvider>
           <AuthProvider>{children}</AuthProvider>
         </SupabaseProvider>

@@ -27,15 +27,15 @@ export function RoundCard({ round }: RoundCardProps) {
   });
 
   return (
-    <Link href={`/rounds/${round.id}/scorecard`}>
-      <Card className="hover:border-golf-300 transition-colors cursor-pointer">
+    <Link href={`/rounds/${round.id}`}>
+      <Card className="hover:border-golf-500 transition-colors cursor-pointer">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-medium text-slate-900">
+          <div className="text-sm font-medium text-surface-50">
             {round.courseName}
           </div>
           <Badge variant={statusVariant}>{round.status.replace('_', ' ')}</Badge>
         </div>
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-surface-300">
           {formattedDate}
           {round.teeTime && ` at ${round.teeTime}`}
           {' • '}{round.playerCount} player{round.playerCount !== 1 ? 's' : ''}

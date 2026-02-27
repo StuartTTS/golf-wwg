@@ -1,6 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'accent';
 type Size = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -11,20 +11,22 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    'bg-golf-600 text-dark-50 hover:bg-golf-700 focus-visible:ring-golf-500',
+    'bg-golf-600 text-white hover:bg-golf-700 focus-visible:ring-gold-500/30',
   secondary:
-    'bg-dark-200 text-dark-900 hover:bg-dark-300 focus-visible:ring-dark-500',
+    'bg-surface-700 text-surface-100 hover:bg-surface-600 focus-visible:ring-gold-500/30',
   outline:
-    'border border-dark-300 bg-transparent text-dark-800 hover:bg-dark-200 focus-visible:ring-dark-500',
+    'border border-surface-500 bg-transparent text-surface-100 hover:bg-surface-700 focus-visible:ring-gold-500/30',
   ghost:
-    'text-dark-800 hover:bg-dark-200 focus-visible:ring-dark-500',
+    'text-surface-100 hover:bg-surface-700 focus-visible:ring-gold-500/30',
   destructive:
-    'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+    'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500/30',
+  accent:
+    'bg-gold-500 text-surface-900 hover:bg-gold-600 focus-visible:ring-gold-500/30',
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
+  sm: 'h-9 px-3 text-sm',
+  md: 'h-11 px-4 text-sm',
   lg: 'h-12 px-6 text-base',
 };
 
@@ -33,7 +35,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-50 disabled:pointer-events-none disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+        className={`inline-flex items-center justify-center rounded-golf font-semibold transition-all duration-golf ease-golf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
         disabled={disabled || loading}
         {...props}
       >

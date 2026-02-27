@@ -14,12 +14,12 @@ interface TrendChartProps {
 export function TrendChart({
   data,
   title,
-  color = '#16a34a',
+  color = '#22c55e',
   height = 200,
 }: TrendChartProps) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center text-sm text-slate-400" style={{ height }}>
+      <div className="flex items-center justify-center text-sm text-surface-400" style={{ height }}>
         No data available
       </div>
     );
@@ -44,7 +44,7 @@ export function TrendChart({
 
   return (
     <div>
-      <h4 className="text-sm font-semibold text-slate-700 mb-2">{title}</h4>
+      <h4 className="text-sm font-semibold text-surface-200 mb-2">{title}</h4>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ maxHeight: height }}>
         {/* Grid lines */}
         {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
@@ -57,14 +57,14 @@ export function TrendChart({
                 y1={y}
                 x2={width - padding.right}
                 y2={y}
-                stroke="#e2e8f0"
+                stroke="#1e2a24"
                 strokeWidth={1}
               />
               <text
                 x={padding.left - 5}
                 y={y + 4}
                 textAnchor="end"
-                className="text-[10px] fill-slate-400"
+                className="text-[10px] fill-surface-400"
               >
                 {val}
               </text>
@@ -103,7 +103,7 @@ export function TrendChart({
               x={xScale(i)}
               y={height - 5}
               textAnchor="middle"
-              className="text-[9px] fill-slate-400"
+              className="text-[9px] fill-surface-400"
             >
               {d.label}
             </text>

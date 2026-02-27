@@ -42,11 +42,11 @@ export function ScorecardGrid({
   const scoreColor = (strokes: number | null, par: number) => {
     if (strokes === null) return '';
     const diff = strokes - par;
-    if (diff <= -2) return 'bg-yellow-200 text-yellow-800 font-bold'; // Eagle+
-    if (diff === -1) return 'bg-red-100 text-red-700 font-semibold'; // Birdie
-    if (diff === 0) return ''; // Par
-    if (diff === 1) return 'bg-blue-100 text-blue-700'; // Bogey
-    return 'bg-blue-200 text-blue-800'; // Double+
+    if (diff <= -2) return 'bg-score-eagle/20 text-score-eagle font-bold'; // Eagle+
+    if (diff === -1) return 'bg-score-birdie/20 text-score-birdie font-semibold'; // Birdie
+    if (diff === 0) return 'text-surface-200'; // Par
+    if (diff === 1) return 'bg-score-bogey/20 text-score-bogey'; // Bogey
+    return 'bg-score-double/20 text-score-double'; // Double+
   };
 
   const handleCellClick = (playerId: string, holeNumber: number) => {
@@ -67,33 +67,33 @@ export function ScorecardGrid({
 
   const renderHoleHeaders = (holeRange: HoleInfo[], label: string) => (
     <thead>
-      <tr className="bg-slate-100 text-xs">
-        <th className="sticky left-0 z-10 bg-slate-100 px-2 py-1 text-left font-medium w-24">
+      <tr className="bg-surface-700 text-xs">
+        <th className="sticky left-0 z-10 bg-surface-700 px-2 py-1 text-left font-medium text-surface-200 w-24">
           {label}
         </th>
         {holeRange.map((h) => (
           <th
             key={h.holeNumber}
-            className={`px-1 py-1 text-center font-medium w-10 cursor-pointer ${
-              h.holeNumber === activeHole ? 'bg-golf-100' : ''
+            className={`px-1 py-1 text-center font-medium text-surface-200 w-10 cursor-pointer ${
+              h.holeNumber === activeHole ? 'bg-golf-500/20' : ''
             }`}
             onClick={() => onHoleSelect(h.holeNumber)}
           >
             {h.holeNumber}
           </th>
         ))}
-        <th className="px-2 py-1 text-center font-semibold bg-slate-200 w-12">
+        <th className="px-2 py-1 text-center font-semibold text-surface-50 bg-surface-600 w-12">
           {label === 'Hole' ? 'OUT' : label === 'Hole ' ? 'IN' : 'TOT'}
         </th>
       </tr>
-      <tr className="bg-slate-50 text-xs text-slate-500">
-        <td className="sticky left-0 z-10 bg-slate-50 px-2 py-1">Par</td>
+      <tr className="bg-surface-700 text-xs text-surface-300">
+        <td className="sticky left-0 z-10 bg-surface-700 px-2 py-1">Par</td>
         {holeRange.map((h) => (
           <td key={h.holeNumber} className="px-1 py-1 text-center">
             {h.par}
           </td>
         ))}
-        <td className="px-2 py-1 text-center font-medium bg-slate-100">
+        <td className="px-2 py-1 text-center font-medium bg-surface-600 text-surface-200">
           {parTotal(holeRange)}
         </td>
       </tr>
@@ -101,11 +101,11 @@ export function ScorecardGrid({
   );
 
   const renderPlayerRow = (player: PlayerInfo, holeRange: HoleInfo[]) => (
-    <tr key={player.playerId} className="border-b border-slate-100">
-      <td className="sticky left-0 z-10 bg-white px-2 py-1.5 text-xs font-medium truncate max-w-24">
+    <tr key={player.playerId} className="border-b border-surface-600">
+      <td className="sticky left-0 z-10 bg-surface-900 px-2 py-1.5 text-xs font-medium text-surface-100 truncate max-w-24">
         {player.displayName}
         {player.playingHandicap > 0 && (
-          <span className="ml-1 text-slate-400">({player.playingHandicap})</span>
+          <span className="ml-1 text-surface-400">({player.playingHandicap})</span>
         )}
       </td>
       {holeRange.map((h) => {
@@ -120,7 +120,7 @@ export function ScorecardGrid({
             className={`px-1 py-1.5 text-center text-sm cursor-pointer ${scoreColor(
               score?.strokes ?? null,
               h.par
-            )} ${h.holeNumber === activeHole ? 'ring-2 ring-golf-400 ring-inset' : ''}`}
+            )} ${h.holeNumber === activeHole ? 'ring-2 ring-golf-500 ring-inset' : ''}`}
             onClick={() => handleCellClick(player.playerId, h.holeNumber)}
           >
             {isEditing ? (
@@ -128,7 +128,7 @@ export function ScorecardGrid({
                 type="number"
                 min={1}
                 max={15}
-                className="w-8 text-center text-sm border-0 bg-white focus:outline-none focus:ring-1 focus:ring-golf-500 rounded"
+                className="w-8 text-center text-sm border-0 bg-surface-800 text-surface-50 focus:outline-none focus:ring-1 focus:ring-golf-500 rounded"
                 defaultValue={score?.strokes ?? ''}
                 autoFocus
                 onBlur={(e) =>
@@ -151,7 +151,7 @@ export function ScorecardGrid({
           </td>
         );
       })}
-      <td className="px-2 py-1.5 text-center text-sm font-semibold bg-slate-50">
+      <td className="px-2 py-1.5 text-center text-sm font-semibold bg-surface-800/50 text-surface-50">
         {getTotal(player.playerId, holeRange) || '-'}
       </td>
     </tr>
@@ -180,12 +180,12 @@ export function ScorecardGrid({
       {/* Totals */}
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-slate-200 text-xs font-semibold">
-            <th className="px-2 py-1.5 text-left w-24">Total</th>
-            <th className="px-2 py-1.5 text-center">OUT</th>
-            <th className="px-2 py-1.5 text-center">IN</th>
-            <th className="px-2 py-1.5 text-center">TOTAL</th>
-            <th className="px-2 py-1.5 text-center">+/-</th>
+          <tr className="bg-surface-700 text-xs font-semibold">
+            <th className="px-2 py-1.5 text-left text-surface-200 w-24">Total</th>
+            <th className="px-2 py-1.5 text-center text-surface-50">OUT</th>
+            <th className="px-2 py-1.5 text-center text-surface-50">IN</th>
+            <th className="px-2 py-1.5 text-center text-surface-50">TOTAL</th>
+            <th className="px-2 py-1.5 text-center text-surface-50">+/-</th>
           </tr>
         </thead>
         <tbody>
@@ -196,13 +196,13 @@ export function ScorecardGrid({
             const totalPar = parTotal(frontNine) + parTotal(backNine);
             const diff = total - totalPar;
             return (
-              <tr key={p.playerId} className="border-b border-slate-100">
-                <td className="px-2 py-1.5 text-xs font-medium">{p.displayName}</td>
-                <td className="px-2 py-1.5 text-center">{out || '-'}</td>
-                <td className="px-2 py-1.5 text-center">{inn || '-'}</td>
-                <td className="px-2 py-1.5 text-center font-bold">{total || '-'}</td>
+              <tr key={p.playerId} className="border-b border-surface-600">
+                <td className="px-2 py-1.5 text-xs font-medium text-surface-100">{p.displayName}</td>
+                <td className="px-2 py-1.5 text-center text-surface-200">{out || '-'}</td>
+                <td className="px-2 py-1.5 text-center text-surface-200">{inn || '-'}</td>
+                <td className="px-2 py-1.5 text-center font-bold text-surface-50">{total || '-'}</td>
                 <td className={`px-2 py-1.5 text-center font-medium ${
-                  diff < 0 ? 'text-red-600' : diff > 0 ? 'text-blue-600' : ''
+                  diff < 0 ? 'text-score-birdie' : diff > 0 ? 'text-score-bogey' : ''
                 }`}>
                   {total ? (diff > 0 ? `+${diff}` : diff === 0 ? 'E' : diff) : '-'}
                 </td>

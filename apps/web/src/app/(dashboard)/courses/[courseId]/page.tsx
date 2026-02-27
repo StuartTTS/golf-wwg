@@ -108,21 +108,23 @@ export default async function CourseDetailPage({
   const getTeeColorClass = (color: string | null) => {
     switch (color?.toLowerCase()) {
       case 'black':
-        return 'bg-gray-900 text-white';
+        return 'bg-surface-900 text-white';
       case 'blue':
         return 'bg-blue-600 text-white';
       case 'white':
-        return 'bg-dark-100 text-dark-900 border border-gray-300';
+        return 'bg-surface-800 text-surface-50 border border-surface-500';
       case 'gold':
         return 'bg-yellow-500 text-white';
       case 'green':
-        return 'bg-green-600 text-white';
+        return 'bg-golf-600 text-white';
       case 'red':
         return 'bg-red-600 text-white';
       case 'silver':
         return 'bg-gray-400 text-white';
+      case 'copper':
+        return 'bg-amber-700 text-white';
       default:
-        return 'bg-gray-200 text-dark-800';
+        return 'bg-surface-600 text-surface-100';
     }
   };
 
@@ -133,7 +135,7 @@ export default async function CourseDetailPage({
         <div>
           <Link
             href="/courses"
-            className="text-sm text-dark-600 hover:text-dark-800 flex items-center gap-1 mb-2"
+            className="text-sm text-surface-300 hover:text-surface-100 flex items-center gap-1 mb-2"
           >
             <svg
               className="w-4 h-4"
@@ -150,11 +152,11 @@ export default async function CourseDetailPage({
             </svg>
             Courses
           </Link>
-          <h1 className="text-2xl font-bold text-dark-900">
+          <h1 className="text-2xl font-bold text-surface-50">
             {typedCourse.name}
           </h1>
           {(typedCourse.city || typedCourse.state) && (
-            <p className="text-dark-600 mt-1">
+            <p className="text-surface-300 mt-1">
               {[typedCourse.city, typedCourse.state].filter(Boolean).join(', ')}
             </p>
           )}
@@ -175,28 +177,28 @@ export default async function CourseDetailPage({
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-dark-600 uppercase tracking-wide">
+            <p className="text-xs text-surface-300 uppercase tracking-wide">
               Total Par
             </p>
-            <p className="text-3xl font-bold text-dark-900 mt-1">{totalPar}</p>
+            <p className="text-3xl font-bold text-surface-50 mt-1">{totalPar}</p>
           </div>
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-dark-600 uppercase tracking-wide">
+            <p className="text-xs text-surface-300 uppercase tracking-wide">
               Front 9
             </p>
-            <p className="text-3xl font-bold text-dark-900 mt-1">
+            <p className="text-3xl font-bold text-surface-50 mt-1">
               {frontNinePar}
             </p>
           </div>
         </Card>
         <Card>
           <div className="p-4 text-center">
-            <p className="text-xs text-dark-600 uppercase tracking-wide">
+            <p className="text-xs text-surface-300 uppercase tracking-wide">
               Back 9
             </p>
-            <p className="text-3xl font-bold text-dark-900 mt-1">
+            <p className="text-3xl font-bold text-surface-50 mt-1">
               {backNinePar || '-'}
             </p>
           </div>
@@ -215,20 +217,20 @@ export default async function CourseDetailPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-dark-300">
-                  <th className="text-left py-2 px-3 text-xs font-semibold text-dark-600">
+                <tr className="border-b border-surface-500">
+                  <th className="text-left py-2 px-3 text-xs font-semibold text-surface-300">
                     Tee
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-surface-300">
                     Rating
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-surface-300">
                     Slope
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-surface-300">
                     Yardage
                   </th>
-                  <th className="text-center py-2 px-3 text-xs font-semibold text-dark-600">
+                  <th className="text-center py-2 px-3 text-xs font-semibold text-surface-300">
                     Par
                   </th>
                 </tr>
@@ -242,27 +244,27 @@ export default async function CourseDetailPage({
                   );
 
                   return (
-                    <tr key={tee.id} className="border-b border-gray-100">
+                    <tr key={tee.id} className="border-b border-surface-600">
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2">
                           <span
                             className={`w-4 h-4 rounded-full ${getTeeColorClass(tee.color)}`}
                           />
-                          <span className="font-medium text-dark-900">
+                          <span className="font-medium text-surface-50">
                             {tee.name}
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-center text-dark-800">
+                      <td className="py-3 px-3 text-center text-surface-100">
                         {tee.course_rating}
                       </td>
-                      <td className="py-3 px-3 text-center text-dark-800">
+                      <td className="py-3 px-3 text-center text-surface-100">
                         {tee.slope_rating}
                       </td>
-                      <td className="py-3 px-3 text-center text-dark-800">
+                      <td className="py-3 px-3 text-center text-surface-100">
                         {(tee.total_yardage ?? totalYardage) || '-'}
                       </td>
-                      <td className="py-3 px-3 text-center font-medium text-dark-900">
+                      <td className="py-3 px-3 text-center font-medium text-surface-50">
                         {teePar}
                       </td>
                     </tr>
@@ -287,16 +289,16 @@ export default async function CourseDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-dark-300">
-                    <th className="text-left py-2 px-2 text-xs font-semibold text-dark-600">
+                  <tr className="border-b border-surface-500">
+                    <th className="text-left py-2 px-2 text-xs font-semibold text-surface-300">
                       Hole
                     </th>
                     {primaryTee.holes.map((h) => (
                       <th
                         key={h.hole_number}
                         className={`
-                          text-center py-2 px-2 text-xs font-semibold text-dark-600 min-w-[2.5rem]
-                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          text-center py-2 px-2 text-xs font-semibold text-surface-300 min-w-[2.5rem]
+                          ${h.hole_number === 10 ? 'border-l-2 border-surface-500' : ''}
                         `}
                       >
                         {h.hole_number}
@@ -304,31 +306,31 @@ export default async function CourseDetailPage({
                     ))}
                     {typedCourse.num_holes === 18 && (
                       <>
-                        <th className="text-center py-2 px-2 text-xs font-bold text-dark-800 bg-dark-50">
+                        <th className="text-center py-2 px-2 text-xs font-bold text-surface-100 bg-surface-700">
                           OUT
                         </th>
-                        <th className="text-center py-2 px-2 text-xs font-bold text-dark-800 bg-dark-50">
+                        <th className="text-center py-2 px-2 text-xs font-bold text-surface-100 bg-surface-700">
                           IN
                         </th>
                       </>
                     )}
-                    <th className="text-center py-2 px-2 text-xs font-bold text-dark-900 bg-gray-100">
+                    <th className="text-center py-2 px-2 text-xs font-bold text-surface-50 bg-surface-700">
                       TOT
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {/* Par row */}
-                  <tr className="border-b border-dark-300 bg-dark-50">
-                    <td className="py-2 px-2 text-xs font-semibold text-dark-600">
+                  <tr className="border-b border-surface-500 bg-surface-700">
+                    <td className="py-2 px-2 text-xs font-semibold text-surface-300">
                       Par
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
                         key={h.hole_number}
                         className={`
-                          text-center py-2 px-2 text-xs font-medium text-dark-800
-                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          text-center py-2 px-2 text-xs font-medium text-surface-100
+                          ${h.hole_number === 10 ? 'border-l-2 border-surface-500' : ''}
                         `}
                       >
                         {h.par}
@@ -336,30 +338,30 @@ export default async function CourseDetailPage({
                     ))}
                     {typedCourse.num_holes === 18 && (
                       <>
-                        <td className="text-center py-2 px-2 text-xs font-bold text-gray-800 bg-gray-100">
+                        <td className="text-center py-2 px-2 text-xs font-bold text-surface-100 bg-surface-700">
                           {frontNinePar}
                         </td>
-                        <td className="text-center py-2 px-2 text-xs font-bold text-gray-800 bg-gray-100">
+                        <td className="text-center py-2 px-2 text-xs font-bold text-surface-100 bg-surface-700">
                           {backNinePar}
                         </td>
                       </>
                     )}
-                    <td className="text-center py-2 px-2 text-xs font-bold text-dark-900 bg-gray-200">
+                    <td className="text-center py-2 px-2 text-xs font-bold text-surface-50 bg-surface-600">
                       {totalPar}
                     </td>
                   </tr>
 
                   {/* Yardage row */}
-                  <tr className="border-b border-dark-300">
-                    <td className="py-2 px-2 text-xs font-semibold text-dark-600">
+                  <tr className="border-b border-surface-500">
+                    <td className="py-2 px-2 text-xs font-semibold text-surface-300">
                       Yds
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
                         key={h.hole_number}
                         className={`
-                          text-center py-2 px-2 text-xs text-dark-700
-                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          text-center py-2 px-2 text-xs text-surface-200
+                          ${h.hole_number === 10 ? 'border-l-2 border-surface-500' : ''}
                         `}
                       >
                         {h.yardage ?? '-'}
@@ -367,19 +369,19 @@ export default async function CourseDetailPage({
                     ))}
                     {typedCourse.num_holes === 18 && (
                       <>
-                        <td className="text-center py-2 px-2 text-xs font-bold text-dark-700 bg-dark-50">
+                        <td className="text-center py-2 px-2 text-xs font-bold text-surface-200 bg-surface-700">
                           {primaryTee.holes
                             .filter((h) => h.hole_number <= 9)
                             .reduce((s, h) => s + (h.yardage ?? 0), 0) || '-'}
                         </td>
-                        <td className="text-center py-2 px-2 text-xs font-bold text-dark-700 bg-dark-50">
+                        <td className="text-center py-2 px-2 text-xs font-bold text-surface-200 bg-surface-700">
                           {primaryTee.holes
                             .filter((h) => h.hole_number > 9)
                             .reduce((s, h) => s + (h.yardage ?? 0), 0) || '-'}
                         </td>
                       </>
                     )}
-                    <td className="text-center py-2 px-2 text-xs font-bold text-dark-800 bg-gray-100">
+                    <td className="text-center py-2 px-2 text-xs font-bold text-surface-100 bg-surface-700">
                       {primaryTee.holes.reduce(
                         (s, h) => s + (h.yardage ?? 0),
                         0
@@ -388,16 +390,16 @@ export default async function CourseDetailPage({
                   </tr>
 
                   {/* Stroke Index row */}
-                  <tr className="border-b border-gray-100">
-                    <td className="py-2 px-2 text-xs font-semibold text-dark-600">
+                  <tr className="border-b border-surface-600">
+                    <td className="py-2 px-2 text-xs font-semibold text-surface-300">
                       SI
                     </td>
                     {primaryTee.holes.map((h) => (
                       <td
                         key={h.hole_number}
                         className={`
-                          text-center py-2 px-2 text-xs text-dark-600
-                          ${h.hole_number === 10 ? 'border-l-2 border-gray-300' : ''}
+                          text-center py-2 px-2 text-xs text-surface-300
+                          ${h.hole_number === 10 ? 'border-l-2 border-surface-500' : ''}
                         `}
                       >
                         {h.handicap_index}
@@ -405,11 +407,11 @@ export default async function CourseDetailPage({
                     ))}
                     {typedCourse.num_holes === 18 && (
                       <>
-                        <td className="bg-dark-50" />
-                        <td className="bg-dark-50" />
+                        <td className="bg-surface-700" />
+                        <td className="bg-surface-700" />
                       </>
                     )}
-                    <td className="bg-gray-100" />
+                    <td className="bg-surface-700" />
                   </tr>
                 </tbody>
               </table>

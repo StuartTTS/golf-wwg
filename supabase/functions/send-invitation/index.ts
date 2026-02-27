@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendEmail } from '../_shared/email.ts';
+import { sendEmail, escapeHtml } from '../_shared/email.ts';
 
 interface RequestBody {
   invitationId: string;
@@ -78,12 +78,14 @@ Deno.serve(async (req: Request) => {
     const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:3000';
     const inviteUrl = `${siteUrl}/invite/${invitation.token}`;
 
+    const safeGroupName = escapeHtml(group.name);
+    const safeInviterName = escapeHtml(inviter.display_name);
     await sendEmail(
       invitation.email,
       `${inviter.display_name} invited you to join ${group.name} on Golf WWG`,
       `
-        <h2>You've been invited to join ${group.name}!</h2>
-        <p>${inviter.display_name} has invited you to join their golf group.</p>
+        <h2>You've been invited to join ${safeGroupName}!</h2>
+        <p>${safeInviterName} has invited you to join their golf group.</p>
         <p><a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;">Accept Invitation</a></p>
         <p>Or copy this link: ${inviteUrl}</p>
         <p>This invitation expires in 7 days.</p>

@@ -23,7 +23,7 @@ export default function RsvpActions({ token, roundId }: RsvpActionsProps) {
         setError(result.error);
         return;
       }
-      router.push(`/rounds/${result.roundId ?? roundId}/scorecard`);
+      router.push(`/rounds/${result.roundId ?? roundId}`);
       router.refresh();
     });
   }

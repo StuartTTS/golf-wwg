@@ -7,11 +7,13 @@ import {
   useState,
   useRef,
   useEffect,
+  useCallback,
   type ReactNode,
   type SelectHTMLAttributes,
 } from 'react';
+import { ChevronDown } from 'lucide-react';
 
-// ── Simple <Select> (native HTML) ──────────────────────────────────────
+// -- Simple <Select> (native HTML) --
 interface SimpleSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
@@ -24,15 +26,15 @@ export const SimpleSelect = forwardRef<HTMLSelectElement, SimpleSelectProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={id} className="block text-sm font-medium text-dark-800">
+          <label htmlFor={id} className="block text-sm font-medium text-surface-200">
             {label}
           </label>
         )}
         <select
           ref={ref}
           id={id}
-          className={`block w-full rounded-md border border-dark-300 bg-dark-200 px-3 py-2 text-sm text-dark-900 focus:border-golf-500 focus:outline-none focus:ring-1 focus:ring-golf-500 disabled:cursor-not-allowed disabled:opacity-50 ${
-            error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+          className={`block w-full rounded-golf border border-surface-500 bg-surface-800 px-3 py-2 text-base text-surface-100 focus:border-golf-500 focus:outline-none focus:ring-2 focus:ring-gold-500/30 disabled:cursor-not-allowed disabled:opacity-50 ${
+            error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' : ''
           } ${className}`}
           {...props}
         >
@@ -51,12 +53,16 @@ export const SimpleSelect = forwardRef<HTMLSelectElement, SimpleSelectProps>(
 
 SimpleSelect.displayName = 'SimpleSelect';
 
-// ── Compound Select (SelectTrigger / SelectValue / SelectContent / SelectItem) ─
+// -- Compound Select (SelectTrigger / SelectValue / SelectContent / SelectItem) --
 interface SelectContextType {
   value: string;
   onValueChange: (value: string) => void;
   open: boolean;
   setOpen: (open: boolean) => void;
+  highlightedIndex: number;
+  setHighlightedIndex: (index: number) => void;
+  itemValues: string[];
+  registerItem: (value: string) => void;
 }
 
 const SelectContext = createContext<SelectContextType | null>(null);
@@ -77,6 +83,8 @@ interface SelectProps {
 export function Select({ value: controlledValue, defaultValue = '', onValueChange, children }: SelectProps) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const [open, setOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [itemValues, setItemValues] = useState<string[]>([]);
 
   const value = controlledValue ?? internalValue;
   const handleChange = (newValue: string) => {
@@ -84,32 +92,74 @@ export function Select({ value: controlledValue, defaultValue = '', onValueChang
     onValueChange?.(newValue);
   };
 
+  const registerItem = useCallback((val: string) => {
+    setItemValues((prev) => (prev.includes(val) ? prev : [...prev, val]));
+  }, []);
+
   return (
-    <SelectContext.Provider value={{ value, onValueChange: handleChange, open, setOpen }}>
+    <SelectContext.Provider
+      value={{ value, onValueChange: handleChange, open, setOpen, highlightedIndex, setHighlightedIndex, itemValues, registerItem }}
+    >
       <div className="relative">{children}</div>
     </SelectContext.Provider>
   );
 }
 
 export function SelectTrigger({ className = '', children }: { className?: string; children: ReactNode }) {
-  const { open, setOpen } = useSelectContext();
+  const { open, setOpen, highlightedIndex, setHighlightedIndex, itemValues, onValueChange } = useSelectContext();
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setOpen(true);
+        setHighlightedIndex(0);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(Math.min(highlightedIndex + 1, itemValues.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(Math.max(highlightedIndex - 1, 0));
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < itemValues.length) {
+          onValueChange(itemValues[highlightedIndex]);
+          setOpen(false);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setOpen(false);
+        break;
+    }
+  };
+
   return (
     <button
       type="button"
+      role="combobox"
+      aria-expanded={open}
       onClick={() => setOpen(!open)}
-      className={`flex w-full items-center justify-between rounded-md border border-dark-300 bg-dark-200 px-3 py-2 text-sm text-dark-900 focus:border-golf-500 focus:outline-none focus:ring-1 focus:ring-golf-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      onKeyDown={handleKeyDown}
+      className={`flex w-full items-center justify-between rounded-golf border border-surface-500 bg-surface-800 px-3 py-2 text-base text-surface-100 focus:border-golf-500 focus:outline-none focus:ring-2 focus:ring-gold-500/30 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
-      <svg className="ml-2 h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
+      <ChevronDown className={`ml-2 h-4 w-4 text-surface-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
     </button>
   );
 }
 
 export function SelectValue({ placeholder }: { placeholder?: string }) {
   const { value } = useSelectContext();
-  return <span className={value ? '' : 'text-dark-500'}>{value || placeholder || ''}</span>;
+  return <span className={value ? 'text-surface-100' : 'text-surface-400'}>{value || placeholder || ''}</span>;
 }
 
 export function SelectContent({ children }: { children: ReactNode }) {
@@ -132,7 +182,8 @@ export function SelectContent({ children }: { children: ReactNode }) {
   return (
     <div
       ref={ref}
-      className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-dark-300 bg-dark-100 py-1 shadow-lg"
+      role="listbox"
+      className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-golf border border-surface-500 bg-surface-700 py-1 shadow-elevated"
     >
       {children}
     </div>
@@ -140,8 +191,14 @@ export function SelectContent({ children }: { children: ReactNode }) {
 }
 
 export function SelectItem({ value, children }: { value: string; children: ReactNode }) {
-  const { value: selectedValue, onValueChange, setOpen } = useSelectContext();
+  const { value: selectedValue, onValueChange, setOpen, highlightedIndex, itemValues, registerItem } = useSelectContext();
   const isSelected = selectedValue === value;
+  const index = itemValues.indexOf(value);
+  const isHighlighted = highlightedIndex === index;
+
+  useEffect(() => {
+    registerItem(value);
+  }, [value, registerItem]);
 
   return (
     <div
@@ -151,8 +208,12 @@ export function SelectItem({ value, children }: { value: string; children: React
         onValueChange(value);
         setOpen(false);
       }}
-      className={`cursor-pointer px-3 py-2 text-sm hover:bg-dark-300 ${
-        isSelected ? 'bg-dark-300 font-medium text-golf-600' : 'text-dark-800'
+      className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
+        isHighlighted ? 'bg-surface-600 text-surface-100' : ''
+      } ${
+        isSelected ? 'bg-surface-600 font-medium text-golf-400' : 'text-surface-200'
+      } ${
+        !isHighlighted && !isSelected ? 'hover:bg-surface-600' : ''
       }`}
     >
       {children}
