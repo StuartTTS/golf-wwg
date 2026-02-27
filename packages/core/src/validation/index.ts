@@ -38,7 +38,7 @@ export const resetPasswordSchema = z.object({
 // ---------- Profile ----------
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(50).optional(),
-  defaultTeePreference: z.string().optional(),
+  defaultTeeTier: z.number().int().min(1).max(10).nullable().optional(),
   avatarUrl: z.string().url().optional().nullable(),
 });
 
@@ -54,6 +54,7 @@ export const courseSchema = z.object({
 export const teeBoxSchema = z.object({
   name: z.string().min(1, 'Tee name is required').max(30),
   color: z.string().optional(),
+  tier: z.number().int().min(1).max(10).optional(),
   slopeRating: z.number().min(55).max(155),
   courseRating: z.number().min(55).max(85),
   totalYardage: z.number().int().min(1000).max(9000).optional(),
@@ -71,6 +72,7 @@ export const createGroupSchema = z.object({
   name: z.string().min(2, 'Group name is required').max(100),
   description: z.string().max(500).optional(),
   defaultCourseId: z.string().uuid().optional(),
+  homeClubId: z.string().uuid().optional(),
 });
 
 export const inviteMemberSchema = z.object({
@@ -88,7 +90,7 @@ export const createRoundSchema = z.object({
     .string()
     .regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)')
     .optional(),
-  scoringMode: z.enum(['shared', 'scorekeeper']),
+  scoringMode: z.enum(['shared', 'scorekeeper', 'stroke', 'stableford', 'match', 'skins', 'best_ball']).optional(),
   scorekeeperId: z.string().uuid().optional(),
 });
 

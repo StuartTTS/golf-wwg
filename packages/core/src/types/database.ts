@@ -7,8 +7,9 @@ export interface Profile {
   display_name: string;
   email: string;
   avatar_url: string | null;
-  default_tee_preference: string | null;
+  default_tee_tier: number | null;
   current_handicap_index: number | null;
+  profile_completed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -18,16 +19,18 @@ export interface ProfileInsert {
   display_name: string;
   email: string;
   avatar_url?: string | null;
-  default_tee_preference?: string | null;
+  default_tee_tier?: number | null;
   current_handicap_index?: number | null;
+  profile_completed?: boolean;
 }
 
 export interface ProfileUpdate {
   display_name?: string;
   email?: string;
   avatar_url?: string | null;
-  default_tee_preference?: string | null;
+  default_tee_tier?: number | null;
   current_handicap_index?: number | null;
+  profile_completed?: boolean;
   updated_at?: string;
 }
 
@@ -37,6 +40,7 @@ export interface Group {
   name: string;
   description: string | null;
   default_course_id: string | null;
+  home_club_id: string | null;
   created_by: string;
   created_at: string;
 }
@@ -45,6 +49,7 @@ export interface GroupInsert {
   name: string;
   description?: string | null;
   default_course_id?: string | null;
+  home_club_id?: string | null;
   created_by: string;
 }
 
@@ -52,6 +57,7 @@ export interface GroupUpdate {
   name?: string;
   description?: string | null;
   default_course_id?: string | null;
+  home_club_id?: string | null;
 }
 
 // ---------- group_members ----------
@@ -110,6 +116,7 @@ export interface TeeBox {
   course_id: string;
   name: string;
   color: string | null;
+  tier: number | null;
   slope_rating: number;
   course_rating: number;
   total_yardage: number | null;
@@ -119,6 +126,7 @@ export interface TeeBoxInsert {
   course_id: string;
   name: string;
   color?: string | null;
+  tier?: number | null;
   slope_rating: number;
   course_rating: number;
   total_yardage?: number | null;
@@ -127,6 +135,7 @@ export interface TeeBoxInsert {
 export interface TeeBoxUpdate {
   name?: string;
   color?: string | null;
+  tier?: number | null;
   slope_rating?: number;
   course_rating?: number;
   total_yardage?: number | null;

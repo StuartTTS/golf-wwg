@@ -12,6 +12,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      clubs: {
+        Row: {
+          id: string
+          name: string
+          city: string | null
+          state: string | null
+          country: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          city?: string | null
+          state?: string | null
+          country?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          city?: string | null
+          state?: string | null
+          country?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
           city: string | null
@@ -220,6 +247,7 @@ export type Database = {
           created_by: string
           default_course_id: string | null
           description: string | null
+          home_club_id: string | null
           id: string
           name: string
         }
@@ -228,6 +256,7 @@ export type Database = {
           created_by: string
           default_course_id?: string | null
           description?: string | null
+          home_club_id?: string | null
           id?: string
           name: string
         }
@@ -236,6 +265,7 @@ export type Database = {
           created_by?: string
           default_course_id?: string | null
           description?: string | null
+          home_club_id?: string | null
           id?: string
           name?: string
         }
@@ -417,30 +447,33 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           current_handicap_index: number | null
-          default_tee_preference: string | null
+          default_tee_tier: number | null
           display_name: string
           email: string
           id: string
+          profile_completed: boolean
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           current_handicap_index?: number | null
-          default_tee_preference?: string | null
+          default_tee_tier?: number | null
           display_name: string
           email: string
           id: string
+          profile_completed?: boolean
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           current_handicap_index?: number | null
-          default_tee_preference?: string | null
+          default_tee_tier?: number | null
           display_name?: string
           email?: string
           id?: string
+          profile_completed?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -705,6 +738,7 @@ export type Database = {
           id: string
           name: string
           slope_rating: number
+          tier: number | null
           total_yardage: number | null
         }
         Insert: {
@@ -714,6 +748,7 @@ export type Database = {
           id?: string
           name: string
           slope_rating: number
+          tier?: number | null
           total_yardage?: number | null
         }
         Update: {
@@ -723,6 +758,7 @@ export type Database = {
           id?: string
           name?: string
           slope_rating?: number
+          tier?: number | null
           total_yardage?: number | null
         }
         Relationships: [

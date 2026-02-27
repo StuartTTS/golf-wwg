@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSupabase } from '@/providers/supabase-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,17 +22,20 @@ import {
 interface UserSettings {
   displayName: string;
   email: string;
-  defaultTeePreference: string;
+  defaultTeeTier: number | null;
 }
 
-export default function SettingsPage() {
+function SettingsForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { supabase, user } = useSupabase();
+
+  const isSetupMode = searchParams.get('setup') === 'true';
 
   const [settings, setSettings] = useState<UserSettings>({
     displayName: '',
     email: '',
-    defaultTeePreference: '',
+    defaultTeeTier: null,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,7 +59,7 @@ export default function SettingsPage() {
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('display_name, email, default_tee_preference')
+          .select('display_name, email, default_tee_tier')
           .eq('id', user.id)
           .single();
 
@@ -65,7 +68,7 @@ export default function SettingsPage() {
         setSettings({
           displayName: profile.display_name ?? '',
           email: profile.email ?? user.email ?? '',
-          defaultTeePreference: profile.default_tee_preference ?? '',
+          defaultTeeTier: profile.default_tee_tier ?? null,
         });
       } catch (err: any) {
         setError(err.message ?? 'Failed to load settings');
@@ -89,11 +92,23 @@ export default function SettingsPage() {
         .from('profiles')
         .update({
           display_name: settings.displayName.trim(),
-          default_tee_preference: settings.defaultTeePreference || null,
+          default_tee_tier: settings.defaultTeeTier,
+          profile_completed: true,
         })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
+
+      // Also update user_metadata so middleware knows immediately
+      await supabase.auth.updateUser({
+        data: { profile_completed: true },
+      });
+
+      if (isSetupMode) {
+        router.push('/home');
+        router.refresh();
+        return;
+      }
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -150,7 +165,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -158,8 +173,14 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-dark-900">Settings</h1>
-        <p className="text-sm text-dark-600">Manage your account preferences</p>
+        <h1 className="text-2xl font-bold text-surface-50">
+          {isSetupMode ? 'Complete Your Profile' : 'Settings'}
+        </h1>
+        <p className="text-sm text-surface-300">
+          {isSetupMode
+            ? 'Welcome to Golf WWG! Set your display name and preferences to get started.'
+            : 'Manage your account preferences'}
+        </p>
       </div>
 
       {/* Profile settings */}
@@ -172,7 +193,7 @@ export default function SettingsPage() {
         </CardHeader>
         <div className="px-6 pb-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
+            <label className="block text-sm font-medium text-surface-100 mb-1">
               Display Name
             </label>
             <Input
@@ -185,23 +206,23 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
+            <label className="block text-sm font-medium text-surface-100 mb-1">
               Email
             </label>
-            <Input value={settings.email} disabled className="bg-dark-50" />
-            <p className="text-xs text-dark-500 mt-1">
+            <Input value={settings.email} disabled className="bg-surface-700" />
+            <p className="text-xs text-surface-400 mt-1">
               Email cannot be changed here
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
-              Default Tee Preference
+            <label className="block text-sm font-medium text-surface-100 mb-1">
+              Default Tee Tier
             </label>
             <Select
-              value={settings.defaultTeePreference}
+              value={settings.defaultTeeTier !== null ? String(settings.defaultTeeTier) : ''}
               onValueChange={(v) =>
-                setSettings({ ...settings, defaultTeePreference: v })
+                setSettings({ ...settings, defaultTeeTier: v ? Number(v) : null })
               }
             >
               <SelectTrigger>
@@ -209,17 +230,15 @@ export default function SettingsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">No preference</SelectItem>
-                <SelectItem value="black">Black</SelectItem>
-                <SelectItem value="blue">Blue</SelectItem>
-                <SelectItem value="white">White</SelectItem>
-                <SelectItem value="gold">Gold</SelectItem>
-                <SelectItem value="green">Green</SelectItem>
-                <SelectItem value="red">Red</SelectItem>
-                <SelectItem value="silver">Silver</SelectItem>
+                <SelectItem value="1">1 (Front)</SelectItem>
+                <SelectItem value="2">2</SelectItem>
+                <SelectItem value="3">3 (Middle)</SelectItem>
+                <SelectItem value="4">4</SelectItem>
+                <SelectItem value="5">5 (Tips)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-dark-500 mt-1">
-              Automatically selected when joining a round
+            <p className="text-xs text-surface-400 mt-1">
+              Your preferred tee position (1 = front tees, 5 = tips). Auto-assigned when joining rounds.
             </p>
           </div>
 
@@ -230,7 +249,7 @@ export default function SettingsPage() {
           )}
 
           {saved && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-golf-600">
+            <div className="p-3 bg-golf-900/30 border border-golf-500 rounded-lg text-sm text-golf-600">
               Settings saved successfully
             </div>
           )}
@@ -239,7 +258,11 @@ export default function SettingsPage() {
             onClick={handleSaveProfile}
             disabled={saving || !settings.displayName.trim()}
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving
+              ? 'Saving...'
+              : isSetupMode
+                ? 'Save & Get Started'
+                : 'Save Changes'}
           </Button>
         </div>
       </Card>
@@ -254,7 +277,7 @@ export default function SettingsPage() {
         </CardHeader>
         <div className="px-6 pb-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
+            <label className="block text-sm font-medium text-surface-100 mb-1">
               Current Password
             </label>
             <Input
@@ -266,7 +289,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
+            <label className="block text-sm font-medium text-surface-100 mb-1">
               New Password
             </label>
             <Input
@@ -275,13 +298,13 @@ export default function SettingsPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
             />
-            <p className="text-xs text-dark-500 mt-1">
+            <p className="text-xs text-surface-400 mt-1">
               Must be at least 8 characters
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-dark-800 mb-1">
+            <label className="block text-sm font-medium text-surface-100 mb-1">
               Confirm New Password
             </label>
             <Input
@@ -299,7 +322,7 @@ export default function SettingsPage() {
           )}
 
           {passwordSuccess && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-golf-600">
+            <div className="p-3 bg-golf-900/30 border border-golf-500 rounded-lg text-sm text-golf-600">
               Password changed successfully
             </div>
           )}
@@ -320,10 +343,10 @@ export default function SettingsPage() {
           <CardTitle className="text-red-400">Account</CardTitle>
         </CardHeader>
         <div className="px-6 pb-6 space-y-4">
-          <div className="flex items-center justify-between p-4 bg-dark-50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-surface-700 rounded-lg">
             <div>
-              <p className="text-sm font-medium text-dark-900">Sign Out</p>
-              <p className="text-xs text-dark-600">
+              <p className="text-sm font-medium text-surface-50">Sign Out</p>
+              <p className="text-xs text-surface-300">
                 Sign out of your account on this device
               </p>
             </div>
@@ -334,5 +357,13 @@ export default function SettingsPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsForm />
+    </Suspense>
   );
 }
