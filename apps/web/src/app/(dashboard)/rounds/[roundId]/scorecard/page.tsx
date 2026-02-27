@@ -39,7 +39,8 @@ interface RoundData {
   status: 'pending' | 'in_progress' | 'completed';
   date: string;
   players: Player[];
-  holes: HoleInfo[];
+  holes: HoleInfo[]; // default tee box holes (for navigation / hole count)
+  holesByTeeBox: Record<string, HoleInfo[]>;
 }
 
 function ScoreCell({
@@ -56,18 +57,18 @@ function ScoreCell({
   const getScoreColor = (strokes: number | null, holePar: number) => {
     if (strokes === null) return '';
     const diff = strokes - holePar;
-    if (diff <= -2) return 'bg-yellow-400 text-yellow-900 font-bold';
-    if (diff === -1) return 'bg-red-900/300 text-white font-semibold';
-    if (diff === 0) return 'text-dark-900';
-    if (diff === 1) return 'bg-blue-500 text-white';
-    if (diff >= 2) return 'bg-blue-800 text-white';
+    if (diff <= -2) return 'bg-score-eagle/20 text-score-eagle font-bold';
+    if (diff === -1) return 'bg-score-birdie/20 text-score-birdie font-semibold';
+    if (diff === 0) return 'text-surface-50';
+    if (diff === 1) return 'bg-score-bogey/20 text-score-bogey';
+    if (diff >= 2) return 'bg-score-double/20 text-score-double';
     return '';
   };
 
   const getScoreBorder = (strokes: number | null, holePar: number) => {
     if (strokes === null) return '';
     const diff = strokes - holePar;
-    if (diff <= -2) return 'ring-2 ring-yellow-500 rounded-full';
+    if (diff <= -2) return 'ring-2 ring-gold-500 rounded-full';
     if (diff === -1) return 'ring-2 ring-red-400 rounded-full';
     if (diff === 1) return 'border border-blue-500';
     if (diff >= 2) return 'border-2 border-blue-700';
@@ -80,7 +81,7 @@ function ScoreCell({
       className={`
         w-10 h-10 flex items-center justify-center text-sm
         transition-all duration-150 select-none
-        ${isActive ? 'ring-2 ring-green-500 bg-green-50' : 'hover:bg-dark-50'}
+        ${isActive ? 'ring-2 ring-golf-500 bg-golf-900/30' : 'hover:bg-surface-700'}
         ${getScoreColor(score, par)}
         ${getScoreBorder(score, par)}
       `}
@@ -114,17 +115,17 @@ function ScoreInput({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40">
-      <div className="bg-dark-100 w-full sm:w-96 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom">
+      <div className="bg-surface-800 w-full sm:w-96 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-dark-600">
+            <p className="text-sm text-surface-300">
               Hole {holeNumber} &middot; Par {par}
             </p>
             <p className="text-lg font-semibold">{playerName}</p>
           </div>
           <button
             onClick={onCancel}
-            className="text-dark-500 hover:text-dark-700 p-2"
+            className="text-surface-400 hover:text-surface-200 p-2"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -135,7 +136,7 @@ function ScoreInput({
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={() => setValue((v) => Math.max(1, v - 1))}
-            className="w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition-colors"
+            className="w-14 h-14 rounded-full bg-surface-700 hover:bg-surface-600 flex items-center justify-center text-2xl font-bold transition-colors"
           >
             -
           </button>
@@ -144,7 +145,7 @@ function ScoreInput({
           </span>
           <button
             onClick={() => setValue((v) => Math.min(15, v + 1))}
-            className="w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-2xl font-bold transition-colors"
+            className="w-14 h-14 rounded-full bg-surface-700 hover:bg-surface-600 flex items-center justify-center text-2xl font-bold transition-colors"
           >
             +
           </button>
@@ -157,7 +158,7 @@ function ScoreInput({
               onClick={() => setValue(qs)}
               className={`
                 py-2 rounded-lg text-sm font-medium transition-colors
-                ${value === qs ? 'bg-green-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-dark-800'}
+                ${value === qs ? 'bg-golf-600 text-white' : 'bg-surface-700 hover:bg-surface-600 text-surface-100'}
               `}
             >
               {qs}
@@ -187,6 +188,7 @@ function MobileHoleView({
   onPrev,
   onNext,
   onScoreTap,
+  getPlayerParForHole,
 }: {
   hole: HoleInfo;
   holeIndex: number;
@@ -196,6 +198,7 @@ function MobileHoleView({
   onPrev: () => void;
   onNext: () => void;
   onScoreTap: (playerId: string) => void;
+  getPlayerParForHole: (playerId: string, holeNumber: number) => number;
 }) {
   const getPlayerScore = (playerId: string) => {
     const s = scores.find(
@@ -204,14 +207,15 @@ function MobileHoleView({
     return s?.strokes ?? null;
   };
 
-  const getScoreStyle = (strokes: number | null) => {
-    if (strokes === null) return 'bg-dark-50 border-dark-300 text-dark-500';
-    const diff = strokes - hole.par;
-    if (diff <= -2) return 'bg-yellow-900/40 border-yellow-400 text-yellow-800';
-    if (diff === -1) return 'bg-red-900/30 border-red-400 text-red-400';
-    if (diff === 0) return 'bg-dark-100 border-gray-300 text-dark-900';
-    if (diff === 1) return 'bg-blue-50 border-blue-400 text-blue-400';
-    return 'bg-blue-900/40 border-blue-600 text-blue-900';
+  const getScoreStyle = (strokes: number | null, playerId: string) => {
+    if (strokes === null) return 'bg-surface-700 border-surface-500 text-surface-400';
+    const par = getPlayerParForHole(playerId, hole.number);
+    const diff = strokes - par;
+    if (diff <= -2) return 'bg-score-eagle/20 border-score-eagle text-score-eagle';
+    if (diff === -1) return 'bg-score-birdie/20 border-score-birdie text-score-birdie';
+    if (diff === 0) return 'bg-surface-800 border-surface-500 text-surface-50';
+    if (diff === 1) return 'bg-score-bogey/20 border-score-bogey text-score-bogey';
+    return 'bg-score-double/20 border-score-double text-score-double';
   };
 
   const getPlayerTotal = (playerId: string) => {
@@ -222,20 +226,6 @@ function MobileHoleView({
     return playerScores.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
   };
 
-  const getPlayerToPar = (playerId: string) => {
-    let totalStrokes = 0;
-    let totalPar = 0;
-    scores
-      .filter((s) => s.playerId === playerId && s.strokes !== null)
-      .forEach((s) => {
-        totalStrokes += s.strokes ?? 0;
-        const h = players.length > 0 ? hole : null;
-        // Look up the hole par from the scores context
-      });
-    // Simplified: return score vs par for scored holes
-    return null;
-  };
-
   return (
     <div className="space-y-4">
       {/* Hole navigation header */}
@@ -243,7 +233,7 @@ function MobileHoleView({
         <button
           onClick={onPrev}
           disabled={holeIndex === 0}
-          className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -254,15 +244,15 @@ function MobileHoleView({
           <p className="text-3xl font-bold">Hole {hole.number}</p>
           <div className="flex items-center gap-3 justify-center mt-1">
             <Badge variant="secondary">Par {hole.par}</Badge>
-            <span className="text-sm text-dark-600">{hole.yardage} yds</span>
-            <span className="text-sm text-dark-600">SI {hole.strokeIndex}</span>
+            <span className="text-sm text-surface-300">{hole.yardage} yds</span>
+            <span className="text-sm text-surface-300">SI {hole.strokeIndex}</span>
           </div>
         </div>
 
         <button
           onClick={onNext}
           disabled={holeIndex === totalHoles - 1}
-          className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -277,7 +267,7 @@ function MobileHoleView({
             key={i}
             className={`
               w-2 h-2 rounded-full transition-colors
-              ${i === holeIndex ? 'bg-green-600 w-4' : i < holeIndex ? 'bg-green-300' : 'bg-gray-200'}
+              ${i === holeIndex ? 'bg-golf-600 w-4' : i < holeIndex ? 'bg-golf-400' : 'bg-surface-600'}
             `}
           />
         ))}
@@ -293,16 +283,16 @@ function MobileHoleView({
             <button
               key={player.id}
               onClick={() => onScoreTap(player.id)}
-              className="w-full flex items-center justify-between p-4 rounded-xl bg-dark-100 border border-dark-300 hover:border-green-300 hover:shadow-sm transition-all active:scale-[0.98]"
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-surface-800 border border-surface-500 hover:border-golf-400 hover:shadow-sm transition-all active:scale-[0.98]"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 font-semibold text-sm">
                   {player.displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-left">
-                  <p className="font-medium text-dark-900">{player.displayName}</p>
+                  <p className="font-medium text-surface-50">{player.displayName}</p>
                   {total !== null && (
-                    <p className="text-xs text-dark-600">Total: {total}</p>
+                    <p className="text-xs text-surface-300">Total: {total}</p>
                   )}
                 </div>
               </div>
@@ -311,7 +301,7 @@ function MobileHoleView({
                 className={`
                   w-14 h-14 rounded-xl border-2 flex items-center justify-center
                   text-xl font-bold transition-colors
-                  ${getScoreStyle(score)}
+                  ${getScoreStyle(score, player.id)}
                 `}
               >
                 {score ?? '-'}
@@ -330,12 +320,14 @@ function DesktopScorecardGrid({
   scores,
   onCellTap,
   activeCell,
+  getPlayerParForHole,
 }: {
   holes: HoleInfo[];
   players: Player[];
   scores: Score[];
   onCellTap: (playerId: string, holeNumber: number) => void;
   activeCell: { playerId: string; holeNumber: number } | null;
+  getPlayerParForHole: (playerId: string, holeNumber: number) => number;
 }) {
   const frontNine = holes.filter((h) => h.number <= 9);
   const backNine = holes.filter((h) => h.number > 9);
@@ -367,7 +359,7 @@ function DesktopScorecardGrid({
     holeList.map((h) => (
       <th
         key={h.number}
-        className="w-10 h-8 text-center text-xs font-semibold text-dark-600 border-b border-dark-300"
+        className="w-10 h-8 text-center text-xs font-semibold text-surface-300 border-b border-surface-500"
       >
         {h.number}
       </th>
@@ -378,12 +370,12 @@ function DesktopScorecardGrid({
       {holeList.map((h) => (
         <td
           key={h.number}
-          className="w-10 h-8 text-center text-xs font-medium text-dark-700 bg-dark-50 border-b border-dark-300"
+          className="w-10 h-8 text-center text-xs font-medium text-surface-200 bg-surface-700 border-b border-surface-500"
         >
           {h.par}
         </td>
       ))}
-      <td className="w-12 h-8 text-center text-xs font-bold text-dark-800 bg-gray-100 border-b border-dark-300">
+      <td className="w-12 h-8 text-center text-xs font-bold text-surface-100 bg-surface-700 border-b border-surface-500">
         {parTotal}
       </td>
     </>
@@ -401,22 +393,23 @@ function DesktopScorecardGrid({
       <>
         {holeList.map((h) => {
           const score = getScore(player.id, h.number);
+          const playerPar = getPlayerParForHole(player.id, h.number);
           const isActive =
             activeCell?.playerId === player.id &&
             activeCell?.holeNumber === h.number;
 
           return (
-            <td key={h.number} className="border-b border-gray-100 p-0">
+            <td key={h.number} className="border-b border-surface-600 p-0">
               <ScoreCell
                 score={score}
-                par={h.par}
+                par={playerPar}
                 isActive={isActive}
                 onTap={() => onCellTap(player.id, h.number)}
               />
             </td>
           );
         })}
-        <td className="w-12 h-10 text-center text-sm font-bold text-gray-800 bg-dark-50 border-b border-gray-100">
+        <td className="w-12 h-10 text-center text-sm font-bold text-surface-100 bg-surface-700 border-b border-surface-600">
           {subtotal ?? '-'}
         </td>
       </>
@@ -428,18 +421,18 @@ function DesktopScorecardGrid({
       <table className="border-collapse min-w-full">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-dark-100 w-28 text-left px-3 py-2 text-xs font-semibold text-dark-600 border-b border-dark-300">
+            <th className="sticky left-0 z-10 bg-surface-800 w-28 text-left px-3 py-2 text-xs font-semibold text-surface-300 border-b border-surface-500">
               HOLE
             </th>
             {renderHoleHeaders(frontNine)}
-            <th className="w-12 text-center text-xs font-bold text-dark-800 bg-gray-100 border-b border-dark-300">
+            <th className="w-12 text-center text-xs font-bold text-surface-100 bg-surface-700 border-b border-surface-500">
               OUT
             </th>
             {renderHoleHeaders(backNine)}
-            <th className="w-12 text-center text-xs font-bold text-dark-800 bg-gray-100 border-b border-dark-300">
+            <th className="w-12 text-center text-xs font-bold text-surface-100 bg-surface-700 border-b border-surface-500">
               IN
             </th>
-            <th className="w-14 text-center text-xs font-bold text-dark-900 bg-gray-200 border-b border-dark-300">
+            <th className="w-14 text-center text-xs font-bold text-surface-50 bg-surface-600 border-b border-surface-500">
               TOT
             </th>
           </tr>
@@ -447,12 +440,12 @@ function DesktopScorecardGrid({
         <tbody>
           {/* Par row */}
           <tr>
-            <td className="sticky left-0 z-10 bg-dark-50 px-3 py-1 text-xs font-semibold text-dark-600 border-b border-dark-300">
+            <td className="sticky left-0 z-10 bg-surface-700 px-3 py-1 text-xs font-semibold text-surface-300 border-b border-surface-500">
               PAR
             </td>
             {renderParRow(frontNine, 'OUT', getParSum(frontNine))}
             {renderParRow(backNine, 'IN', getParSum(backNine))}
-            <td className="w-14 h-8 text-center text-xs font-bold text-gray-800 bg-gray-200 border-b border-dark-300">
+            <td className="w-14 h-8 text-center text-xs font-bold text-surface-100 bg-surface-600 border-b border-surface-500">
               {getParSum(holes)}
             </td>
           </tr>
@@ -466,17 +459,17 @@ function DesktopScorecardGrid({
 
             return (
               <tr key={player.id} className="group">
-                <td className="sticky left-0 z-10 bg-dark-100 group-hover:bg-dark-50 px-3 py-1 border-b border-gray-100">
+                <td className="sticky left-0 z-10 bg-surface-800 group-hover:bg-surface-700 px-3 py-1 border-b border-surface-600">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 text-xs font-semibold">
                       {player.displayName.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-dark-900 truncate max-w-[80px]">
+                      <p className="text-xs font-medium text-surface-50 truncate max-w-[80px]">
                         {player.displayName}
                       </p>
                       {player.handicap !== null && (
-                        <p className="text-[10px] text-dark-500">
+                        <p className="text-[10px] text-surface-400">
                           HCP {player.handicap}
                         </p>
                       )}
@@ -485,7 +478,7 @@ function DesktopScorecardGrid({
                 </td>
                 {renderPlayerScores(player, frontNine, 'OUT')}
                 {renderPlayerScores(player, backNine, 'IN')}
-                <td className="w-14 h-10 text-center text-sm font-bold text-dark-900 bg-gray-100 border-b border-gray-100">
+                <td className="w-14 h-10 text-center text-sm font-bold text-surface-50 bg-surface-700 border-b border-surface-600">
                   {total ?? '-'}
                 </td>
               </tr>
@@ -523,6 +516,21 @@ export default function ScorecardPage() {
     // Will be implemented properly later
   };
 
+  // Helper: get a specific player's holes (from their tee box)
+  const getPlayerHoles = useCallback((playerId: string): HoleInfo[] => {
+    if (!round) return [];
+    const player = round.players.find(p => p.id === playerId);
+    return round.holesByTeeBox[player?.teeBoxId ?? '']
+      ?? Object.values(round.holesByTeeBox)[0]
+      ?? [];
+  }, [round]);
+
+  // Helper: get par for a specific player + hole number
+  const getPlayerPar = useCallback((playerId: string, holeNumber: number): number => {
+    const holes = getPlayerHoles(playerId);
+    return holes.find(h => h.number === holeNumber)?.par ?? 4;
+  }, [getPlayerHoles]);
+
   // Fetch round data
   useEffect(() => {
     async function fetchRound() {
@@ -557,13 +565,32 @@ export default function ScorecardPage() {
 
         if (roundError) throw roundError;
 
-        const { data: holesData, error: holesError } = await supabase
+        // Load holes for ALL unique tee boxes so each player gets correct pars
+        const uniqueTeeBoxIds = [...new Set(
+          roundData.round_players.map((rp: any) => rp.tee_box_id).filter(Boolean)
+        )];
+
+        const { data: allHolesData, error: holesError } = await supabase
           .from('holes')
           .select('hole_number, par, handicap_index, yardage, tee_box_id')
-          .eq('tee_box_id', roundData.round_players[0]?.tee_box_id)
+          .in('tee_box_id', uniqueTeeBoxIds)
           .order('hole_number');
 
         if (holesError) throw holesError;
+
+        const holesByTeeBox: Record<string, HoleInfo[]> = {};
+        for (const h of (allHolesData ?? [])) {
+          if (!holesByTeeBox[h.tee_box_id]) holesByTeeBox[h.tee_box_id] = [];
+          holesByTeeBox[h.tee_box_id].push({
+            number: h.hole_number,
+            par: h.par,
+            strokeIndex: h.handicap_index,
+            yardage: h.yardage ?? 0,
+          });
+        }
+
+        // Use the first tee box's holes as default for navigation (hole numbers are the same)
+        const defaultHoles = Object.values(holesByTeeBox)[0] ?? [];
 
         setRound({
           id: roundData.id,
@@ -577,12 +604,8 @@ export default function ScorecardPage() {
             handicap: rp.profiles.handicap,
             teeBoxId: rp.tee_box_id,
           })),
-          holes: holesData.map((h: any) => ({
-            number: h.hole_number,
-            par: h.par,
-            strokeIndex: h.handicap_index,
-            yardage: h.yardage,
-          })),
+          holes: defaultHoles,
+          holesByTeeBox,
         });
       } catch (err: any) {
         setError(err.message ?? 'Failed to load round');
@@ -629,8 +652,8 @@ export default function ScorecardPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-dark-600">Loading scorecard...</p>
+          <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-surface-300">Loading scorecard...</p>
         </div>
       </div>
     );
@@ -642,7 +665,7 @@ export default function ScorecardPage() {
         <Card className="max-w-sm w-full">
           <CardHeader>
             <CardTitle className="text-red-400">Error</CardTitle>
-            <p className="text-sm text-dark-600">
+            <p className="text-sm text-surface-300">
               {error ?? 'Round not found'}
             </p>
             <Button
@@ -665,6 +688,10 @@ export default function ScorecardPage() {
   const activeHole = activeInput
     ? round.holes.find((h) => h.number === activeInput.holeNumber)
     : null;
+  // Use player-specific par for the score input modal
+  const activeHolePar = activeInput && activePlayer
+    ? getPlayerPar(activePlayer.id, activeInput.holeNumber)
+    : activeHole?.par ?? 4;
   const activeCurrentScore = activeInput
     ? scores.find(
         (s) =>
@@ -678,8 +705,8 @@ export default function ScorecardPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4">
         <div>
-          <h1 className="text-xl font-bold text-dark-900">{round.courseName}</h1>
-          <p className="text-sm text-dark-600">
+          <h1 className="text-xl font-bold text-surface-50">{round.courseName}</h1>
+          <p className="text-sm text-surface-300">
             {new Date(round.date).toLocaleDateString('en-US', {
               weekday: 'short',
               month: 'short',
@@ -689,7 +716,7 @@ export default function ScorecardPage() {
         </div>
         <div className="flex items-center gap-2">
           {saving && (
-            <span className="text-xs text-dark-500 animate-pulse">Saving...</span>
+            <span className="text-xs text-surface-400 animate-pulse">Saving...</span>
           )}
           <Badge
             variant={round.status === 'in_progress' ? 'default' : 'secondary'}
@@ -711,6 +738,7 @@ export default function ScorecardPage() {
             onPrev={goToPrevHole}
             onNext={goToNextHole}
             onScoreTap={(playerId) => handleScoreTap(playerId)}
+            getPlayerParForHole={getPlayerPar}
           />
         )}
       </div>
@@ -726,6 +754,7 @@ export default function ScorecardPage() {
               handleScoreTap(playerId, holeNumber)
             }
             activeCell={activeInput}
+            getPlayerParForHole={getPlayerPar}
           />
         </Card>
       </div>
@@ -734,7 +763,7 @@ export default function ScorecardPage() {
       <div className="block lg:hidden px-4">
         <Card>
           <div className="p-3">
-            <h3 className="text-xs font-semibold text-dark-600 uppercase tracking-wide mb-2">
+            <h3 className="text-xs font-semibold text-surface-300 uppercase tracking-wide mb-2">
               Totals
             </h3>
             <div className="space-y-2">
@@ -746,7 +775,8 @@ export default function ScorecardPage() {
                   (sum, s) => sum + (s.strokes ?? 0),
                   0
                 );
-                const totalPar = round.holes
+                const playerHoles = getPlayerHoles(player.id);
+                const totalPar = playerHoles
                   .filter((h) =>
                     playerScores.some((s) => s.holeNumber === h.number)
                   )
@@ -759,11 +789,11 @@ export default function ScorecardPage() {
                     key={player.id}
                     className="flex items-center justify-between"
                   >
-                    <span className="text-sm font-medium text-dark-800">
+                    <span className="text-sm font-medium text-surface-100">
                       {player.displayName}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-dark-500">
+                      <span className="text-xs text-surface-400">
                         {holesPlayed} holes
                       </span>
                       {holesPlayed > 0 && (
@@ -777,7 +807,7 @@ export default function ScorecardPage() {
                                 ? 'text-red-400'
                                 : toPar > 0
                                 ? 'text-blue-600'
-                                : 'text-dark-700'
+                                : 'text-surface-200'
                             }`}
                           >
                             {toPar === 0 ? 'E' : toPar > 0 ? `+${toPar}` : toPar}
@@ -816,7 +846,7 @@ export default function ScorecardPage() {
       {/* Score input modal */}
       {activeInput && activePlayer && activeHole && (
         <ScoreInput
-          par={activeHole.par}
+          par={activeHolePar}
           currentScore={activeCurrentScore}
           playerName={activePlayer.displayName}
           holeNumber={activeInput.holeNumber}
