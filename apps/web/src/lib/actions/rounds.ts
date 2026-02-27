@@ -385,32 +385,60 @@ export async function acceptRoundInvite(token: string) {
     return { error: 'This invitation was sent to a different email address' };
   }
 
-  // Get round details for tee_box_id
+  // Get round details for tee_box_id and course_id
   const { data: round } = await supabase
     .from('rounds')
-    .select('tee_box_id')
+    .select('tee_box_id, course_id')
     .eq('id', invitation.round_id)
     .single();
 
   if (!round) return { error: 'Round not found' };
 
-  // Get player handicap info
+  // Get player handicap info and preferred tee tier
   const { data: profile } = await supabase
     .from('profiles')
-    .select('current_handicap_index')
+    .select('current_handicap_index, default_tee_tier')
     .eq('id', user.id)
     .single();
 
-  const { data: teeBox } = await supabase
-    .from('tee_boxes')
-    .select('slope_rating, course_rating')
-    .eq('id', round.tee_box_id)
-    .single();
+  // Determine the tee box to assign: prefer player's tier, fall back to round default
+  let assignedTeeBoxId = round.tee_box_id;
+  let assignedSlopeRating: number | null = null;
+
+  if (profile?.default_tee_tier) {
+    // Fetch course tee boxes to match player's preferred tier
+    const { data: courseTeeBoxes } = await supabase
+      .from('tee_boxes')
+      .select('id, tier, slope_rating, course_rating')
+      .eq('course_id', round.course_id)
+      .not('tier', 'is', null)
+      .order('tier', { ascending: true });
+
+    if (courseTeeBoxes && courseTeeBoxes.length > 0) {
+      const exact = courseTeeBoxes.find(t => t.tier === profile.default_tee_tier);
+      const match = exact ?? courseTeeBoxes.reduce((prev, curr) =>
+        Math.abs((curr.tier ?? 0) - profile.default_tee_tier!) < Math.abs((prev.tier ?? 0) - profile.default_tee_tier!)
+          ? curr : prev
+      );
+      assignedTeeBoxId = match.id;
+      assignedSlopeRating = match.slope_rating;
+    }
+  }
+
+  // If we didn't get slope from tier matching, fetch slope from the assigned tee box
+  if (assignedSlopeRating == null) {
+    const { data: teeBox } = await supabase
+      .from('tee_boxes')
+      .select('slope_rating, course_rating')
+      .eq('id', assignedTeeBoxId)
+      .single();
+    assignedSlopeRating = teeBox?.slope_rating ?? null;
+  }
 
   let courseHandicap: number | null = null;
-  if (profile?.current_handicap_index && teeBox) {
+  if (profile?.current_handicap_index != null && assignedSlopeRating != null) {
     courseHandicap = Math.round(
-      profile.current_handicap_index * (teeBox.slope_rating / 113)
+      profile.current_handicap_index * (assignedSlopeRating / 113)
     );
   }
 
@@ -418,7 +446,7 @@ export async function acceptRoundInvite(token: string) {
   const { error: insertError } = await supabase.from('round_players').upsert({
     round_id: invitation.round_id,
     user_id: user.id,
-    tee_box_id: round.tee_box_id,
+    tee_box_id: assignedTeeBoxId,
     handicap_index_at_round: profile?.current_handicap_index ?? null,
     course_handicap: courseHandicap,
     playing_handicap: courseHandicap,
