@@ -153,6 +153,19 @@ export async function inviteMember(groupId: string, formData: FormData) {
     }
   }
 
+  // Check if there's already a pending invitation for this email
+  const { data: existingInvite } = await supabase
+    .from('invitations')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('email', parsed.data.email)
+    .eq('status', 'pending')
+    .single();
+
+  if (existingInvite) {
+    return { error: 'This email already has a pending invitation' };
+  }
+
   const token = randomBytes(32).toString('hex');
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
@@ -283,6 +296,35 @@ export async function updateMemberRole(groupId: string, userId: string, role: 'a
   if (error) {
     console.error('Action error:', error);
     return { error: 'An error occurred. Please try again.' };
+  }
+  return { success: true };
+}
+
+export async function deleteInvitation(groupId: string, invitationId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  // Verify user is admin of this group
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .single();
+  if (!membership || membership.role !== 'admin') {
+    return { error: 'Not authorized' };
+  }
+
+  const { error } = await supabase
+    .from('invitations')
+    .delete()
+    .eq('id', invitationId)
+    .eq('group_id', groupId);  // Safety: ensure invitation belongs to this group
+
+  if (error) {
+    console.error('Delete invitation error:', error);
+    return { error: 'Failed to delete invitation' };
   }
   return { success: true };
 }

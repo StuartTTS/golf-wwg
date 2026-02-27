@@ -8,8 +8,9 @@ import {
   CardDescription,
   Button,
   Badge,
-  Input,
 } from '@/components/ui';
+import { InviteForm } from '@/components/groups/invite-form';
+import { DeleteInvitationButton } from './delete-invitation-button';
 
 interface MembersPageProps {
   params: Promise<{ groupId: string }>;
@@ -74,14 +75,14 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
+          className="text-sm text-surface-300 hover:text-surface-100 mb-2 inline-block"
         >
           &larr; Back to {group.name}
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+        <h1 className="text-3xl font-bold tracking-tight text-surface-50">
           Members
         </h1>
-        <p className="mt-1 text-sm text-dark-600">
+        <p className="mt-1 text-sm text-surface-300">
           Manage members of {group.name}.
         </p>
       </div>
@@ -95,30 +96,9 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
               Send an invitation by email to add someone to the group.
             </CardDescription>
           </CardHeader>
-          <form
-            action={`/api/groups/${groupId}/invite`}
-            method="POST"
-            className="px-6 pb-6"
-          >
-            <div className="flex items-end gap-3">
-              <div className="flex-1 space-y-2">
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-dark-800"
-                >
-                  Email Address
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="friend@example.com"
-                  required
-                />
-              </div>
-              <Button type="submit">Send Invite</Button>
-            </div>
-          </form>
+          <div className="px-6 pb-6">
+            <InviteForm groupId={groupId} />
+          </div>
         </Card>
       )}
 
@@ -129,17 +109,17 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
             <CardTitle className="text-lg">Pending Invitations</CardTitle>
           </CardHeader>
           <div className="px-6 pb-6">
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-surface-600">
               {invitations.map((invite) => (
                 <li
                   key={invite.id}
                   className="flex items-center justify-between py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium text-dark-900">
+                    <p className="text-sm font-medium text-surface-50">
                       {invite.email}
                     </p>
-                    <p className="text-xs text-dark-600">
+                    <p className="text-xs text-surface-300">
                       Invited{' '}
                       {new Date(invite.created_at).toLocaleDateString('en-US', {
                         month: 'short',
@@ -148,7 +128,10 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
                       })}
                     </p>
                   </div>
-                  <Badge variant="outline">Pending</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">Pending</Badge>
+                    <DeleteInvitationButton groupId={groupId} invitationId={invite.id} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -165,11 +148,11 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
         </CardHeader>
         <div className="px-6 pb-6">
           {sortedMembers.length === 0 ? (
-            <p className="text-sm text-dark-600 text-center py-6">
+            <p className="text-sm text-surface-300 text-center py-6">
               No members found.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-surface-600">
               {sortedMembers.map((member) => {
                 const profile = member.profile as any;
                 const isCurrentUser = member.user_id === user?.id;
@@ -185,19 +168,19 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-dark-900">
+                          <p className="text-sm font-medium text-surface-50">
                             {profile?.display_name ?? 'Unknown'}
                           </p>
                           {isCurrentUser && (
-                            <span className="text-xs text-dark-500">(you)</span>
+                            <span className="text-xs text-surface-400">(you)</span>
                           )}
                         </div>
-                        <p className="text-xs text-dark-600">
+                        <p className="text-xs text-surface-300">
                           {profile?.email ?? ''}
                           {profile?.current_handicap_index != null &&
                             ` · HCP: ${profile.current_handicap_index}`}
                         </p>
-                        <p className="text-xs text-dark-500">
+                        <p className="text-xs text-surface-400">
                           Joined{' '}
                           {new Date(member.joined_at).toLocaleDateString(
                             'en-US',
