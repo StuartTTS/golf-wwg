@@ -18,6 +18,12 @@ import {
 interface Course {
   id: string;
   name: string;
+  club_id: string | null;
+}
+
+interface Club {
+  id: string;
+  name: string;
 }
 
 interface SettingsPageProps {
@@ -31,6 +37,8 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
   const [groupId, setGroupId] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [homeClubId, setHomeClubId] = useState('');
+  const [clubs, setClubs] = useState<Club[]>([]);
   const [defaultCourseId, setDefaultCourseId] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -46,28 +54,40 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
     params.then(({ groupId: gId }) => setGroupId(gId));
   }, [params]);
 
-  // Fetch group details
+  // Fetch group details and clubs
   useEffect(() => {
     if (!groupId) return;
-    async function fetchGroup() {
-      const { data, error: fetchError } = await supabase
-        .from('groups')
-        .select('id, name, description, default_course_id')
-        .eq('id', groupId)
-        .single();
+    async function fetchGroupAndClubs() {
+      const [groupResult, clubsResult] = await Promise.all([
+        supabase
+          .from('groups')
+          .select('id, name, description, default_course_id, home_club_id')
+          .eq('id', groupId)
+          .single(),
+        supabase
+          .from('clubs')
+          .select('id, name')
+          .order('name'),
+      ]);
 
-      if (fetchError || !data) {
+      if (groupResult.error || !groupResult.data) {
         setError('Failed to load group settings.');
         setIsLoading(false);
         return;
       }
 
-      setName(data.name);
-      setDescription(data.description ?? '');
-      setDefaultCourseId(data.default_course_id ?? '');
+      setName(groupResult.data.name);
+      setDescription(groupResult.data.description ?? '');
+      setDefaultCourseId(groupResult.data.default_course_id ?? '');
+      setHomeClubId(groupResult.data.home_club_id ?? '');
+
+      if (clubsResult.data) {
+        setClubs(clubsResult.data);
+      }
+
       setIsLoading(false);
     }
-    fetchGroup();
+    fetchGroupAndClubs();
   }, [groupId, supabase]);
 
   // Fetch courses
@@ -75,7 +95,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
     async function fetchCourses() {
       const { data, error } = await supabase
         .from('courses')
-        .select('id, name')
+        .select('id, name, club_id')
         .order('name', { ascending: true });
       if (error) {
         console.error('Failed to load courses:', error);
@@ -85,6 +105,11 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
     }
     fetchCourses();
   }, [supabase]);
+
+  // Filter courses by selected home club
+  const filteredCourses = homeClubId
+    ? courses.filter((c) => c.club_id === homeClubId)
+    : courses;
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -104,6 +129,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
         name: name.trim(),
         description: description.trim() || undefined,
         defaultCourseId: defaultCourseId || undefined,
+        homeClubId: homeClubId || undefined,
       });
 
       if (result.error) {
@@ -144,17 +170,17 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
     return (
       <div className="space-y-6">
         <div>
-          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-4" />
-          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+          <div className="h-4 w-24 bg-surface-600 rounded animate-pulse mb-4" />
+          <div className="h-8 w-48 bg-surface-600 rounded animate-pulse" />
         </div>
         <Card className="max-w-2xl">
           <CardHeader>
-            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+            <div className="h-6 w-32 bg-surface-600 rounded animate-pulse" />
           </CardHeader>
           <div className="px-6 pb-6 space-y-4">
-            <div className="h-10 bg-gray-200 rounded animate-pulse" />
-            <div className="h-20 bg-gray-200 rounded animate-pulse" />
-            <div className="h-10 bg-gray-200 rounded animate-pulse" />
+            <div className="h-10 bg-surface-600 rounded animate-pulse" />
+            <div className="h-20 bg-surface-600 rounded animate-pulse" />
+            <div className="h-10 bg-surface-600 rounded animate-pulse" />
           </div>
         </Card>
       </div>
@@ -167,21 +193,21 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
       <div>
         <Link
           href={`/groups/${groupId}`}
-          className="text-sm text-dark-600 hover:text-dark-800 mb-2 inline-block"
+          className="text-sm text-surface-300 hover:text-surface-100 mb-2 inline-block"
         >
           &larr; Back to Group
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-dark-900">
+        <h1 className="text-3xl font-bold tracking-tight text-surface-50">
           Group Settings
         </h1>
-        <p className="mt-1 text-sm text-dark-600">
+        <p className="mt-1 text-sm text-surface-300">
           Manage settings for your group.
         </p>
       </div>
 
       {/* Success Message */}
       {success && (
-        <div className="rounded-md bg-green-50 p-4 text-sm text-golf-600">
+        <div className="rounded-md bg-golf-900/30 p-4 text-sm text-golf-600">
           {success}
         </div>
       )}
@@ -207,7 +233,7 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
           <div className="space-y-2">
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-dark-800"
+              className="block text-sm font-medium text-surface-100"
             >
               Group Name <span className="text-red-500">*</span>
             </label>
@@ -227,13 +253,13 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
           <div className="space-y-2">
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-dark-800"
+              className="block text-sm font-medium text-surface-100"
             >
               Description
             </label>
             <textarea
               id="description"
-              className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-dark-100 px-3 py-2 text-sm placeholder:text-dark-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[80px] w-full rounded-md border border-surface-500 bg-surface-800 px-3 py-2 text-sm placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-golf-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}
@@ -241,11 +267,41 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
             />
           </div>
 
+          {/* Home Club */}
+          <div className="space-y-2">
+            <label
+              htmlFor="homeClub"
+              className="block text-sm font-medium text-surface-100"
+            >
+              Home Club
+            </label>
+            <SimpleSelect
+              id="homeClub"
+              value={homeClubId}
+              onChange={(e) => {
+                const newClubId = e.target.value;
+                setHomeClubId(newClubId);
+                // Clear default course if it doesn't belong to the new club
+                if (newClubId && defaultCourseId) {
+                  const currentCourse = courses.find((c) => c.id === defaultCourseId);
+                  if (currentCourse && currentCourse.club_id !== newClubId) {
+                    setDefaultCourseId('');
+                  }
+                }
+              }}
+              options={clubs.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="No home club"
+            />
+            <p className="text-xs text-surface-400">
+              Tee preferences match by tier across club courses
+            </p>
+          </div>
+
           {/* Default Course */}
           <div className="space-y-2">
             <label
               htmlFor="defaultCourse"
-              className="block text-sm font-medium text-dark-800"
+              className="block text-sm font-medium text-surface-100"
             >
               Default Course
             </label>
@@ -253,10 +309,10 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
               id="defaultCourse"
               value={defaultCourseId}
               onChange={(e) => setDefaultCourseId(e.target.value)}
-              options={courses.map((c) => ({ value: c.id, label: c.name }))}
+              options={filteredCourses.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="No default course"
             />
-            <p className="text-xs text-dark-600">
+            <p className="text-xs text-surface-300">
               Pre-selected when creating new rounds.
             </p>
           </div>
@@ -283,10 +339,10 @@ export default function GroupSettingsPage({ params }: SettingsPageProps) {
           {!showDeleteConfirm ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-dark-900">
+                <p className="text-sm font-medium text-surface-50">
                   Delete this group
                 </p>
-                <p className="text-xs text-dark-600">
+                <p className="text-xs text-surface-300">
                   Once deleted, all rounds and data associated with this group
                   will be permanently removed.
                 </p>

@@ -42,6 +42,7 @@ export type Database = {
       courses: {
         Row: {
           city: string | null
+          club_id: string | null
           country: string
           created_at: string
           created_by: string
@@ -52,6 +53,7 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          club_id?: string | null
           country?: string
           created_at?: string
           created_by: string
@@ -62,6 +64,7 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          club_id?: string | null
           country?: string
           created_at?: string
           created_by?: string
@@ -71,6 +74,13 @@ export type Database = {
           state?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "courses_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "courses_created_by_fkey"
             columns: ["created_by"]

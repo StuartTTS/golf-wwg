@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { inviteMemberSchema } from '@golf/core';
 import { randomBytes } from 'crypto';
+import { sendEmail, escapeHtml } from '@/lib/email';
 
 export async function createGroup(data: { name: string; description?: string; defaultCourseId?: string }) {
   const supabase = await createServerSupabaseClient();
@@ -40,7 +41,7 @@ export async function createGroup(data: { name: string; description?: string; de
   return { success: true, groupId: group.id };
 }
 
-export async function updateGroup(data: { groupId: string; name: string; description?: string; defaultCourseId?: string }) {
+export async function updateGroup(data: { groupId: string; name: string; description?: string; defaultCourseId?: string; homeClubId?: string }) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
@@ -61,6 +62,7 @@ export async function updateGroup(data: { groupId: string; name: string; descrip
       name: data.name,
       description: data.description ?? null,
       default_course_id: data.defaultCourseId ?? null,
+      home_club_id: data.homeClubId ?? null,
     })
     .eq('id', data.groupId);
 
@@ -155,11 +157,18 @@ export async function inviteMember(groupId: string, formData: FormData) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  // Get session token before creating the invitation
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
-    return { error: 'Session expired. Please log in again.' };
-  }
+  // Fetch group name and inviter display name for the email
+  const { data: group } = await supabase
+    .from('groups')
+    .select('name')
+    .eq('id', groupId)
+    .single();
+
+  const { data: inviterProfile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', user.id)
+    .single();
 
   const { data: invitation, error } = await supabase.from('invitations').insert({
     type: 'group',
@@ -176,27 +185,28 @@ export async function inviteMember(groupId: string, formData: FormData) {
     return { error: 'An error occurred. Please try again.' };
   }
 
-  // Send the invitation email — await so we can roll back on failure
-  try {
-    const emailRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invitation`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      },
-      body: JSON.stringify({ invitationId: invitation.id }),
-    });
+  // Send the invitation email directly via Microsoft Graph API
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const inviteUrl = `${siteUrl}/invite/${token}?email=${encodeURIComponent(parsed.data.email)}`;
+  const groupName = group?.name ?? 'a golf group';
+  const inviterName = inviterProfile?.display_name ?? 'Someone';
 
-    if (!emailRes.ok) {
-      const body = await emailRes.text();
-      console.error('Edge function error:', emailRes.status, body);
-      // Delete the orphaned invitation
-      await supabase.from('invitations').delete().eq('id', invitation.id);
-      return { error: 'Failed to send invitation email. Please try again.' };
-    }
+  try {
+    const safeGroupName = escapeHtml(groupName);
+    const safeInviterName = escapeHtml(inviterName);
+    await sendEmail(
+      parsed.data.email,
+      `${inviterName} invited you to join ${groupName} on Golf WWG`,
+      `
+        <h2>You've been invited to join ${safeGroupName}!</h2>
+        <p>${safeInviterName} has invited you to join their golf group.</p>
+        <p><a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;">Accept Invitation</a></p>
+        <p>Or copy this link: ${inviteUrl}</p>
+        <p>This invitation expires in 7 days.</p>
+      `
+    );
   } catch (err) {
-    console.error('Failed to call send-invitation:', err);
+    console.error('Failed to send invitation email:', err);
     await supabase.from('invitations').delete().eq('id', invitation.id);
     return { error: 'Failed to send invitation email. Please try again.' };
   }
