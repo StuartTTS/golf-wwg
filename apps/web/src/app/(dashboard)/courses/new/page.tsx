@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/providers/supabase-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -636,7 +637,8 @@ function HolesStep({
 
 export default function NewCoursePage() {
   const router = useRouter();
-  const { supabase, user } = useSupabase();
+  const { supabase } = useSupabase();
+  const { user } = useAuth();
 
   const [mode, setMode] = useState<'search' | 'manual'>('search');
   const [step, setStep] = useState<Step>('details');

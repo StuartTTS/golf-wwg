@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSupabase } from '@/providers/supabase-provider';
 import { createRound } from '@/lib/actions/rounds';
 import {
   Card,
@@ -28,6 +27,7 @@ interface TeeBox {
   course_rating: number;
   slope_rating: number;
   tier: number | null;
+  course_id?: string;
 }
 
 interface GroupMember {
@@ -54,6 +54,7 @@ interface CreateRoundWizardProps {
   defaultCourseId: string | null;
   courses: Course[];
   members: GroupMember[];
+  allTeeBoxes: TeeBox[];
 }
 
 export default function CreateRoundWizard({
@@ -62,9 +63,9 @@ export default function CreateRoundWizard({
   defaultCourseId,
   courses,
   members,
+  allTeeBoxes,
 }: CreateRoundWizardProps) {
   const router = useRouter();
-  const { supabase } = useSupabase();
 
   const [currentStep, setCurrentStep] = useState<WizardStep>('course');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,28 +99,21 @@ export default function CreateRoundWizard({
     [teeBoxes, defaultTeeBoxId]
   );
 
-  // Fetch tee boxes when course changes
+  // Filter tee boxes from pre-loaded data when course changes
   useEffect(() => {
     if (!selectedCourseId) {
       setTeeBoxes([]);
       setDefaultTeeBoxId('');
       return;
     }
-    async function fetchTeeBoxes() {
-      const { data } = await supabase
-        .from('tee_boxes')
-        .select('id, name, color, course_rating, slope_rating, tier')
-        .eq('course_id', selectedCourseId)
-        .order('course_rating', { ascending: true });
-      if (data) {
-        setTeeBoxes(data);
-        if (data.length > 0) {
-          setDefaultTeeBoxId(data[0].id);
-        }
-      }
+    const filtered = allTeeBoxes.filter((t) => t.course_id === selectedCourseId);
+    setTeeBoxes(filtered);
+    if (filtered.length > 0) {
+      setDefaultTeeBoxId(filtered[0].id);
+    } else {
+      setDefaultTeeBoxId('');
     }
-    fetchTeeBoxes();
-  }, [selectedCourseId, supabase]);
+  }, [selectedCourseId, allTeeBoxes]);
 
   // Re-assign all selected players when defaultTeeBoxId or teeBoxes change
   useEffect(() => {

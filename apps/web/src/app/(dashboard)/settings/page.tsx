@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSupabase } from '@/providers/supabase-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -88,7 +89,8 @@ function NotificationSettings() {
 function SettingsForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { supabase, user } = useSupabase();
+  const { supabase } = useSupabase();
+  const { user, loading: authLoading } = useAuth();
 
   const isSetupMode = searchParams.get('setup') === 'true';
   const setupGroupId = searchParams.get('groupId');
@@ -113,7 +115,10 @@ function SettingsForm() {
 
   useEffect(() => {
     async function fetchSettings() {
-      if (!supabase || !user) return;
+      if (!supabase || !user) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -223,7 +228,7 @@ function SettingsForm() {
     router.push('/');
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
         <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />

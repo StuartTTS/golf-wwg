@@ -1,4 +1,4 @@
-const API_BASE = 'https://golfcourseapi.com/api';
+const API_BASE = 'https://api.golfcourseapi.com/v1';
 
 interface GolfCourseSearchResult {
   id: number;
@@ -9,7 +9,6 @@ interface GolfCourseSearchResult {
 }
 
 interface GolfCourseTeeHole {
-  hole_number: number;
   par: number;
   yardage: number;
   handicap: number;
@@ -19,7 +18,8 @@ interface GolfCourseTee {
   tee_name: string;
   course_rating: number;
   slope_rating: number;
-  total_yardage: number;
+  total_yards: number;
+  number_of_holes: number;
   par_total: number;
   holes: GolfCourseTeeHole[];
 }
@@ -29,8 +29,7 @@ interface GolfCourseDetail {
   club_name: string;
   course_name: string;
   location: { city: string; state: string; country: string };
-  holes: number;
-  tees: GolfCourseTee[];
+  tees: { male: GolfCourseTee[]; female: GolfCourseTee[] };
 }
 
 export type { GolfCourseSearchResult, GolfCourseDetail, GolfCourseTee, GolfCourseTeeHole };
@@ -42,7 +41,7 @@ function getApiKey(): string {
 }
 
 export async function searchCourses(query: string): Promise<GolfCourseSearchResult[]> {
-  const res = await fetch(`${API_BASE}/courses?search=${encodeURIComponent(query)}`, {
+  const res = await fetch(`${API_BASE}/search?search_query=${encodeURIComponent(query)}`, {
     headers: { Authorization: `Key ${getApiKey()}` },
     next: { revalidate: 3600 }, // Cache for 1 hour
   });

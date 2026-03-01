@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
@@ -14,30 +16,35 @@ export type Database = {
     Tables: {
       clubs: {
         Row: {
-          id: string
-          name: string
-          city: string | null
-          state: string | null
-          country: string
           created_at: string
+          created_by: string | null
+          id: string
+          location: string | null
+          name: string
         }
         Insert: {
-          id?: string
-          name: string
-          city?: string | null
-          state?: string | null
-          country?: string
           created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string | null
+          name: string
         }
         Update: {
-          id?: string
-          name?: string
-          city?: string | null
-          state?: string | null
-          country?: string
           created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string | null
+          name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clubs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       courses: {
         Row: {
@@ -46,6 +53,7 @@ export type Database = {
           country: string
           created_at: string
           created_by: string
+          deleted_at: string | null
           external_id: string | null
           id: string
           name: string
@@ -59,6 +67,7 @@ export type Database = {
           country?: string
           created_at?: string
           created_by: string
+          deleted_at?: string | null
           external_id?: string | null
           id?: string
           name: string
@@ -72,6 +81,7 @@ export type Database = {
           country?: string
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
           external_id?: string | null
           id?: string
           name?: string
@@ -100,7 +110,7 @@ export type Database = {
         Row: {
           game_id: string
           id: string
-          player_id: string
+          player_id: string | null
           playing_handicap: number | null
           round_player_id: string | null
           team_id: string | null
@@ -108,7 +118,7 @@ export type Database = {
         Insert: {
           game_id: string
           id?: string
-          player_id: string
+          player_id?: string | null
           playing_handicap?: number | null
           round_player_id?: string | null
           team_id?: string | null
@@ -116,7 +126,7 @@ export type Database = {
         Update: {
           game_id?: string
           id?: string
-          player_id?: string
+          player_id?: string | null
           playing_handicap?: number | null
           round_player_id?: string | null
           team_id?: string | null
@@ -134,6 +144,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_players_round_player_id_fkey"
+            columns: ["round_player_id"]
+            isOneToOne: false
+            referencedRelation: "round_players"
             referencedColumns: ["id"]
           },
           {
@@ -303,6 +320,13 @@ export type Database = {
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "groups_home_club_id_fkey"
+            columns: ["home_club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       handicap_records: {
@@ -443,24 +467,6 @@ export type Database = {
           },
         ]
       }
-      rate_limits: {
-        Row: {
-          id: string
-          key: string
-          timestamp: string
-        }
-        Insert: {
-          id?: string
-          key: string
-          timestamp?: string
-        }
-        Update: {
-          id?: string
-          key?: string
-          timestamp?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -500,6 +506,59 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_limits: {
+        Row: {
+          id: string
+          key: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       round_players: {
         Row: {
           course_handicap: number | null
@@ -511,6 +570,7 @@ export type Database = {
           round_id: string
           status: string
           tee_box_id: string
+          tee_time_group_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -523,6 +583,7 @@ export type Database = {
           round_id: string
           status?: string
           tee_box_id: string
+          tee_time_group_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -535,6 +596,7 @@ export type Database = {
           round_id?: string
           status?: string
           tee_box_id?: string
+          tee_time_group_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -550,6 +612,13 @@ export type Database = {
             columns: ["tee_box_id"]
             isOneToOne: false
             referencedRelation: "tee_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_players_tee_time_group_id_fkey"
+            columns: ["tee_time_group_id"]
+            isOneToOne: false
+            referencedRelation: "tee_time_groups"
             referencedColumns: ["id"]
           },
           {
@@ -649,7 +718,7 @@ export type Database = {
           gir: boolean | null
           hole_number: number
           id: string
-          player_id: string
+          player_id: string | null
           putts: number | null
           round_id: string
           round_player_id: string | null
@@ -663,7 +732,7 @@ export type Database = {
           gir?: boolean | null
           hole_number: number
           id?: string
-          player_id: string
+          player_id?: string | null
           putts?: number | null
           round_id: string
           round_player_id?: string | null
@@ -677,7 +746,7 @@ export type Database = {
           gir?: boolean | null
           hole_number?: number
           id?: string
-          player_id?: string
+          player_id?: string | null
           putts?: number | null
           round_id?: string
           round_player_id?: string | null
@@ -707,39 +776,11 @@ export type Database = {
             referencedRelation: "rounds"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      push_subscriptions: {
-        Row: {
-          auth: string
-          created_at: string
-          endpoint: string
-          id: string
-          p256dh: string
-          user_id: string
-        }
-        Insert: {
-          auth: string
-          created_at?: string
-          endpoint: string
-          id?: string
-          p256dh: string
-          user_id: string
-        }
-        Update: {
-          auth?: string
-          created_at?: string
-          endpoint?: string
-          id?: string
-          p256dh?: string
-          user_id?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "push_subscriptions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "scores_round_player_id_fkey"
+            columns: ["round_player_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "round_players"
             referencedColumns: ["id"]
           },
         ]
@@ -888,15 +929,50 @@ export type Database = {
           },
         ]
       }
+      tee_time_groups: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          round_id: string
+          sort_order: number
+          tee_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          round_id: string
+          sort_order?: number
+          tee_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          round_id?: string
+          sort_order?: number
+          tee_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tee_time_groups_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      cleanup_rate_limits: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
+      is_group_admin: { Args: { check_group_id: string }; Returns: boolean }
+      is_group_member: { Args: { check_group_id: string }; Returns: boolean }
+      shares_group_with: { Args: { target_user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

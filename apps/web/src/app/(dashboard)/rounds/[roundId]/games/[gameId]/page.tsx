@@ -76,11 +76,16 @@ export default function GameDetailPage() {
             created_at,
             game_players (
               player_id,
+              round_player_id,
               team_id,
               playing_handicap,
               profiles:profiles!game_players_player_id_fkey (
                 id,
                 display_name
+              ),
+              round_player:round_players!game_players_round_player_id_fkey (
+                id,
+                guest_name
               )
             )
           `)
@@ -101,12 +106,12 @@ export default function GameDetailPage() {
 
         setStandings(
           (gameData.game_players ?? [])
-            .sort((a: any, b: any) => a.position - b.position)
+            .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
             .map((gp: any) => ({
-              playerId: gp.profiles.id,
-              displayName: gp.profiles.display_name,
-              position: gp.position,
-              score: gp.score,
+              playerId: gp.profiles?.id ?? gp.round_player_id ?? gp.player_id,
+              displayName: gp.profiles?.display_name ?? gp.round_player?.guest_name ?? 'Guest',
+              position: gp.position ?? 0,
+              score: gp.score ?? '-',
               payout: gp.payout ?? 0,
               details: gp.details ?? {},
             }))

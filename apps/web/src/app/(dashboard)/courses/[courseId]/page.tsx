@@ -76,6 +76,7 @@ export default async function CourseDetailPage({
       )
     `)
     .eq('id', courseId)
+    .is('deleted_at', null)
     .single();
 
   if (error || !course) {

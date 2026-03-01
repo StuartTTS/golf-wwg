@@ -26,25 +26,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    let initialized = false;
+
+    async function loadProfile(userId: string) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (!cancelled) setProfile(data);
+    }
+
+    async function handleSession(session: { user: User } | null) {
+      if (cancelled || initialized) return;
+      initialized = true;
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await loadProfile(session.user.id);
+      }
+      if (!cancelled) setLoading(false);
+    }
+
+    // Explicit initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSession(session);
+    });
+
+    // Also listen for auth state changes — INITIAL_SESSION acts as a fallback
+    // in case getSession() misses the cookie-based session (e.g. after redirects)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (cancelled) return;
+      if (event === 'INITIAL_SESSION') {
+        // Fallback: if getSession() already resolved, skip; otherwise use this
+        handleSession(session);
+        return;
+      }
+      // Subsequent events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.)
+      initialized = true; // Prevent late INITIAL_SESSION from overriding
       setUser(session?.user ?? null);
-
       if (session?.user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(data);
+        await loadProfile(session.user.id);
       } else {
         setProfile(null);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
   const signOut = useCallback(async () => {

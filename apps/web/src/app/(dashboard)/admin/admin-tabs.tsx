@@ -6,6 +6,8 @@ import {
   toggleSiteAdmin,
   adminDeleteUser,
   adminDeleteGroup,
+  adminSoftDeleteCourse,
+  adminRestoreCourse,
   adminDeleteInvitation,
 } from '@/lib/actions/admin';
 import { Tabs, TabList, Tab, TabPanel } from '@/components/ui/tabs';
@@ -37,10 +39,22 @@ interface InvitationRow {
   group_name: string | null;
 }
 
+interface CourseRow {
+  id: string;
+  name: string;
+  city: string | null;
+  state: string | null;
+  num_holes: number;
+  created_at: string;
+  deleted_at: string | null;
+  source: string | null;
+}
+
 interface AdminTabsProps {
   currentUserId: string;
   users: UserRow[];
   groups: GroupRow[];
+  courses: CourseRow[];
   invitations: InvitationRow[];
 }
 
@@ -79,7 +93,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-export function AdminTabs({ currentUserId, users, groups, invitations }: AdminTabsProps) {
+export function AdminTabs({ currentUserId, users, groups, courses, invitations }: AdminTabsProps) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -125,11 +139,32 @@ export function AdminTabs({ currentUserId, users, groups, invitations }: AdminTa
     router.refresh();
   };
 
+  const handleDeleteCourse = async (courseId: string, name: string) => {
+    if (!confirm(`Soft-delete "${name}"? The course data will be retained but hidden from users.`)) return;
+    setBusyId(courseId);
+    const result = await adminSoftDeleteCourse(courseId);
+    if (result.error) alert(result.error);
+    setBusyId(null);
+    router.refresh();
+  };
+
+  const handleRestoreCourse = async (courseId: string) => {
+    setBusyId(courseId);
+    const result = await adminRestoreCourse(courseId);
+    if (result.error) alert(result.error);
+    setBusyId(null);
+    router.refresh();
+  };
+
+  const activeCourses = courses.filter((c) => !c.deleted_at);
+  const deletedCourses = courses.filter((c) => c.deleted_at);
+
   return (
     <Tabs defaultTab="users">
       <TabList className="mb-6">
         <Tab id="users">Users ({users.length})</Tab>
         <Tab id="groups">Groups ({groups.length})</Tab>
+        <Tab id="courses">Courses ({activeCourses.length})</Tab>
         <Tab id="invitations">Invitations ({invitations.length})</Tab>
       </TabList>
 
@@ -247,6 +282,106 @@ export function AdminTabs({ currentUserId, users, groups, invitations }: AdminTa
               })}
             </div>
           </Card>
+        )}
+      </TabPanel>
+
+      {/* Courses Tab */}
+      <TabPanel id="courses" className="space-y-3">
+        {activeCourses.length === 0 && deletedCourses.length === 0 ? (
+          <p className="text-sm text-surface-400 text-center py-8">No courses found.</p>
+        ) : (
+          <>
+            {activeCourses.length > 0 && (
+              <Card padding="none">
+                <div className="divide-y divide-surface-600">
+                  {activeCourses.map((c) => {
+                    const busy = busyId === c.id;
+                    return (
+                      <div key={c.id} className="px-4 sm:px-6 py-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-surface-50 truncate">
+                                {c.name}
+                              </p>
+                              <Badge variant="outline" className="text-[10px]">
+                                {c.num_holes} holes
+                              </Badge>
+                              {c.source && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {c.source}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-surface-300">
+                              {[c.city, c.state].filter(Boolean).join(', ') || 'No location'}
+                            </p>
+                            <p className="text-xs text-surface-400">
+                              Added {formatDate(c.created_at)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <ActionButton
+                              onClick={() => handleDeleteCourse(c.id, c.name)}
+                              busy={busy}
+                              variant="danger"
+                            >
+                              {busy ? '...' : 'Delete'}
+                            </ActionButton>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+
+            {deletedCourses.length > 0 && (
+              <>
+                <p className="text-xs text-surface-400 uppercase tracking-wide pt-4">
+                  Deleted ({deletedCourses.length})
+                </p>
+                <Card padding="none">
+                  <div className="divide-y divide-surface-600">
+                    {deletedCourses.map((c) => {
+                      const busy = busyId === c.id;
+                      return (
+                        <div key={c.id} className="px-4 sm:px-6 py-4 opacity-60">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium text-surface-50 truncate line-through">
+                                  {c.name}
+                                </p>
+                                <Badge variant="error" className="text-[10px]">
+                                  Deleted
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-surface-300">
+                                {[c.city, c.state].filter(Boolean).join(', ') || 'No location'}
+                              </p>
+                              <p className="text-xs text-surface-400">
+                                Deleted {formatDate(c.deleted_at!)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <ActionButton
+                                onClick={() => handleRestoreCourse(c.id)}
+                                busy={busy}
+                              >
+                                {busy ? '...' : 'Restore'}
+                              </ActionButton>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              </>
+            )}
+          </>
         )}
       </TabPanel>
 

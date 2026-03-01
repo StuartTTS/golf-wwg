@@ -73,6 +73,7 @@ export default async function CoursesPage() {
         slope_rating
       )
     `)
+    .is('deleted_at', null)
     .order('name');
 
   if (error) {

@@ -133,11 +133,14 @@ export async function inviteMember(groupId: string, formData: FormData) {
     return { error: 'Too many invitations sent. Please try again later.' };
   }
 
+  // Normalise email to lowercase for consistent matching
+  const normalizedEmail = parsed.data.email.toLowerCase();
+
   // Check if user already a member
   const { data: existingProfile } = await supabase
     .from('profiles')
     .select('id')
-    .eq('email', parsed.data.email)
+    .ilike('email', normalizedEmail)
     .single();
 
   if (existingProfile) {
@@ -158,7 +161,7 @@ export async function inviteMember(groupId: string, formData: FormData) {
     .from('invitations')
     .select('id')
     .eq('group_id', groupId)
-    .eq('email', parsed.data.email)
+    .ilike('email', normalizedEmail)
     .eq('status', 'pending')
     .single();
 
@@ -186,7 +189,7 @@ export async function inviteMember(groupId: string, formData: FormData) {
   const { data: invitation, error } = await supabase.from('invitations').insert({
     type: 'group',
     group_id: groupId,
-    email: parsed.data.email,
+    email: normalizedEmail,
     token,
     invited_by: user.id,
     status: 'pending',

@@ -13,7 +13,8 @@ export type GameFormatId =
   | 'modified_alternate_shot'
   | 'best_ball_2'
   | 'best_ball_3'
-  | 'best_ball_4';
+  | 'best_ball_4'
+  | 'progressive_best_ball';
 
 export type GameCategory = 'individual' | 'team' | 'match';
 

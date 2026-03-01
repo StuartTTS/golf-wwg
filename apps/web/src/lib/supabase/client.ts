@@ -6,7 +6,7 @@ export type TypedSupabaseClient = SupabaseClient<Database, 'public'>;
 
 export function createClient(): TypedSupabaseClient {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL!.trim(),
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!.trim()
   ) as unknown as TypedSupabaseClient;
 }

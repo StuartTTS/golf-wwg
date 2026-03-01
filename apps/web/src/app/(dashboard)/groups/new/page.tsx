@@ -36,6 +36,7 @@ export default function CreateGroupPage() {
       const { data, error } = await supabase
         .from('courses')
         .select('id, name')
+        .is('deleted_at', null)
         .order('name', { ascending: true });
       if (error) {
         console.error('Failed to load courses:', error);

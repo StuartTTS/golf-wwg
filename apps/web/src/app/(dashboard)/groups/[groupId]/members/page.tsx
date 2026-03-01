@@ -48,12 +48,19 @@ export default async function GroupMembersPage({ params }: MembersPageProps) {
     .order('role', { ascending: true })
     .order('joined_at', { ascending: true });
 
-  // Fetch pending invitations
-  const { data: invitations } = await supabase
+  // Fetch pending invitations, filtering out any where invitee is already a member
+  const { data: rawInvitations } = await supabase
     .from('invitations')
     .select('id, email, status, created_at')
     .eq('group_id', groupId)
     .eq('status', 'pending');
+
+  const memberEmails = new Set(
+    (members ?? []).map((m) => ((m.profile as any)?.email ?? '').toLowerCase())
+  );
+  const invitations = (rawInvitations ?? []).filter(
+    (inv) => !memberEmails.has(inv.email.toLowerCase())
+  );
 
   // Determine current user's role and site admin status
   const currentMember = members?.find((m) => m.user_id === user?.id);

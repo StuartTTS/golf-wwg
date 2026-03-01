@@ -230,6 +230,7 @@ export async function importCourse(externalId: number) {
     .from('courses')
     .select('id')
     .eq('external_id', String(externalId))
+    .is('deleted_at', null)
     .maybeSingle();
 
   if (existing) {
@@ -241,8 +242,37 @@ export async function importCourse(externalId: number) {
     const detail = await getCourseDetail(externalId);
     if (!detail) return { error: 'Course not found in database' };
 
+    // Map common tee names to color values
+    const teeNameToColor = (name: string): string | null => {
+      switch (name.toLowerCase()) {
+        case 'black': return 'black';
+        case 'blue': return 'blue';
+        case 'white': return 'white';
+        case 'gold': return 'gold';
+        case 'green': return 'green';
+        case 'red': return 'red';
+        case 'silver': return 'silver';
+        case 'copper': return 'copper';
+        default: return null;
+      }
+    };
+
     // Create course
     const courseName = detail.course_name || detail.club_name;
+    // Flatten male + female tees, prefixing names to distinguish them
+    const maleTees = (detail.tees?.male ?? []).map(t => ({
+      ...t,
+      tee_color: teeNameToColor(t.tee_name),
+      tee_name: `${t.tee_name} (M)`,
+    }));
+    const femaleTees = (detail.tees?.female ?? []).map(t => ({
+      ...t,
+      tee_color: teeNameToColor(t.tee_name),
+      tee_name: `${t.tee_name} (W)`,
+    }));
+    const allTees = [...maleTees, ...femaleTees];
+    const numHoles = allTees[0]?.number_of_holes ?? 18;
+
     const { data: course, error: courseError } = await supabase
       .from('courses')
       .insert({
@@ -250,7 +280,7 @@ export async function importCourse(externalId: number) {
         city: detail.location?.city ?? null,
         state: detail.location?.state ?? null,
         country: detail.location?.country ?? 'US',
-        num_holes: detail.holes ?? 18,
+        num_holes: numHoles,
         external_id: String(detail.id),
         source: 'golfcourseapi',
         created_by: user.id,
@@ -261,15 +291,16 @@ export async function importCourse(externalId: number) {
     if (courseError) throw courseError;
 
     // Create tee boxes and holes
-    for (const tee of (detail.tees ?? [])) {
+    for (const tee of allTees) {
       const { data: teeBox, error: teeError } = await supabase
         .from('tee_boxes')
         .insert({
           course_id: course.id,
           name: tee.tee_name,
+          color: tee.tee_color ?? null,
           course_rating: tee.course_rating ?? 72,
           slope_rating: tee.slope_rating ?? 113,
-          total_yardage: tee.total_yardage ?? null,
+          total_yardage: tee.total_yards ?? null,
         })
         .select('id')
         .single();
@@ -281,12 +312,12 @@ export async function importCourse(externalId: number) {
 
       // Insert holes
       if (tee.holes && tee.holes.length > 0) {
-        const holesInsert = tee.holes.map(h => ({
+        const holesInsert = tee.holes.map((h, idx) => ({
           tee_box_id: teeBox.id,
-          hole_number: h.hole_number,
+          hole_number: idx + 1,
           par: h.par ?? 4,
           yardage: h.yardage ?? null,
-          handicap_index: h.handicap ?? h.hole_number,
+          handicap_index: h.handicap ?? (idx + 1),
         }));
 
         const { error: holesError } = await supabase

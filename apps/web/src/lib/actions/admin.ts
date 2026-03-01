@@ -80,6 +80,42 @@ export async function adminDeleteGroup(groupId: string) {
   return { success: true };
 }
 
+export async function adminSoftDeleteCourse(courseId: string) {
+  const { error } = await requireSiteAdmin();
+  if (error) return { error };
+
+  const serviceClient = createServiceRoleClient();
+  const { error: updateError } = await serviceClient
+    .from('courses')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', courseId);
+
+  if (updateError) {
+    console.error('Soft delete course error:', updateError);
+    return { error: 'Failed to delete course' };
+  }
+
+  return { success: true };
+}
+
+export async function adminRestoreCourse(courseId: string) {
+  const { error } = await requireSiteAdmin();
+  if (error) return { error };
+
+  const serviceClient = createServiceRoleClient();
+  const { error: updateError } = await serviceClient
+    .from('courses')
+    .update({ deleted_at: null })
+    .eq('id', courseId);
+
+  if (updateError) {
+    console.error('Restore course error:', updateError);
+    return { error: 'Failed to restore course' };
+  }
+
+  return { success: true };
+}
+
 export async function adminDeleteInvitation(invitationId: string) {
   const { error } = await requireSiteAdmin();
   if (error) return { error };

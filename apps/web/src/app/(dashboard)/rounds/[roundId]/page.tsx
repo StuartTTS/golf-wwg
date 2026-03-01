@@ -10,6 +10,7 @@ import {
   Badge,
 } from '@/components/ui';
 import { AddGuestForm } from '@/components/rounds/add-guest-form';
+import TeeTimeGroupManager from '@/components/rounds/tee-time-group-manager';
 
 interface RoundPageProps {
   params: Promise<{ roundId: string }>;
@@ -52,6 +53,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       id,
       user_id,
       tee_box_id,
+      tee_time_group_id,
       status,
       handicap_index_at_round,
       course_handicap,
@@ -77,13 +79,41 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
     .eq('round_id', roundId)
     .order('created_at', { ascending: true });
 
+  // Fetch tee time groups
+  const { data: teeTimeGroups } = await supabase
+    .from('tee_time_groups')
+    .select('id, name, tee_time, sort_order')
+    .eq('round_id', roundId)
+    .order('sort_order');
+
+  // Build player-to-group map from round_players
+  const playerGroupMap: Record<string, string> = {};
+  players?.forEach((p) => {
+    const pid = p.user_id || p.id; // user_id for members, id for guests
+    if (p.tee_time_group_id) {
+      playerGroupMap[pid] = p.tee_time_group_id;
+    }
+  });
+
+  // Check if current user is group admin
+  let isGroupAdmin = false;
+  if (user && round.group_id) {
+    const { data: adminCheck } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    isGroupAdmin = adminCheck?.role === 'admin';
+  }
+
   // Fetch scores for leaderboard (only if round has started)
   let leaderboard: { userId: string; name: string; totalStrokes: number; holesPlayed: number; totalPar: number }[] = [];
 
   if (round.status === 'in_progress' || round.status === 'completed') {
     const { data: scores } = await supabase
       .from('scores')
-      .select('player_id, hole_number, strokes')
+      .select('player_id, round_player_id, hole_number, strokes')
       .eq('round_id', roundId)
       .not('strokes', 'is', null);
 
@@ -103,22 +133,24 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       parMaps.get(h.tee_box_id)!.set(h.hole_number, h.par);
     });
 
-    // Map each player to their tee box
+    // Map each player to their tee box (user_id for members, id for guests)
     const playerTeeMap = new Map<string, string>();
     players?.forEach(p => {
-      if (p.user_id) playerTeeMap.set(p.user_id, p.tee_box_id);
+      const pid = p.user_id || p.id;
+      playerTeeMap.set(pid, p.tee_box_id);
     });
 
     if (scores && scores.length > 0 && players) {
       const playerScores = new Map<string, { strokes: number; holesPlayed: number; totalPar: number }>();
 
       for (const score of scores) {
-        const existing = playerScores.get(score.player_id) ?? { strokes: 0, holesPlayed: 0, totalPar: 0 };
+        const pid = score.player_id ?? score.round_player_id ?? '';
+        const existing = playerScores.get(pid) ?? { strokes: 0, holesPlayed: 0, totalPar: 0 };
         existing.strokes += score.strokes!;
         existing.holesPlayed += 1;
-        const playerTeeBoxId = playerTeeMap.get(score.player_id) ?? '';
+        const playerTeeBoxId = playerTeeMap.get(pid) ?? '';
         existing.totalPar += parMaps.get(playerTeeBoxId)?.get(score.hole_number) ?? 0;
-        playerScores.set(score.player_id, existing);
+        playerScores.set(pid, existing);
       }
 
       leaderboard = players
@@ -147,6 +179,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
     skins: 'Skins',
     wolf: 'Wolf',
     best_ball: 'Best Ball',
+    progressive_best_ball: 'Progressive Best Ball',
     stableford: 'Stableford',
     match_play: 'Match Play',
     bingo_bango_bongo: 'Bingo Bango Bongo',
@@ -427,6 +460,27 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
           )}
         </div>
       </Card>
+
+      {/* Tee Time Groups (admin only, not completed) */}
+      {isGroupAdmin && round.status !== 'completed' && players && players.length > 0 && (
+        <TeeTimeGroupManager
+          roundId={roundId}
+          players={players.map((p) => ({
+            id: p.user_id || p.id,
+            displayName: !p.user_id
+              ? (p as any).guest_name ?? 'Guest'
+              : (p.profile as any)?.display_name ?? 'Unknown',
+            isGuest: !p.user_id,
+          }))}
+          existingGroups={(teeTimeGroups ?? []).map((g) => ({
+            id: g.id,
+            name: g.name,
+            tee_time: g.tee_time,
+            sort_order: g.sort_order,
+          }))}
+          playerGroupMap={playerGroupMap}
+        />
+      )}
 
       {/* Games */}
       {games && games.length > 0 && (

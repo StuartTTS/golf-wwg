@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSupabase } from '@/providers/supabase-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -71,7 +72,8 @@ function generateId() {
 export default function EditCoursePage() {
   const params = useParams<{ courseId: string }>();
   const router = useRouter();
-  const { supabase, user } = useSupabase();
+  const { supabase } = useSupabase();
+  const { user } = useAuth();
   const courseId = params.courseId;
 
   const [step, setStep] = useState<Step>('details');
@@ -126,6 +128,7 @@ export default function EditCoursePage() {
             )
           `)
           .eq('id', courseId)
+          .is('deleted_at', null)
           .single() as { data: any; error: any };
 
         if (courseError) throw courseError;

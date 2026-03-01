@@ -1,1 +1,7 @@
 .vercel
+
+# Playwright
+tests/.auth/
+test-results/
+playwright-report/
+.env.test

@@ -26,12 +26,24 @@ export async function upsertScore(input: {
     return { error: parsed.error.errors[0].message };
   }
 
+  // Determine if this is a guest player (playerId is a round_players.id, not a profiles.id)
+  const { data: rp } = await supabase
+    .from('round_players')
+    .select('id, user_id')
+    .eq('round_id', input.roundId)
+    .or(`user_id.eq.${input.playerId},id.eq.${input.playerId}`)
+    .limit(1)
+    .single();
+
+  const isGuest = rp && !rp.user_id;
+
   const { error } = await supabase
     .from('scores')
     .upsert(
       {
         round_id: input.roundId,
-        player_id: input.playerId,
+        player_id: isGuest ? null : input.playerId,
+        round_player_id: rp?.id ?? null,
         hole_number: input.holeNumber,
         strokes: input.strokes,
         putts: input.putts ?? null,
@@ -42,7 +54,9 @@ export async function upsertScore(input: {
         updated_at: new Date().toISOString(),
       },
       {
-        onConflict: 'round_id,player_id,hole_number',
+        // Always use round_player_id for conflict resolution — works for both
+        // registered players and guests (every score has a round_player_id).
+        onConflict: 'round_id,round_player_id,hole_number',
       }
     );
 
@@ -110,22 +124,41 @@ export async function batchUpsertScores(
     }
   }
 
-  const rows = scores.map((s) => ({
-    round_id: s.roundId,
-    player_id: s.playerId,
-    hole_number: s.holeNumber,
-    strokes: s.strokes,
-    putts: s.putts ?? null,
-    fairway_hit: s.fairwayHit ?? null,
-    gir: s.gir ?? null,
-    up_and_down: s.upAndDown ?? null,
-    entered_by: user.id,
-    updated_at: new Date().toISOString(),
-  }));
+  // Look up round_players to resolve guest vs registered and get round_player_id
+  const { data: roundPlayersData } = await supabase
+    .from('round_players')
+    .select('id, user_id')
+    .eq('round_id', roundIds[0]);
+
+  const rpByUserId = new Map<string, { id: string; isGuest: boolean }>();
+  const rpById = new Map<string, { id: string; isGuest: boolean }>();
+  for (const rp of roundPlayersData ?? []) {
+    const entry = { id: rp.id, isGuest: !rp.user_id };
+    if (rp.user_id) rpByUserId.set(rp.user_id, entry);
+    rpById.set(rp.id, entry);
+  }
+
+  const rows = scores.map((s) => {
+    const rp = rpByUserId.get(s.playerId) ?? rpById.get(s.playerId);
+    const isGuest = rp?.isGuest ?? false;
+    return {
+      round_id: s.roundId,
+      player_id: isGuest ? null : s.playerId,
+      round_player_id: rp?.id ?? null,
+      hole_number: s.holeNumber,
+      strokes: s.strokes,
+      putts: s.putts ?? null,
+      fairway_hit: s.fairwayHit ?? null,
+      gir: s.gir ?? null,
+      up_and_down: s.upAndDown ?? null,
+      entered_by: user.id,
+      updated_at: new Date().toISOString(),
+    };
+  });
 
   const { error } = await supabase
     .from('scores')
-    .upsert(rows, { onConflict: 'round_id,player_id,hole_number' });
+    .upsert(rows, { onConflict: 'round_id,round_player_id,hole_number' });
 
   if (error) return { error: error.message };
   return { success: true };

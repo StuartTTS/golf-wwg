@@ -42,7 +42,13 @@ export default async function DashboardHomePage() {
     .order('round_date', { ascending: false })
     .limit(5);
 
-  const displayName = user?.user_metadata?.display_name ?? user?.email ?? 'Golfer';
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', user?.id ?? '')
+    .single();
+
+  const displayName = profile?.display_name ?? user?.email ?? 'Golfer';
 
   return (
     <div className="space-y-8">

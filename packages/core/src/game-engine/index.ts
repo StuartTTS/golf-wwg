@@ -18,6 +18,7 @@ import {
   BestBall3Engine,
   BestBall4Engine,
 } from './formats/best-ball';
+import { ProgressiveBestBallEngine } from './formats/progressive-best-ball';
 
 export class GameFormatRegistry {
   private engines: Map<GameFormatId, IGameFormatEngine> = new Map();
@@ -60,6 +61,7 @@ gameFormatRegistry.register(new ModifiedAlternateShotEngine());
 gameFormatRegistry.register(new BestBall2Engine());
 gameFormatRegistry.register(new BestBall3Engine());
 gameFormatRegistry.register(new BestBall4Engine());
+gameFormatRegistry.register(new ProgressiveBestBallEngine());
 
 // Re-export
 export { BaseGameFormatEngine } from './base';
@@ -74,3 +76,4 @@ export { ShambleEngine } from './formats/shamble';
 export { AlternateShotEngine } from './formats/alternate-shot';
 export { ModifiedAlternateShotEngine } from './formats/modified-alternate-shot';
 export { BestBall2Engine, BestBall3Engine, BestBall4Engine } from './formats/best-ball';
+export { ProgressiveBestBallEngine } from './formats/progressive-best-ball';

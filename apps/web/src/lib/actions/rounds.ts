@@ -53,6 +53,10 @@ export async function createRound(formData: FormData) {
     return { error: 'An error occurred. Please try again.' };
   }
 
+  // Read selected player IDs from the wizard
+  const selectedPlayerIds = formData.getAll('playerIds') as string[];
+  const selectedSet = new Set(selectedPlayerIds);
+
   // Add creator as a player (use per-player tee assignment if available)
   const creatorTeeBoxId = playerTeeMap.get(user.id) ?? parsed.data.teeBoxId;
   await supabase.from('round_players').insert({
@@ -62,19 +66,78 @@ export async function createRound(formData: FormData) {
     status: 'registered',
   });
 
-  // Fetch all group members (excluding creator)
+  // Add all other selected players as round_players directly
+  const otherSelectedIds = selectedPlayerIds.filter((id) => id !== user.id);
+  if (otherSelectedIds.length > 0) {
+    const otherPlayers = otherSelectedIds.map((userId) => ({
+      round_id: round.id,
+      user_id: userId,
+      tee_box_id: playerTeeMap.get(userId) ?? parsed.data.teeBoxId,
+      status: 'registered' as const,
+    }));
+    await supabase.from('round_players').insert(otherPlayers);
+
+    // Auto-accept any pre-existing pending invitations for selected players
+    // (e.g. from a previous round creation that was re-done)
+    const { data: selectedEmails } = await supabase
+      .from('profiles')
+      .select('email')
+      .in('id', otherSelectedIds);
+
+    if (selectedEmails && selectedEmails.length > 0) {
+      await supabase
+        .from('invitations')
+        .update({ status: 'accepted' })
+        .eq('round_id', round.id)
+        .eq('type', 'round')
+        .eq('status', 'pending')
+        .in('email', selectedEmails.map((p) => p.email).filter(Boolean));
+    }
+  }
+
+  // Fetch all group members (excluding creator) for invitations + notifications
   const { data: members } = await supabase
     .from('group_members')
     .select('user_id, profiles(email)')
     .eq('group_id', parsed.data.groupId)
     .neq('user_id', user.id);
 
-  if (members && members.length > 0) {
+  // Only create invitations for members NOT already selected as players
+  const unselectedMembers = (members ?? []).filter(
+    (m) => !selectedSet.has(m.user_id)
+  );
+
+  // Fetch shared context for email + push notifications
+  const { data: course } = await supabase
+    .from('courses')
+    .select('name')
+    .eq('id', parsed.data.courseId)
+    .single();
+
+  const { data: group } = await supabase
+    .from('groups')
+    .select('name')
+    .eq('id', parsed.data.groupId)
+    .single();
+
+  const { data: organizer } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', user.id)
+    .single();
+
+  const courseName = course?.name ?? 'the course';
+  const groupName = group?.name ?? 'your group';
+  const organizerName = organizer?.display_name ?? 'Someone';
+  const roundDate = new Date(parsed.data.roundDate).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+
+  if (unselectedMembers.length > 0) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // Create invitation records for each member
-    const invitations = members.map((m) => ({
+    const invitations = unselectedMembers.map((m) => ({
       type: 'round' as const,
       group_id: parsed.data.groupId,
       round_id: round.id,
@@ -90,33 +153,7 @@ export async function createRound(formData: FormData) {
       .insert(invitations)
       .select('id');
 
-    // Fetch shared context for email + push notifications
-    const { data: course } = await supabase
-      .from('courses')
-      .select('name')
-      .eq('id', parsed.data.courseId)
-      .single();
-
-    const { data: group } = await supabase
-      .from('groups')
-      .select('name')
-      .eq('id', parsed.data.groupId)
-      .single();
-
-    const { data: organizer } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', user.id)
-      .single();
-
-    const courseName = course?.name ?? 'the course';
-    const groupName = group?.name ?? 'your group';
-    const organizerName = organizer?.display_name ?? 'Someone';
-    const roundDate = new Date(parsed.data.roundDate).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-    });
-
-    // Send notification emails directly via Microsoft Graph API
+    // Send RSVP emails to unselected members
     if (createdInvites && createdInvites.length > 0) {
       const { data: invitationsWithTokens } = await supabase
         .from('invitations')
@@ -125,7 +162,6 @@ export async function createRound(formData: FormData) {
 
       if (invitationsWithTokens && invitationsWithTokens.length > 0) {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-
         const safeCourseName = escapeHtml(courseName);
         const safeGroupName = escapeHtml(groupName);
         const safeOrganizerName = escapeHtml(organizerName);
@@ -164,21 +200,20 @@ export async function createRound(formData: FormData) {
         }
       }
     }
+  }
 
-    // Send push notifications to group members (exclude creator)
-    const memberUserIds = members.map(m => m.user_id).filter(id => id !== user.id);
-    if (memberUserIds.length > 0) {
-      try {
-        const { sendPushToUsers } = await import('@/lib/push');
-        await sendPushToUsers(memberUserIds, {
-          title: 'New Round Scheduled',
-          body: `${organizerName} scheduled a round at ${courseName} on ${roundDate}`,
-          url: `/rounds/${round.id}`,
-        });
-      } catch (err) {
-        console.error('Push notification error:', err);
-        // Don't fail the round creation if push fails
-      }
+  // Send push notifications to all group members except creator
+  const notifyUserIds = (members ?? []).map(m => m.user_id).filter(id => id !== user.id);
+  if (notifyUserIds.length > 0) {
+    try {
+      const { sendPushToUsers } = await import('@/lib/push');
+      await sendPushToUsers(notifyUserIds, {
+        title: 'New Round Scheduled',
+        body: `${organizerName} scheduled a round at ${courseName} on ${roundDate}`,
+        url: `/rounds/${round.id}`,
+      });
+    } catch (err) {
+      console.error('Push notification error:', err);
     }
   }
 

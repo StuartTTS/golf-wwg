@@ -68,12 +68,30 @@ export async function createGame(input: {
     }
   }
 
+  // Look up round_players to map playerIds to their round_player rows.
+  // playerIds contain user_id for registered members and round_players.id for guests.
+  const { data: roundPlayersData } = await supabase
+    .from('round_players')
+    .select('id, user_id')
+    .eq('round_id', input.roundId);
+
+  const rpByUserId = new Map<string, string>();
+  const rpIds = new Set<string>();
+  for (const rp of roundPlayersData ?? []) {
+    if (rp.user_id) rpByUserId.set(rp.user_id, rp.id);
+    rpIds.add(rp.id);
+  }
+
   // Add players
-  const playerRows = input.playerIds.map((pid) => ({
-    game_id: game.id,
-    player_id: pid,
-    team_id: teamMap[pid] ?? null,
-  }));
+  const playerRows = input.playerIds.map((pid) => {
+    const isGuest = !rpByUserId.has(pid) && rpIds.has(pid);
+    return {
+      game_id: game.id,
+      player_id: isGuest ? null : pid,
+      round_player_id: isGuest ? pid : (rpByUserId.get(pid) ?? null),
+      team_id: teamMap[pid] ?? null,
+    };
+  });
 
   const { error: playerError } = await supabase
     .from('game_players')

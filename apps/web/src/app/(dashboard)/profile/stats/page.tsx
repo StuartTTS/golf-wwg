@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/providers/supabase-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -166,7 +167,8 @@ function TrendChart({
 
 export default function StatsPage() {
   const router = useRouter();
-  const { supabase, user } = useSupabase();
+  const { supabase } = useSupabase();
+  const { user, loading: authLoading } = useAuth();
 
   const [data, setData] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,7 +176,10 @@ export default function StatsPage() {
 
   useEffect(() => {
     async function fetchStats() {
-      if (!supabase || !user) return;
+      if (!supabase || !user) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -426,7 +431,7 @@ export default function StatsPage() {
     fetchStats();
   }, [supabase, user, period]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
         <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />

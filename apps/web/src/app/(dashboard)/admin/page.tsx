@@ -29,7 +29,7 @@ export default async function AdminPage() {
     { data: groups },
     { data: invitations },
     { count: roundCount },
-    { count: courseCount },
+    { data: courses },
   ] = await Promise.all([
     adminClient
       .from('profiles')
@@ -44,14 +44,17 @@ export default async function AdminPage() {
       .select('id, email, type, status, created_at, group_id, groups:group_id(name)')
       .order('created_at', { ascending: false }),
     adminClient.from('rounds').select('*', { count: 'exact', head: true }),
-    adminClient.from('courses').select('*', { count: 'exact', head: true }),
+    adminClient
+      .from('courses')
+      .select('id, name, city, state, num_holes, created_at, deleted_at, source')
+      .order('name', { ascending: true }),
   ]);
 
   const stats = {
     users: users?.length ?? 0,
     groups: groups?.length ?? 0,
     rounds: roundCount ?? 0,
-    courses: courseCount ?? 0,
+    courses: courses?.filter((c) => !c.deleted_at).length ?? 0,
     pendingInvitations: invitations?.filter((i) => i.status === 'pending').length ?? 0,
     siteAdmins: users?.filter((u) => u.is_site_admin).length ?? 0,
   };
@@ -111,6 +114,18 @@ export default async function AdminPage() {
               Array.isArray(g.group_members) && g.group_members[0]
                 ? (g.group_members[0] as any).count
                 : 0,
+          }))
+        }
+        courses={
+          (courses ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            city: c.city,
+            state: c.state,
+            num_holes: c.num_holes,
+            created_at: c.created_at,
+            deleted_at: c.deleted_at,
+            source: c.source,
           }))
         }
         invitations={
