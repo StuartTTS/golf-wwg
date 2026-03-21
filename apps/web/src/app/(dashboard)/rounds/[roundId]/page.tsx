@@ -10,6 +10,8 @@ import {
   Badge,
 } from '@/components/ui';
 import { AddGuestForm } from '@/components/rounds/add-guest-form';
+import { RegistrationCard } from '@/components/rounds/registration-card';
+import TeeAssignmentCard from '@/components/rounds/tee-assignment-card';
 import TeeTimeGroupManager from '@/components/rounds/tee-time-group-manager';
 
 interface RoundPageProps {
@@ -35,6 +37,9 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       scoring_mode,
       created_by,
       group_id,
+      course_id,
+      tee_box_id,
+      registration_status,
       course:courses (id, name),
       tee_box:tee_boxes (id, name, color, course_rating, slope_rating),
       group:groups (id, name)
@@ -106,6 +111,113 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       .single();
     isGroupAdmin = adminCheck?.role === 'admin';
   }
+
+  // Fetch round invitations
+  const { data: roundInvitations } = await supabase
+    .from('invitations')
+    .select('email, status')
+    .eq('round_id', roundId)
+    .eq('type', 'round');
+
+  const invitedEmails = (roundInvitations ?? []).map(inv => inv.email);
+  const { data: invitedProfiles } = invitedEmails.length > 0
+    ? await supabase
+        .from('profiles')
+        .select('id, display_name, email, current_handicap_index')
+        .in('email', invitedEmails)
+    : { data: [] as any[] };
+
+  // Fetch all group members for registration card
+  const { data: allGroupMembers } = await supabase
+    .from('group_members')
+    .select('user_id, profiles:profiles(id, display_name, email, current_handicap_index, default_tee_tier)')
+    .eq('group_id', round.group_id);
+
+  // Build available members list (not in round and not invited)
+  const roundPlayerUserIds = new Set(
+    (players ?? []).map(rp => rp.user_id).filter((id): id is string => id !== null)
+  );
+  const invitedEmailSet = new Set(invitedEmails);
+
+  const availableMembers = (allGroupMembers ?? [])
+    .filter(gm => {
+      if (roundPlayerUserIds.has(gm.user_id)) return false;
+      const profile = gm.profiles as any;
+      if (profile?.email && invitedEmailSet.has(profile.email)) return false;
+      return true;
+    })
+    .map(gm => {
+      const profile = gm.profiles as any;
+      return {
+        userId: gm.user_id,
+        displayName: profile?.display_name ?? 'Unknown',
+        handicapIndex: profile?.current_handicap_index ?? null,
+        defaultTeeTier: profile?.default_tee_tier ?? null,
+      };
+    });
+
+  // Fetch course tee boxes for tee assignment card
+  const { data: courseTeeBoxes } = await supabase
+    .from('tee_boxes')
+    .select('id, name, color, course_rating, slope_rating, tier')
+    .eq('course_id', round.course_id)
+    .order('tier', { ascending: true, nullsFirst: false });
+
+  // Build props for Registration Card
+  const registeredPlayersList = (players ?? [])
+    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
+    .map(rp => ({
+      id: rp.id,
+      displayName: rp.user_id
+        ? (rp as any).profile?.display_name ?? 'Unknown'
+        : rp.guest_name ?? 'Guest',
+      status: rp.status,
+      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
+      isGuest: !rp.user_id,
+    }));
+
+  const invitedPlayersList = (roundInvitations ?? [])
+    .filter(inv => ['pending', 'declined'].includes(inv.status))
+    .map(inv => {
+      const profile = (invitedProfiles ?? []).find((p: any) => p.email === inv.email);
+      return {
+        email: inv.email,
+        status: inv.status,
+        displayName: profile?.display_name ?? null,
+        handicapIndex: profile?.current_handicap_index ?? null,
+        userId: profile?.id ?? null,
+      };
+    });
+
+  // Build props for Tee Assignment Card
+  const playerTeesData = (players ?? [])
+    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
+    .map(rp => {
+      const memberData = (allGroupMembers ?? []).find(gm => gm.user_id === rp.user_id);
+      const memberProfile = memberData?.profiles as any;
+      return {
+        roundPlayerId: rp.id,
+        displayName: rp.user_id
+          ? (rp as any).profile?.display_name ?? 'Unknown'
+          : rp.guest_name ?? 'Guest',
+        teeBoxId: rp.tee_box_id,
+        isGuest: !rp.user_id,
+        defaultTeeTier: memberProfile?.default_tee_tier ?? null,
+      };
+    });
+
+  // Build props for TeeTimeGroupManager
+  const groupManagerPlayers = (players ?? [])
+    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
+    .map(rp => ({
+      id: rp.user_id ?? rp.id,
+      displayName: rp.user_id
+        ? (rp as any).profile?.display_name ?? 'Unknown'
+        : rp.guest_name ?? 'Guest',
+      isGuest: !rp.user_id,
+      courseHandicap: rp.course_handicap ?? null,
+      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
+    }));
 
   // Fetch scores for leaderboard (only if round has started)
   let leaderboard: { userId: string; name: string; totalStrokes: number; holesPlayed: number; totalPar: number }[] = [];
@@ -314,6 +426,39 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
         </div>
       </Card>
 
+      {/* Admin Cards: Registration, Tee Assignments, Tee Time Groups */}
+      {isGroupAdmin && (
+        <div className="space-y-4">
+          <RegistrationCard
+            roundId={round.id}
+            registrationStatus={round.registration_status}
+            roundStatus={round.status}
+            defaultTeeBoxId={round.tee_box_id}
+            registeredPlayers={registeredPlayersList}
+            invitedPlayers={invitedPlayersList}
+            availableMembers={availableMembers}
+            courseTeeBoxes={(courseTeeBoxes ?? []).map(tb => ({ id: tb.id, tier: tb.tier }))}
+          />
+
+          <TeeAssignmentCard
+            roundId={round.id}
+            roundStatus={round.status}
+            defaultTeeBoxId={round.tee_box_id}
+            teeBoxes={courseTeeBoxes ?? []}
+            players={playerTeesData}
+          />
+
+          {round.status !== 'completed' && (
+            <TeeTimeGroupManager
+              roundId={round.id}
+              players={groupManagerPlayers}
+              existingGroups={teeTimeGroups ?? []}
+              playerGroupMap={playerGroupMap}
+            />
+          )}
+        </div>
+      )}
+
       {/* Leaderboard (in_progress or completed) */}
       {leaderboard.length > 0 && (
         <Card>
@@ -460,31 +605,6 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
           )}
         </div>
       </Card>
-
-      {/* Tee Time Groups (admin only, not completed) */}
-      {isGroupAdmin && round.status !== 'completed' && players && players.length > 0 && (
-        <TeeTimeGroupManager
-          roundId={roundId}
-          players={players.map((p) => ({
-            id: p.user_id || p.id,
-            displayName: !p.user_id
-              ? (p as any).guest_name ?? 'Guest'
-              : (p.profile as any)?.display_name ?? 'Unknown',
-            isGuest: !p.user_id,
-            courseHandicap: p.course_handicap ?? null,
-            handicapIndex: !p.user_id
-              ? (p.guest_handicap_index ?? null)
-              : (p.handicap_index_at_round ?? null),
-          }))}
-          existingGroups={(teeTimeGroups ?? []).map((g) => ({
-            id: g.id,
-            name: g.name,
-            tee_time: g.tee_time,
-            sort_order: g.sort_order,
-          }))}
-          playerGroupMap={playerGroupMap}
-        />
-      )}
 
       {/* Games */}
       {games && games.length > 0 && (
