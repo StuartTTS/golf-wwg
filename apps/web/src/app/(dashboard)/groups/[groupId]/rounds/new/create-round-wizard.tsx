@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createRound } from '@/lib/actions/rounds';
@@ -12,7 +12,6 @@ import {
   Button,
   Input,
   SimpleSelect,
-  Badge,
 } from '@/components/ui';
 
 interface Course {
@@ -45,7 +44,7 @@ type WizardStep = 'course' | 'datetime' | 'players';
 const STEPS: { key: WizardStep; label: string }[] = [
   { key: 'course', label: 'Course' },
   { key: 'datetime', label: 'Date & Time' },
-  { key: 'players', label: 'Players & Tees' },
+  { key: 'players', label: 'Players' },
 ];
 
 interface CreateRoundWizardProps {
@@ -78,26 +77,6 @@ export default function CreateRoundWizard({
   const [date, setDate] = useState('');
   const [time, setTime] = useState('09:00');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
-  const [playerTeeAssignments, setPlayerTeeAssignments] = useState<Map<string, string>>(new Map());
-
-  // Calculate the best tee box for a member based on their preferred tier
-  const getPlayerTeeBoxId = useCallback(
-    (member: GroupMember): string => {
-      const tier = (member.profile as any)?.default_tee_tier;
-      if (tier && teeBoxes.length > 0) {
-        // Find exact tier match
-        const exact = teeBoxes.find((t) => t.tier === tier);
-        if (exact) return exact.id;
-        // Find closest tier
-        const closest = teeBoxes.reduce((prev, curr) =>
-          Math.abs((curr.tier ?? 0) - tier) < Math.abs((prev.tier ?? 0) - tier) ? curr : prev
-        );
-        return closest.id;
-      }
-      return defaultTeeBoxId;
-    },
-    [teeBoxes, defaultTeeBoxId]
-  );
 
   // Filter tee boxes from pre-loaded data when course changes
   useEffect(() => {
@@ -115,21 +94,6 @@ export default function CreateRoundWizard({
     }
   }, [selectedCourseId, allTeeBoxes]);
 
-  // Re-assign all selected players when defaultTeeBoxId or teeBoxes change
-  useEffect(() => {
-    if (!defaultTeeBoxId || teeBoxes.length === 0) return;
-    setPlayerTeeAssignments((prev) => {
-      const next = new Map(prev);
-      for (const userId of selectedPlayerIds) {
-        const member = members.find((m) => m.user_id === userId);
-        if (member) {
-          next.set(userId, getPlayerTeeBoxId(member));
-        }
-      }
-      return next;
-    });
-  }, [defaultTeeBoxId, teeBoxes, selectedPlayerIds, members, getPlayerTeeBoxId]);
-
   // Set default date to today
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -137,63 +101,19 @@ export default function CreateRoundWizard({
   }, []);
 
   function togglePlayer(userId: string) {
-    setSelectedPlayerIds((prev) => {
-      if (prev.includes(userId)) {
-        // Remove player and their tee assignment
-        setPlayerTeeAssignments((prevMap) => {
-          const next = new Map(prevMap);
-          next.delete(userId);
-          return next;
-        });
-        return prev.filter((id) => id !== userId);
-      } else {
-        // Add player and auto-assign their tee
-        const member = members.find((m) => m.user_id === userId);
-        if (member) {
-          const teeId = getPlayerTeeBoxId(member);
-          setPlayerTeeAssignments((prevMap) => {
-            const next = new Map(prevMap);
-            next.set(userId, teeId);
-            return next;
-          });
-        }
-        return [...prev, userId];
-      }
-    });
+    setSelectedPlayerIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
   }
 
   function selectAllPlayers() {
-    const allIds = members.map((m) => m.user_id);
-    setSelectedPlayerIds(allIds);
-    const next = new Map<string, string>();
-    for (const member of members) {
-      next.set(member.user_id, getPlayerTeeBoxId(member));
-    }
-    setPlayerTeeAssignments(next);
+    setSelectedPlayerIds(members.map((m) => m.user_id));
   }
 
   function deselectAllPlayers() {
     setSelectedPlayerIds([]);
-    setPlayerTeeAssignments(new Map());
-  }
-
-  function resetToPreferredTees() {
-    const next = new Map<string, string>();
-    for (const userId of selectedPlayerIds) {
-      const member = members.find((m) => m.user_id === userId);
-      if (member) {
-        next.set(userId, getPlayerTeeBoxId(member));
-      }
-    }
-    setPlayerTeeAssignments(next);
-  }
-
-  function setPlayerTee(userId: string, teeBoxId: string) {
-    setPlayerTeeAssignments((prev) => {
-      const next = new Map(prev);
-      next.set(userId, teeBoxId);
-      return next;
-    });
   }
 
   const currentStepIndex = STEPS.findIndex((s) => s.key === currentStep);
@@ -238,11 +158,6 @@ export default function CreateRoundWizard({
       formData.set('roundDate', date);
       formData.set('teeTime', time);
       selectedPlayerIds.forEach((id) => formData.append('playerIds', id));
-
-      // Send per-player tee assignments
-      for (const [userId, teeBoxId] of playerTeeAssignments) {
-        formData.append('playerTeeBoxIds', `${userId}:${teeBoxId}`);
-      }
 
       const result = (await createRound(formData)) as any;
 
@@ -407,13 +322,13 @@ export default function CreateRoundWizard({
           </>
         )}
 
-        {/* Step 3: Players & Tees */}
+        {/* Step 3: Players */}
         {currentStep === 'players' && (
           <>
             <CardHeader>
-              <CardTitle>Players & Tees</CardTitle>
+              <CardTitle>Players</CardTitle>
               <CardDescription>
-                Select players and assign tee boxes. Players with a preferred tee tier are auto-matched.
+                Select which group members to include in this round.
               </CardDescription>
             </CardHeader>
             <div className="px-6 pb-6 space-y-4">
@@ -459,16 +374,6 @@ export default function CreateRoundWizard({
                 >
                   Deselect All
                 </Button>
-                {selectedPlayerIds.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={resetToPreferredTees}
-                  >
-                    Use Preferred Tees
-                  </Button>
-                )}
                 <span className="text-sm text-surface-300 ml-auto">
                   {selectedPlayerIds.length} selected
                 </span>
@@ -485,11 +390,6 @@ export default function CreateRoundWizard({
                     const profile = member.profile as any;
                     const isSelected = selectedPlayerIds.includes(
                       member.user_id
-                    );
-                    const assignedTeeId =
-                      playerTeeAssignments.get(member.user_id) ?? defaultTeeBoxId;
-                    const assignedTee = teeBoxes.find(
-                      (t) => t.id === assignedTeeId
                     );
 
                     return (
@@ -524,39 +424,6 @@ export default function CreateRoundWizard({
                               )}
                             </div>
                           </label>
-
-                          {/* Per-player tee select */}
-                          {isSelected && teeBoxes.length > 0 && (
-                            <div className="shrink-0">
-                              <select
-                                value={assignedTeeId}
-                                onChange={(e) =>
-                                  setPlayerTee(member.user_id, e.target.value)
-                                }
-                                className="block w-auto rounded-golf border border-surface-500 bg-surface-800 px-2 py-1 text-xs text-surface-100 focus:border-golf-500 focus:outline-none focus:ring-2 focus:ring-gold-500/30"
-                              >
-                                {teeBoxes.map((tee) => (
-                                  <option key={tee.id} value={tee.id}>
-                                    {tee.name}
-                                  </option>
-                                ))}
-                              </select>
-                              {/* Color dot indicator */}
-                              {assignedTee?.color && (
-                                <div className="flex items-center gap-1 mt-1 justify-end">
-                                  <div
-                                    className="w-3 h-3 rounded-full border border-surface-500"
-                                    style={{
-                                      backgroundColor: assignedTee.color,
-                                    }}
-                                  />
-                                  <span className="text-[10px] text-surface-400">
-                                    {assignedTee.name}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </li>
                     );
