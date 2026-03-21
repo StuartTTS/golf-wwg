@@ -471,6 +471,10 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
               ? (p as any).guest_name ?? 'Guest'
               : (p.profile as any)?.display_name ?? 'Unknown',
             isGuest: !p.user_id,
+            courseHandicap: p.course_handicap ?? null,
+            handicapIndex: !p.user_id
+              ? (p.guest_handicap_index ?? null)
+              : (p.handicap_index_at_round ?? null),
           }))}
           existingGroups={(teeTimeGroups ?? []).map((g) => ({
             id: g.id,
