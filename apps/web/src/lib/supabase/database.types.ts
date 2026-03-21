@@ -638,6 +638,7 @@ export type Database = {
           created_by: string
           group_id: string
           id: string
+          registration_status: string
           round_date: string
           scorekeeper_id: string | null
           scoring_mode: string
@@ -652,6 +653,7 @@ export type Database = {
           created_by: string
           group_id: string
           id?: string
+          registration_status?: string
           round_date: string
           scorekeeper_id?: string | null
           scoring_mode?: string
@@ -666,6 +668,7 @@ export type Database = {
           created_by?: string
           group_id?: string
           id?: string
+          registration_status?: string
           round_date?: string
           scorekeeper_id?: string | null
           scoring_mode?: string

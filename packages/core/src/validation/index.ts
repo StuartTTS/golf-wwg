@@ -125,6 +125,28 @@ export const createGameSchema = z.object({
     .optional(),
 });
 
+// ---------- Registration ----------
+export const closeRegistrationSchema = z.object({
+  roundId: z.string().uuid(),
+});
+
+export const reopenRegistrationSchema = z.object({
+  roundId: z.string().uuid(),
+});
+
+// ---------- Tee Assignment ----------
+export const updatePlayerTeeSchema = z.object({
+  roundId: z.string().uuid(),
+  playerId: z.string().uuid(),
+  teeBoxId: z.string().uuid(),
+});
+
+export const bulkUpdatePlayerTeesSchema = z.object({
+  roundId: z.string().uuid(),
+  teeBoxId: z.string().uuid(),
+  playerIds: z.array(z.string().uuid()).optional(),
+});
+
 // ---------- Settlement ----------
 export const settlementSchema = z.object({
   roundId: z.string().uuid(),
@@ -148,3 +170,7 @@ export type CreateRoundInput = z.infer<typeof createRoundSchema>;
 export type ScoreEntryInput = z.infer<typeof scoreEntrySchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type SettlementInput = z.infer<typeof settlementSchema>;
+export type CloseRegistrationInput = z.infer<typeof closeRegistrationSchema>;
+export type ReopenRegistrationInput = z.infer<typeof reopenRegistrationSchema>;
+export type UpdatePlayerTeeInput = z.infer<typeof updatePlayerTeeSchema>;
+export type BulkUpdatePlayerTeesInput = z.infer<typeof bulkUpdatePlayerTeesSchema>;

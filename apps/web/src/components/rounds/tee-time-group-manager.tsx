@@ -10,6 +10,8 @@ interface Player {
   id: string;
   displayName: string;
   isGuest?: boolean;
+  courseHandicap: number | null;
+  handicapIndex: number | null;
 }
 
 interface TeeTimeGroup {
@@ -31,6 +33,27 @@ interface TeeTimeGroupManagerProps {
   players: Player[];
   existingGroups: ExistingGroup[];
   playerGroupMap: Record<string, string>; // playerId -> groupId
+}
+
+function calculateGroupStats(playerIds: string[], allPlayers: Player[]) {
+  const groupPlayers = playerIds
+    .map(id => allPlayers.find(p => p.id === id))
+    .filter((p): p is Player => p !== undefined);
+
+  const withCourseHc = groupPlayers.filter(p => p.courseHandicap !== null);
+  const withIndex = groupPlayers.filter(p => p.handicapIndex !== null);
+
+  return {
+    courseHcSum: withCourseHc.reduce((sum, p) => sum + p.courseHandicap!, 0),
+    courseHcAvg: withCourseHc.length > 0
+      ? withCourseHc.reduce((sum, p) => sum + p.courseHandicap!, 0) / withCourseHc.length
+      : 0,
+    indexSum: withIndex.reduce((sum, p) => sum + p.handicapIndex!, 0),
+    indexAvg: withIndex.length > 0
+      ? withIndex.reduce((sum, p) => sum + p.handicapIndex!, 0) / withIndex.length
+      : 0,
+    playerCount: groupPlayers.length,
+  };
 }
 
 let nextGroupId = 1;
@@ -152,6 +175,17 @@ export default function TeeTimeGroupManager({
   const isMoving = draggedPlayerId !== null || selectedPlayerId !== null;
 
   function handleSave() {
+    const sizeWarnings = groups
+      .filter(g => g.playerIds.length > 0 && (g.playerIds.length < 2 || g.playerIds.length > 5))
+      .map(g => `${g.name}: ${g.playerIds.length} players`);
+
+    if (sizeWarnings.length > 0) {
+      const proceed = confirm(
+        `Some groups have unusual sizes (recommended: 2-5 players):\n${sizeWarnings.join('\n')}\n\nSave anyway?`
+      );
+      if (!proceed) return;
+    }
+
     startTransition(async () => {
       const result = await saveTeeTimeGroups(
         roundId,
@@ -240,6 +274,7 @@ export default function TeeTimeGroupManager({
                 key={player.id}
                 name={player.displayName}
                 isGuest={player.isGuest}
+                courseHandicap={player.courseHandicap}
                 selected={selectedPlayerId === player.id}
                 onDragStart={() => handleDragStart(player.id)}
                 onTap={() => handlePlayerTap(player.id)}
@@ -298,6 +333,7 @@ export default function TeeTimeGroupManager({
                   key={pid}
                   name={getPlayerName(pid)}
                   isGuest={isGuest(pid)}
+                  courseHandicap={players.find(p => p.id === pid)?.courseHandicap ?? null}
                   selected={selectedPlayerId === pid}
                   onDragStart={() => handleDragStart(pid)}
                   onTap={() => handlePlayerTap(pid)}
@@ -309,6 +345,25 @@ export default function TeeTimeGroupManager({
                 </p>
               )}
             </div>
+            {group.playerIds.length > 0 && (() => {
+              const stats = calculateGroupStats(group.playerIds, players);
+              return (
+                <div className="border-t border-surface-700 pt-2 mt-2 text-xs text-surface-400 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>Course HC:</span>
+                    <span className="text-white">
+                      Sum: {stats.courseHcSum} &bull; Avg: {stats.courseHcAvg.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>HC Index:</span>
+                    <span className="text-surface-300">
+                      Sum: {stats.indexSum.toFixed(1)} &bull; Avg: {stats.indexAvg.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         ))}
 
@@ -337,12 +392,14 @@ export default function TeeTimeGroupManager({
 function PlayerChip({
   name,
   isGuest,
+  courseHandicap,
   selected,
   onDragStart,
   onTap,
 }: {
   name: string;
   isGuest?: boolean;
+  courseHandicap: number | null;
   selected?: boolean;
   onDragStart: () => void;
   onTap: () => void;
@@ -362,6 +419,9 @@ function PlayerChip({
       }`}
     >
       <span>{name}</span>
+      <span className={`text-xs ${selected ? 'text-golf-200' : 'text-surface-400'}`}>
+        CH: {courseHandicap ?? 'N/A'}
+      </span>
       {isGuest && (
         <span className={`text-xs ${selected ? 'text-golf-200' : 'text-surface-400'}`}>(G)</span>
       )}

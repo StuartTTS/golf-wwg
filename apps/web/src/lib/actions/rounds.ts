@@ -24,14 +24,6 @@ export async function createRound(formData: FormData) {
     return { error: parsed.error.errors[0].message };
   }
 
-  // Parse per-player tee assignments (format: "userId:teeBoxId")
-  const playerTeeEntries = formData.getAll('playerTeeBoxIds') as string[];
-  const playerTeeMap = new Map<string, string>();
-  for (const entry of playerTeeEntries) {
-    const [userId, teeBoxId] = entry.split(':');
-    if (userId && teeBoxId) playerTeeMap.set(userId, teeBoxId);
-  }
-
   const { data: round, error } = await supabase
     .from('rounds')
     .insert({
@@ -57,24 +49,62 @@ export async function createRound(formData: FormData) {
   const selectedPlayerIds = formData.getAll('playerIds') as string[];
   const selectedSet = new Set(selectedPlayerIds);
 
-  // Add creator as a player (use per-player tee assignment if available)
-  const creatorTeeBoxId = playerTeeMap.get(user.id) ?? parsed.data.teeBoxId;
+  // Fetch slope rating from the round's default tee box for handicap calculations
+  const { data: defaultTeeBox } = await supabase
+    .from('tee_boxes')
+    .select('slope_rating')
+    .eq('id', parsed.data.teeBoxId)
+    .single();
+  const slopeRating = defaultTeeBox?.slope_rating ?? null;
+
+  // Fetch handicap indices for all selected players (including creator)
+  const allPlayerIds = selectedSet.has(user.id)
+    ? selectedPlayerIds
+    : [user.id, ...selectedPlayerIds];
+  const { data: playerProfiles } = await supabase
+    .from('profiles')
+    .select('id, current_handicap_index')
+    .in('id', allPlayerIds);
+  const handicapMap = new Map<string, number | null>();
+  for (const p of playerProfiles ?? []) {
+    handicapMap.set(p.id, p.current_handicap_index);
+  }
+
+  // Helper: compute course handicap from handicap index and slope
+  const calcCourseHandicap = (handicapIndex: number | null | undefined): number | null => {
+    if (handicapIndex == null || slopeRating == null) return null;
+    return Math.round(handicapIndex * (slopeRating / 113));
+  };
+
+  // Add creator as a player
+  const creatorHandicap = handicapMap.get(user.id) ?? null;
+  const creatorCourseHandicap = calcCourseHandicap(creatorHandicap);
   await supabase.from('round_players').insert({
     round_id: round.id,
     user_id: user.id,
-    tee_box_id: creatorTeeBoxId,
+    tee_box_id: parsed.data.teeBoxId,
+    handicap_index_at_round: creatorHandicap,
+    course_handicap: creatorCourseHandicap,
+    playing_handicap: creatorCourseHandicap,
     status: 'registered',
   });
 
   // Add all other selected players as round_players directly
   const otherSelectedIds = selectedPlayerIds.filter((id) => id !== user.id);
   if (otherSelectedIds.length > 0) {
-    const otherPlayers = otherSelectedIds.map((userId) => ({
-      round_id: round.id,
-      user_id: userId,
-      tee_box_id: playerTeeMap.get(userId) ?? parsed.data.teeBoxId,
-      status: 'registered' as const,
-    }));
+    const otherPlayers = otherSelectedIds.map((userId) => {
+      const hcpIndex = handicapMap.get(userId) ?? null;
+      const courseHcp = calcCourseHandicap(hcpIndex);
+      return {
+        round_id: round.id,
+        user_id: userId,
+        tee_box_id: parsed.data.teeBoxId,
+        handicap_index_at_round: hcpIndex,
+        course_handicap: courseHcp,
+        playing_handicap: courseHcp,
+        status: 'registered' as const,
+      };
+    });
     await supabase.from('round_players').insert(otherPlayers);
 
     // Auto-accept any pre-existing pending invitations for selected players
