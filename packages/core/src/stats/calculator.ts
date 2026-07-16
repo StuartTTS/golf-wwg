@@ -11,24 +11,51 @@ export function calculateRoundStats(
 ): RoundStats {
   const completed = holes.filter((h) => h.strokes !== null);
   const totalStrokes = completed.reduce((sum, h) => sum + h.strokes!, 0);
-  const totalPutts = holes.some((h) => h.putts !== null)
+  const hasPutts = holes.some((h) => h.putts !== null);
+  const totalPutts = hasPutts
     ? completed.reduce((sum, h) => sum + (h.putts ?? 0), 0)
+    : null;
+  const threePutts = hasPutts
+    ? completed.filter((h) => (h.putts ?? 0) >= 3).length
     : null;
 
   // Fairways (only par 4 and par 5 holes have fairways)
   const fairwayHoles = completed.filter((h) => h.par >= 4 && h.fairwayHit !== null);
   const fairwaysHit = fairwayHoles.filter((h) => h.fairwayHit).length;
   const fairwaysPossible = fairwayHoles.length;
+  const fairwayMiss = {
+    left: fairwayHoles.filter((h) => h.fairwayMiss === 'left').length,
+    right: fairwayHoles.filter((h) => h.fairwayMiss === 'right').length,
+  };
 
   // GIR
   const girHoles = completed.filter((h) => h.gir !== null);
   const greensInRegulation = girHoles.filter((h) => h.gir).length;
   const greensPossible = completed.length;
+  const greenMiss = {
+    short: completed.filter((h) => h.greenMiss === 'short').length,
+    long: completed.filter((h) => h.greenMiss === 'long').length,
+    left: completed.filter((h) => h.greenMiss === 'left').length,
+    right: completed.filter((h) => h.greenMiss === 'right').length,
+  };
 
   // Up and down (scramble)
   const upDownHoles = completed.filter((h) => h.upAndDown !== null);
   const upAndDowns = upDownHoles.filter((h) => h.upAndDown).length;
   const upAndDownAttempts = upDownHoles.length;
+
+  // Sand saves — up-and-down from a greenside bunker (par or better after being in sand)
+  const sandHoles = completed.filter(
+    (h) => h.greensideBunker === true && h.upAndDown !== null
+  );
+  const sandSaves = sandHoles.filter((h) => h.upAndDown).length;
+  const sandSaveAttempts = sandHoles.length;
+
+  // Penalties
+  const hasPenalties = holes.some((h) => h.penalties !== null);
+  const penalties = hasPenalties
+    ? completed.reduce((sum, h) => sum + (h.penalties ?? 0), 0)
+    : null;
 
   // Scoring distribution
   let eagles = 0,
@@ -61,12 +88,16 @@ export function calculateRoundStats(
     playerId,
     totalStrokes,
     totalPutts,
+    threePutts,
     fairwaysHit: fairwaysPossible > 0 ? fairwaysHit : null,
     fairwaysPossible: fairwaysPossible > 0 ? fairwaysPossible : null,
     greensInRegulation: girHoles.length > 0 ? greensInRegulation : null,
     greensPossible,
     upAndDowns: upAndDownAttempts > 0 ? upAndDowns : null,
     upAndDownAttempts: upAndDownAttempts > 0 ? upAndDownAttempts : null,
+    sandSaves: sandSaveAttempts > 0 ? sandSaves : null,
+    sandSaveAttempts: sandSaveAttempts > 0 ? sandSaveAttempts : null,
+    penalties,
     scoreToPar: totalStrokes - coursePar,
     front9,
     back9,
@@ -76,6 +107,8 @@ export function calculateRoundStats(
     bogeys,
     doubleBogeys,
     triplePlusBogeysOrWorse,
+    fairwayMiss,
+    greenMiss,
   };
 }
 
