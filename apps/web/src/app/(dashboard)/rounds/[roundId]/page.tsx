@@ -9,6 +9,7 @@ import {
   Button,
   Badge,
 } from '@/components/ui';
+import { featureFlags } from '@/lib/feature-flags';
 import { AddGuestForm } from '@/components/rounds/add-guest-form';
 import { RegistrationCard } from '@/components/rounds/registration-card';
 import TeeAssignmentCard from '@/components/rounds/tee-assignment-card';
@@ -284,6 +285,8 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
   // Permissions
   const isCreator = round.created_by === user?.id;
   const isPlayer = players?.some((p) => p.user_id === user?.id);
+  const isCommish = isCreator || isGroupAdmin;
+  const playEnabled = featureFlags.playExperience;
 
   // Game type labels
   const GAME_LABELS: Record<string, string> = {
@@ -349,9 +352,20 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       <div className="flex flex-wrap gap-3">
         {round.status === 'upcoming' && (
           <>
-            <Link href={`/rounds/${roundId}/scorecard`}>
-              <Button>Enter Scorecard</Button>
-            </Link>
+            {playEnabled ? (
+              <>
+                <Link href={`/rounds/${roundId}/play`}>
+                  <Button>Play Round</Button>
+                </Link>
+                <Link href={`/rounds/${roundId}/scorecard`}>
+                  <Button variant="outline">Classic Scorecard</Button>
+                </Link>
+              </>
+            ) : (
+              <Link href={`/rounds/${roundId}/scorecard`}>
+                <Button>Enter Scorecard</Button>
+              </Link>
+            )}
             <Link href={`/rounds/${roundId}/games`}>
               <Button variant="outline">Set Up Games</Button>
             </Link>
@@ -359,9 +373,20 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
         )}
         {round.status === 'in_progress' && (
           <>
-            <Link href={`/rounds/${roundId}/scorecard`}>
-              <Button>Enter Scores</Button>
-            </Link>
+            {playEnabled ? (
+              <>
+                <Link href={`/rounds/${roundId}/play`}>
+                  <Button>Play Round</Button>
+                </Link>
+                <Link href={`/rounds/${roundId}/scorecard`}>
+                  <Button variant="outline">Classic Scorecard</Button>
+                </Link>
+              </>
+            ) : (
+              <Link href={`/rounds/${roundId}/scorecard`}>
+                <Button>Enter Scores</Button>
+              </Link>
+            )}
             <Link href={`/rounds/${roundId}/games`}>
               <Button variant="outline">Games</Button>
             </Link>
@@ -372,13 +397,25 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             <Link href={`/rounds/${roundId}/results`}>
               <Button>View Results</Button>
             </Link>
+            {playEnabled && (
+              <Link href={`/rounds/${roundId}/play`}>
+                <Button variant="outline">Play View</Button>
+              </Link>
+            )}
             <Link href={`/rounds/${roundId}/scorecard`}>
-              <Button variant="outline">View Scorecard</Button>
+              <Button variant="outline">
+                {playEnabled ? 'Classic Scorecard' : 'View Scorecard'}
+              </Button>
             </Link>
             <Link href={`/rounds/${roundId}/games`}>
               <Button variant="outline">Games</Button>
             </Link>
           </>
+        )}
+        {playEnabled && isCommish && (
+          <Link href={`/rounds/${roundId}/setup`}>
+            <Button variant="outline">Commish Setup</Button>
+          </Link>
         )}
       </div>
 
