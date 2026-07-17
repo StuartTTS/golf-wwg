@@ -247,6 +247,9 @@ export interface RoundPlayerUpdate {
 }
 
 // ---------- scores ----------
+export type FairwayMiss = 'left' | 'right';
+export type GreenMiss = 'short' | 'long' | 'left' | 'right';
+
 export interface Score {
   id: string;
   round_id: string;
@@ -256,7 +259,12 @@ export interface Score {
   strokes: number | null;
   putts: number | null;
   fairway_hit: boolean | null;
+  fairway_miss: FairwayMiss | null;
   gir: boolean | null;
+  green_miss: GreenMiss | null;
+  fairway_bunker: boolean | null;
+  greenside_bunker: boolean | null;
+  penalties: number | null;
   up_and_down: boolean | null;
   entered_by: string;
   updated_at: string;
@@ -270,7 +278,12 @@ export interface ScoreInsert {
   strokes?: number | null;
   putts?: number | null;
   fairway_hit?: boolean | null;
+  fairway_miss?: FairwayMiss | null;
   gir?: boolean | null;
+  green_miss?: GreenMiss | null;
+  fairway_bunker?: boolean | null;
+  greenside_bunker?: boolean | null;
+  penalties?: number | null;
   up_and_down?: boolean | null;
   entered_by: string;
 }
@@ -279,7 +292,12 @@ export interface ScoreUpdate {
   strokes?: number | null;
   putts?: number | null;
   fairway_hit?: boolean | null;
+  fairway_miss?: FairwayMiss | null;
   gir?: boolean | null;
+  green_miss?: GreenMiss | null;
+  fairway_bunker?: boolean | null;
+  greenside_bunker?: boolean | null;
+  penalties?: number | null;
   up_and_down?: boolean | null;
   entered_by?: string;
   updated_at?: string;

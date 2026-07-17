@@ -102,7 +102,12 @@ export const scoreEntrySchema = z.object({
   strokes: z.number().int().min(1).max(20).nullable(),
   putts: z.number().int().min(0).max(10).nullable().optional(),
   fairwayHit: z.boolean().nullable().optional(),
+  fairwayMiss: z.enum(['left', 'right']).nullable().optional(),
   gir: z.boolean().nullable().optional(),
+  greenMiss: z.enum(['short', 'long', 'left', 'right']).nullable().optional(),
+  fairwayBunker: z.boolean().nullable().optional(),
+  greensideBunker: z.boolean().nullable().optional(),
+  penalties: z.number().int().min(0).max(10).nullable().optional(),
   upAndDown: z.boolean().nullable().optional(),
 });
 

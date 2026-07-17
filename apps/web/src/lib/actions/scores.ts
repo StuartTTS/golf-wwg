@@ -10,7 +10,12 @@ export async function upsertScore(input: {
   strokes: number | null;
   putts?: number | null;
   fairwayHit?: boolean | null;
+  fairwayMiss?: 'left' | 'right' | null;
   gir?: boolean | null;
+  greenMiss?: 'short' | 'long' | 'left' | 'right' | null;
+  fairwayBunker?: boolean | null;
+  greensideBunker?: boolean | null;
+  penalties?: number | null;
   upAndDown?: boolean | null;
 }) {
   const supabase = await createServerSupabaseClient();
@@ -48,7 +53,12 @@ export async function upsertScore(input: {
         strokes: input.strokes,
         putts: input.putts ?? null,
         fairway_hit: input.fairwayHit ?? null,
+        fairway_miss: input.fairwayMiss ?? null,
         gir: input.gir ?? null,
+        green_miss: input.greenMiss ?? null,
+        fairway_bunker: input.fairwayBunker ?? null,
+        greenside_bunker: input.greensideBunker ?? null,
+        penalties: input.penalties ?? null,
         up_and_down: input.upAndDown ?? null,
         entered_by: user.id,
         updated_at: new Date().toISOString(),
@@ -72,7 +82,12 @@ export async function batchUpsertScores(
     strokes: number | null;
     putts?: number | null;
     fairwayHit?: boolean | null;
+    fairwayMiss?: 'left' | 'right' | null;
     gir?: boolean | null;
+    greenMiss?: 'short' | 'long' | 'left' | 'right' | null;
+    fairwayBunker?: boolean | null;
+    greensideBunker?: boolean | null;
+    penalties?: number | null;
     upAndDown?: boolean | null;
   }[]
 ) {
@@ -149,7 +164,12 @@ export async function batchUpsertScores(
       strokes: s.strokes,
       putts: s.putts ?? null,
       fairway_hit: s.fairwayHit ?? null,
+      fairway_miss: s.fairwayMiss ?? null,
       gir: s.gir ?? null,
+      green_miss: s.greenMiss ?? null,
+      fairway_bunker: s.fairwayBunker ?? null,
+      greenside_bunker: s.greensideBunker ?? null,
+      penalties: s.penalties ?? null,
       up_and_down: s.upAndDown ?? null,
       entered_by: user.id,
       updated_at: new Date().toISOString(),

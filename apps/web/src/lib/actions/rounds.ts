@@ -701,3 +701,48 @@ export async function declineRoundInvite(token: string) {
 
   return { success: true };
 }
+
+/**
+ * Commish (round creator) or group admin designates the scorer for a tee-time
+ * group (flight). Pass scorerId = null for "each player self-scores".
+ */
+export async function setFlightScorer(
+  teeTimeGroupId: string,
+  scorerId: string | null
+) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: group } = await supabase
+    .from('tee_time_groups')
+    .select('id, round_id, rounds(created_by, group_id)')
+    .eq('id', teeTimeGroupId)
+    .single();
+  if (!group) return { error: 'Group not found' };
+
+  const round = (group as any).rounds;
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Only the Commish can set a scorer' };
+
+  const { error } = await supabase
+    .from('tee_time_groups')
+    .update({ scorer_id: scorerId })
+    .eq('id', teeTimeGroupId);
+
+  if (error) {
+    console.error('Set flight scorer error:', error);
+    return { error: 'Failed to set scorer' };
+  }
+
+  return { success: true };
+}

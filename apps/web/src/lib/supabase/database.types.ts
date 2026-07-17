@@ -717,10 +717,15 @@ export type Database = {
       scores: {
         Row: {
           entered_by: string
+          fairway_bunker: boolean | null
           fairway_hit: boolean | null
+          fairway_miss: string | null
           gir: boolean | null
+          green_miss: string | null
+          greenside_bunker: boolean | null
           hole_number: number
           id: string
+          penalties: number | null
           player_id: string | null
           putts: number | null
           round_id: string
@@ -731,10 +736,15 @@ export type Database = {
         }
         Insert: {
           entered_by: string
+          fairway_bunker?: boolean | null
           fairway_hit?: boolean | null
+          fairway_miss?: string | null
           gir?: boolean | null
+          green_miss?: string | null
+          greenside_bunker?: boolean | null
           hole_number: number
           id?: string
+          penalties?: number | null
           player_id?: string | null
           putts?: number | null
           round_id: string
@@ -745,10 +755,15 @@ export type Database = {
         }
         Update: {
           entered_by?: string
+          fairway_bunker?: boolean | null
           fairway_hit?: boolean | null
+          fairway_miss?: string | null
           gir?: boolean | null
+          green_miss?: string | null
+          greenside_bunker?: boolean | null
           hole_number?: number
           id?: string
+          penalties?: number | null
           player_id?: string | null
           putts?: number | null
           round_id?: string
@@ -938,6 +953,7 @@ export type Database = {
           id: string
           name: string
           round_id: string
+          scorer_id: string | null
           sort_order: number
           tee_time: string | null
         }
@@ -946,6 +962,7 @@ export type Database = {
           id?: string
           name?: string
           round_id: string
+          scorer_id?: string | null
           sort_order?: number
           tee_time?: string | null
         }
@@ -954,6 +971,7 @@ export type Database = {
           id?: string
           name?: string
           round_id?: string
+          scorer_id?: string | null
           sort_order?: number
           tee_time?: string | null
         }

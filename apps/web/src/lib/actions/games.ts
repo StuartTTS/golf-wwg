@@ -144,6 +144,65 @@ export async function finalizeGame(gameId: string, results: Record<string, unkno
   return { success: true };
 }
 
+/**
+ * Commish (round creator) or group admin updates a game's scoring config:
+ * gross vs net (`useNet`) and handicap allowance fraction (`handicapAllowance`,
+ * e.g. 0.8 = 80%). Merges into the existing config JSONB.
+ */
+export async function updateGameScoring(
+  gameId: string,
+  patch: { useNet?: boolean; handicapAllowance?: number }
+) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: game } = await supabase
+    .from('games')
+    .select('config, round_id, rounds(created_by, group_id)')
+    .eq('id', gameId)
+    .single();
+  if (!game) return { error: 'Game not found' };
+
+  const round = (game as any).rounds;
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Only the Commish can change game scoring' };
+
+  if (
+    patch.handicapAllowance !== undefined &&
+    (patch.handicapAllowance < 0 || patch.handicapAllowance > 1.5)
+  ) {
+    return { error: 'Handicap allowance must be between 0% and 150%' };
+  }
+
+  const current = ((game as any).config ?? {}) as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...current };
+  if (patch.useNet !== undefined) next.useNet = patch.useNet;
+  if (patch.handicapAllowance !== undefined) {
+    next.handicapAllowance = patch.handicapAllowance;
+  }
+
+  const { error } = await supabase
+    .from('games')
+    .update({ config: next as Json })
+    .eq('id', gameId);
+
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
+  return { success: true };
+}
+
 export async function deleteGame(gameId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

@@ -1,0 +1,22 @@
+/**
+ * Feature flags. A flag is OFF unless its env var is explicitly the string
+ * "true". Because these read `NEXT_PUBLIC_*`, they resolve the same way in
+ * server and client components.
+ *
+ * Enable locally by adding to `apps/web/.env.local`:
+ *   NEXT_PUBLIC_FEATURE_PLAY_EXPERIENCE=true
+ */
+export const featureFlags = {
+  /**
+   * Phone-first "Play" experience: the /rounds/[id]/play 3-tab shell
+   * (Leaderboard / Group Scorecard / Enter), the /rounds/[id]/setup Commish
+   * config page, and PGA-style shot-stat capture. Ships dark until enabled.
+   */
+  playExperience: process.env.NEXT_PUBLIC_FEATURE_PLAY_EXPERIENCE === 'true',
+} as const;
+
+export type FeatureFlag = keyof typeof featureFlags;
+
+export function isFeatureEnabled(flag: FeatureFlag): boolean {
+  return featureFlags[flag];
+}
