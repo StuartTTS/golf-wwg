@@ -336,3 +336,38 @@ export async function importCourse(externalId: number) {
     return { error: 'Failed to import course' };
   }
 }
+
+/**
+ * Courses the current user has recently played (any round they're a player in),
+ * most-recent first and de-duplicated. Powers the "Recently played" quick list
+ * in the "Tee It Up Now" solo flow. See docs/phase1-type-a-spec.md.
+ */
+export async function getRecentCourses(limit = 6) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('round_players')
+    .select('rounds!inner(course_id, round_date, courses(id, name, city, state))')
+    .eq('user_id', user.id)
+    .order('round_date', { referencedTable: 'rounds', ascending: false })
+    .limit(40);
+
+  if (error || !data) {
+    if (error) console.error('Recent courses error:', error);
+    return [];
+  }
+
+  // De-dupe by course_id, keeping the newest occurrence, cap to `limit`.
+  const seen = new Set<string>();
+  const out: { id: string; name: string; city: string | null; state: string | null }[] = [];
+  for (const row of data as any[]) {
+    const course = row.rounds?.courses;
+    if (!course?.id || seen.has(course.id)) continue;
+    seen.add(course.id);
+    out.push({ id: course.id, name: course.name, city: course.city, state: course.state });
+    if (out.length >= limit) break;
+  }
+  return out;
+}

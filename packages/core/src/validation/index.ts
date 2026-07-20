@@ -94,6 +94,14 @@ export const createRoundSchema = z.object({
   scorekeeperId: z.string().uuid().optional(),
 });
 
+// Solo "Tee It Up Now" round: just a course + tee box. The round hangs off the
+// player's personal group and is created already in progress. See
+// docs/phase1-type-a-spec.md.
+export const createSoloRoundSchema = z.object({
+  courseId: z.string().uuid(),
+  teeBoxId: z.string().uuid(),
+});
+
 // ---------- Score ----------
 export const scoreEntrySchema = z.object({
   roundId: z.string().uuid(),
@@ -172,6 +180,7 @@ export type HoleInput = z.infer<typeof holeSchema>;
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
 export type CreateRoundInput = z.infer<typeof createRoundSchema>;
+export type CreateSoloRoundInput = z.infer<typeof createSoloRoundSchema>;
 export type ScoreEntryInput = z.infer<typeof scoreEntrySchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type SettlementInput = z.infer<typeof settlementSchema>;
