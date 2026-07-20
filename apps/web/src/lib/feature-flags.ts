@@ -13,6 +13,14 @@ export const featureFlags = {
    * config page, and PGA-style shot-stat capture. Ships dark until enabled.
    */
   playExperience: process.env.NEXT_PUBLIC_FEATURE_PLAY_EXPERIENCE === 'true',
+
+  /**
+   * "Tee It Up Now" (Type A): the /tee-it-up solo entry flow (pick course →
+   * confirm tees → drop into the Play scoring screen). Lands in the Play
+   * experience, so its entry points only render when BOTH this and
+   * `playExperience` are on. Ships dark until enabled.
+   */
+  teeItUp: process.env.NEXT_PUBLIC_FEATURE_TEE_IT_UP === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;

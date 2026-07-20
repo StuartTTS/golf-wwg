@@ -12,10 +12,12 @@ import {
   Settings,
   Trophy,
   Shield,
+  Flag,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { featureFlags } from '@/lib/feature-flags';
 
 interface NavItem {
   href: string;
@@ -25,6 +27,10 @@ interface NavItem {
 
 const playItems: NavItem[] = [
   { href: '/home', label: 'Home', icon: Home },
+  // "Tee It Up Now" (Type A) — only when the solo flow + Play experience are on.
+  ...(featureFlags.teeItUp && featureFlags.playExperience
+    ? [{ href: '/tee-it-up', label: 'Tee It Up Now', icon: Flag }]
+    : []),
   { href: '/rounds', label: 'Rounds', icon: Trophy },
 ];
 

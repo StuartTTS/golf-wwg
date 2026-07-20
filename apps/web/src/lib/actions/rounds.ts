@@ -2,8 +2,148 @@
 
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createRoundSchema } from '@golf/core';
+import { createRoundSchema, createSoloRoundSchema } from '@golf/core';
 import { sendEmail, escapeHtml } from '@/lib/email';
+
+// NOTE: the new RPCs (get_or_create_personal_group, finalize_round, …) and new
+// columns (round_type, confirmed_at, …) land in migrations 00023/00024. Until
+// `database.types.ts` is regenerated against those migrations, the calls below
+// are cast to keep the app buildable. The casts are marked TODO(types) and
+// should be removed after regeneration.
+
+/**
+ * "Tee It Up Now" (Type A). Start a solo round with no group ceremony: it hangs
+ * off the caller's personal group and opens already in progress. See
+ * docs/phase1-type-a-spec.md.
+ */
+export async function createSoloRound(input: { courseId: string; teeBoxId: string }) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const parsed = createSoloRoundSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.errors[0].message };
+
+  // Resolve (or lazily create) the caller's personal group.
+  // TODO(types): rpc name resolves once database.types.ts is regenerated.
+  const { data: groupId, error: gErr } = await (supabase.rpc as any)(
+    'get_or_create_personal_group'
+  );
+  if (gErr || !groupId) {
+    console.error('Personal group error:', gErr);
+    return { error: 'Could not start round' };
+  }
+
+  // Course handicap from profile index + selected tee slope (same math as createRound).
+  const [{ data: profile }, { data: teeBox }] = await Promise.all([
+    supabase.from('profiles').select('current_handicap_index').eq('id', user.id).single(),
+    supabase.from('tee_boxes').select('slope_rating').eq('id', parsed.data.teeBoxId).single(),
+  ]);
+  const idx = profile?.current_handicap_index ?? null;
+  const courseHcp =
+    idx != null && teeBox ? Math.round(idx * (teeBox.slope_rating / 113)) : null;
+
+  // Create the round already in progress — solo has no RSVP/upcoming stage.
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: round, error } = await supabase
+    .from('rounds')
+    .insert({
+      group_id: groupId as string,
+      course_id: parsed.data.courseId,
+      tee_box_id: parsed.data.teeBoxId,
+      round_date: today,
+      round_type: 'solo',
+      status: 'in_progress',
+      scoring_mode: 'shared',
+      created_by: user.id,
+    } as any) // TODO(types): round_type after regen
+    .select('id')
+    .single();
+  if (error || !round) {
+    console.error('Create solo round error:', error);
+    return { error: 'Could not start round' };
+  }
+
+  // Add the sole player (the creator).
+  const { error: rpError } = await supabase.from('round_players').insert({
+    round_id: round.id,
+    user_id: user.id,
+    tee_box_id: parsed.data.teeBoxId,
+    handicap_index_at_round: idx,
+    course_handicap: courseHcp,
+    playing_handicap: courseHcp,
+    status: 'playing',
+  });
+  if (rpError) {
+    console.error('Add solo player error:', rpError);
+    return { error: 'Could not start round' };
+  }
+
+  return { success: true, roundId: round.id as string };
+}
+
+// ---- Confirmation & lock/unlock (see docs/round-confirmation-lock.md) ------
+
+/** Tier 1: confirm a single scorecard (self / flight scorer / scorekeeper / Commish). */
+export async function confirmScorecard(roundPlayerId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  // TODO(types): rpc names resolve once database.types.ts is regenerated.
+  const { error } = await (supabase.rpc as any)('confirm_scorecard', {
+    p_round_player_id: roundPlayerId,
+  });
+  if (error) {
+    console.error('Confirm scorecard error:', error);
+    return { error: 'Could not confirm scorecard' };
+  }
+  return { success: true };
+}
+
+/** Unlock a single scorecard to correct an error (mirror of confirm authority). */
+export async function unlockScorecard(roundPlayerId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { error } = await (supabase.rpc as any)('unlock_scorecard', {
+    p_round_player_id: roundPlayerId,
+  });
+  if (error) {
+    console.error('Unlock scorecard error:', error);
+    return { error: 'Could not unlock scorecard' };
+  }
+  return { success: true };
+}
+
+/** Tier 3: Commish final sign-off. Auto-confirms open cards → round counts. */
+export async function finalizeRound(roundId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { error } = await (supabase.rpc as any)('finalize_round', { p_round_id: roundId });
+  if (error) {
+    console.error('Finalize round error:', error);
+    return {
+      error: String(error.message ?? '').includes('Only the Commish')
+        ? 'Only the Commish can finalize this round'
+        : 'Could not finalize round',
+    };
+  }
+  return { success: true };
+}
+
+/** Reopen a finalized round (Commish). Cards stay locked until individually unlocked. */
+export async function unfinalizeRound(roundId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { error } = await (supabase.rpc as any)('unfinalize_round', { p_round_id: roundId });
+  if (error) {
+    console.error('Unfinalize round error:', error);
+    return { error: 'Could not reopen round' };
+  }
+  return { success: true };
+}
 
 export async function createRound(formData: FormData) {
   const supabase = await createServerSupabaseClient();
