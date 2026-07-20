@@ -69,9 +69,10 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 4. AUTO-CREATE PERSONAL GROUP ON SIGNUP -------------------------------
--- Extend handle_new_user (preserving the 00002 search_path fix) to seed a
--- personal group + admin membership for every new user, so the group exists
--- before their first "Tee It Up Now".
+-- Extend handle_new_user (preserving the 00002 search_path fix and the
+-- 00008 profile_completed=false onboarding flag) to seed a personal group +
+-- admin membership for every new user, so the group exists before their
+-- first "Tee It Up Now".
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -80,8 +81,8 @@ DECLARE
 BEGIN
   v_name := COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1));
 
-  INSERT INTO public.profiles (id, display_name, email)
-  VALUES (NEW.id, v_name, NEW.email);
+  INSERT INTO public.profiles (id, display_name, email, profile_completed)
+  VALUES (NEW.id, v_name, NEW.email, false);
 
   INSERT INTO public.groups (name, description, is_personal, created_by)
   VALUES (v_name || '''s Solo Rounds', 'Personal solo rounds', true, NEW.id)
