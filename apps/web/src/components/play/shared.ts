@@ -60,6 +60,10 @@ export interface PlayRound {
   currentUserGroupId: string | null;
   /** Leaderboard scoring basis, from the round's games config. */
   scoring: 'gross' | 'net';
+  /** Current user is the round creator (Commish) — may finalize/reopen. */
+  isCommish: boolean;
+  /** Round finalized by the Commish (rounds.confirmed_at set) → counts in stats. */
+  confirmed: boolean;
 }
 
 export function blankScore(playerId: string, holeNumber: number): PlayScore {

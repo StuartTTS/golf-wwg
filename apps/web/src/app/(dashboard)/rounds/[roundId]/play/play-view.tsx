@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { HoleScore } from '@golf/core';
 import { useRealtimeScores } from '@/hooks/use-realtime-scores';
 import { upsertScore } from '@/lib/actions/scores';
+import { finalizeRound, unfinalizeRound } from '@/lib/actions/rounds';
 import { LeaderboardView } from '@/components/play/leaderboard-view';
 import { GroupScorecardView } from '@/components/play/group-scorecard-view';
 import { ScoreEntryView } from '@/components/play/score-entry-view';
@@ -25,6 +26,37 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
   const [scores, setScores] = useState<PlayScore[]>(initialScores);
   const [holeIndex, setHoleIndex] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // Round finalization (Commish confirm / reopen). See docs/round-confirmation-lock.md.
+  const [confirmed, setConfirmed] = useState(round.confirmed);
+  const [confirmWorking, setConfirmWorking] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  const handleFinalize = useCallback(async () => {
+    setConfirmWorking(true);
+    setConfirmError(null);
+    const res = await finalizeRound(roundId);
+    setConfirmWorking(false);
+    if (res.error) {
+      setConfirmError(res.error);
+      return;
+    }
+    setConfirmed(true);
+    router.refresh();
+  }, [roundId, router]);
+
+  const handleReopen = useCallback(async () => {
+    setConfirmWorking(true);
+    setConfirmError(null);
+    const res = await unfinalizeRound(roundId);
+    setConfirmWorking(false);
+    if (res.error) {
+      setConfirmError(res.error);
+      return;
+    }
+    setConfirmed(false);
+    router.refresh();
+  }, [roundId, router]);
 
   // Keep a ref so updateScore always merges against the latest state.
   const scoresRef = useRef(scores);
@@ -128,6 +160,55 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
           </button>
         </div>
       </div>
+
+      {/* Confirm / Final banner (Commish finalize gate) */}
+      {(round.isCommish || confirmed) && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-surface-600 bg-surface-800 px-3 py-2">
+            {confirmed ? (
+              <>
+                <span className="flex items-center gap-1.5 text-sm font-medium text-golf-400">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Final — posted to stats
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => router.push('/profile/stats')}
+                    className="text-xs text-surface-300 hover:text-surface-100 px-2 py-1"
+                  >
+                    View stats
+                  </button>
+                  {round.isCommish && (
+                    <button
+                      onClick={handleReopen}
+                      disabled={confirmWorking}
+                      className="text-xs px-2 py-1 rounded border border-surface-500 text-surface-200 hover:bg-surface-700 disabled:opacity-50"
+                    >
+                      {confirmWorking ? '…' : 'Reopen'}
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="text-sm text-surface-300">
+                  Finished? Confirm to lock scores and post to stats.
+                </span>
+                <button
+                  onClick={handleFinalize}
+                  disabled={confirmWorking}
+                  className="text-xs px-3 py-1.5 rounded bg-golf-600 text-white font-medium hover:bg-golf-500 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {confirmWorking ? 'Confirming…' : 'Confirm round'}
+                </button>
+              </>
+            )}
+          </div>
+          {confirmError && <p className="mt-2 text-xs text-red-400">{confirmError}</p>}
+        </div>
+      )}
 
       {/* Active tab content */}
       <div className="max-w-2xl mx-auto px-4 py-4 pb-28">
