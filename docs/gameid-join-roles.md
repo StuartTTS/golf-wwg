@@ -102,6 +102,10 @@ Sign in / Sign up ─► enter GameID ─► validate code ─► placed into th
 The joiner picks their **role**, but never their **foursome** — the Commish owns
 pairings.
 
+After placement, the joiner also gets an optional **"Add your playing partners to
+your roster?"** prompt (opt-in) — the primary way personal rosters get populated
+without manual entry. See `roster-design.md`.
+
 ---
 
 ## Edge cases / open decisions

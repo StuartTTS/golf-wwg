@@ -28,11 +28,11 @@ reusable list of people you play with, so you can add them to games in a tap and
 
 | # | Decision | Proposed |
 |---|----------|----------|
-| D1 | **Ownership** | **Individual-owned** ("my roster"), `owner_id → profiles`. Group-shared rosters are a later enhancement. Matches the UX draft. |
+| D1 | **Ownership** | ✅ **Individual-owned** ("my roster"), `owner_id → profiles`. Confirmed — not everyone is friends with everyone, so a shared roster would leak contacts. Group-shared is deferred. |
 | D2 | **Linked vs unlinked** | One table; `linked_user_id` nullable. Linked = a real profile; unlinked = a name/handicap/email-only contact. |
 | D3 | **Handicap source of truth** | Linked → always the profile's live `current_handicap_index`. Unlinked → the roster's own `handicap_index`. |
 | D4 | **Round linkage** | Add `round_players.roster_player_id` so every participation (registered *or* guest) points back to the persistent roster identity. |
-| D5 | **Populating it** | Explicit add, **plus** "Recent players" suggestions computed from past rounds (not silent auto-add). |
+| D5 | **Populating it** | ✅ **Opt-in prompt at join**: when you enter a GameID, offer to add your playing partners to your roster. Plus passive "Recent players" suggestions. Never a silent auto-add. |
 
 ---
 
@@ -107,8 +107,26 @@ This reuses the existing guest plumbing; the only new thing is the back-link.
 - No email match → the joiner lands in the "unassigned" pool for the Commish to
   place (per the join doc).
 
-**Recent-players suggestions.** `suggestRecentPlayers()` — registered co-players
-from the owner's past rounds not already on the roster:
+**Populating via the join prompt (primary).** When a user joins a game by GameID
+and is placed, show an optional, opt-in step:
+
+> **"Add your playing partners to your roster?"** — lists the other participants
+> (their **foursome** by default, pre-checked; a "show whole field" toggle to add
+> anyone in the game). Multi-select; skips anyone already on their roster.
+
+On confirm: registered participants → **linked** entries (`linked_user_id`);
+guests → **unlinked** entries (copy name + handicap). This is how a joiner builds
+their roster passively, without manual entry, right after playing with people.
+
+Adding is **one-directional and private** — a contacts model. The added person is
+not notified and gains nothing; there is no new data exposure since profiles are
+already world-readable. (So no consent step is needed — you're adding to *your*
+private list, not theirs.) The prompt can also fire at **round end** for anyone
+who wasn't a joiner (e.g. the Commish picking up new co-players), but join time is
+the primary trigger.
+
+**Recent-players suggestions (passive fallback).** `suggestRecentPlayers()` —
+registered co-players from the owner's past rounds not already on the roster:
 ```sql
 SELECT DISTINCT rp2.user_id
 FROM round_players rp1
@@ -144,10 +162,17 @@ no identity to key on.)
 
 ---
 
+## Resolved
+
+- **Ownership (D1)** — individual-owned; group-shared deferred.
+- **Population (D5)** — opt-in join-time prompt to add playing partners, + passive
+  suggestions.
+
 ## Open questions for review
 
-1. **D1 ownership** — individual-owned only for now, or do you also want a
-   group-shared roster in Phase 2?
+1. **Join-prompt scope** — default to pre-checking your **foursome** (opt-out), with
+   a toggle to reveal the whole field? (Proposed: yes — avoids rostering strangers
+   from a big field you never actually played with.)
 2. **Claiming by email** — is email the right match key, or do you want the Commish
    to also be able to hand a joiner a specific slot manually (no email needed)?
 3. **Unlinked handicap trust** — for a Commish-entered handicap on an unlinked
