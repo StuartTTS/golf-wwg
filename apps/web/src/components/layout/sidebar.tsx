@@ -13,11 +13,13 @@ import {
   Trophy,
   Shield,
   Flag,
+  ClipboardList,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { featureFlags } from '@/lib/feature-flags';
+import { startModes, joinGame, type NavAction } from '@/lib/nav-modes';
 
 interface NavItem {
   href: string;
@@ -25,9 +27,9 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const playItems: NavItem[] = [
+// --- Legacy (navV2 off) object-centric nav ---------------------------------
+const legacyPlayItems: NavItem[] = [
   { href: '/home', label: 'Home', icon: Home },
-  // "Tee It Up Now" (Type A) — only when the solo flow + Play experience are on.
   ...(featureFlags.teeItUp && featureFlags.playExperience
     ? [{ href: '/tee-it-up', label: 'Tee It Up Now', icon: Flag }]
     : []),
@@ -43,6 +45,10 @@ const accountItems: NavItem[] = [
   { href: '/profile', label: 'Profile', icon: User },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
+
+// v2 "Play" section: Home, then the Start modes, Join Game, and Rounds.
+const v2PlayItems: NavItem[] = [{ href: '/home', label: 'Home', icon: Home }];
+const v2RoundsItem: NavItem = { href: '/rounds', label: 'Rounds', icon: ClipboardList };
 
 function SectionHeader({ label, collapsed }: { label: string; collapsed: boolean }) {
   if (collapsed) return <div className="my-2 mx-auto h-px w-6 bg-surface-600" />;
@@ -81,6 +87,57 @@ function NavLink({
   );
 }
 
+// v2 action item: a live mode/action link, or a disabled "Soon" placeholder.
+// The description is surfaced as a hover tooltip (title) either way.
+function ActionItem({
+  action,
+  isActive,
+  collapsed,
+}: {
+  action: NavAction;
+  isActive: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = action.icon;
+  const base = `flex items-center gap-3 py-2.5 text-sm font-medium rounded-golf transition-colors duration-golf ease-golf ${
+    collapsed ? 'justify-center px-0' : 'px-3'
+  }`;
+
+  if (!action.available) {
+    return (
+      <div
+        title={collapsed ? `${action.label} — coming soon` : `${action.description} — coming soon`}
+        className={`${base} text-surface-500 cursor-default select-none`}
+      >
+        <Icon className="h-5 w-5 flex-shrink-0" />
+        {!collapsed && (
+          <span className="flex flex-1 items-center justify-between">
+            {action.label}
+            <span className="ml-2 rounded bg-surface-700 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-surface-400">
+              Soon
+            </span>
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={action.href}
+      title={collapsed ? action.label : action.description}
+      className={`${base} ${
+        isActive
+          ? 'border-l-2 border-golf-500 bg-surface-700/50 text-gold-500'
+          : 'text-surface-300 hover:bg-surface-600/50 hover:text-surface-100'
+      }`}
+    >
+      <Icon className="h-5 w-5 flex-shrink-0" />
+      {!collapsed && action.label}
+    </Link>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { profile, user } = useAuth();
@@ -88,6 +145,7 @@ export function Sidebar() {
 
   const displayName = profile?.display_name || user?.email || 'Golfer';
   const isSiteAdmin = (profile as any)?.is_site_admin === true;
+  const v2 = featureFlags.navV2;
 
   return (
     <div
@@ -110,11 +168,7 @@ export function Sidebar() {
           }`}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4" />
-          )}
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
       </div>
 
@@ -123,14 +177,46 @@ export function Sidebar() {
         <div>
           <SectionHeader label="Play" collapsed={collapsed} />
           <div className="space-y-1">
-            {playItems.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                isActive={pathname.startsWith(item.href)}
-                collapsed={collapsed}
-              />
-            ))}
+            {v2 ? (
+              <>
+                {v2PlayItems.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    isActive={pathname.startsWith(item.href)}
+                    collapsed={collapsed}
+                  />
+                ))}
+                {!collapsed && (
+                  <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-surface-500">
+                    Start
+                  </p>
+                )}
+                {startModes.map((m) => (
+                  <ActionItem
+                    key={m.key}
+                    action={m}
+                    isActive={m.available && pathname.startsWith(m.href)}
+                    collapsed={collapsed}
+                  />
+                ))}
+                <ActionItem action={joinGame} isActive={false} collapsed={collapsed} />
+                <NavLink
+                  item={v2RoundsItem}
+                  isActive={pathname.startsWith(v2RoundsItem.href)}
+                  collapsed={collapsed}
+                />
+              </>
+            ) : (
+              legacyPlayItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  isActive={pathname.startsWith(item.href)}
+                  collapsed={collapsed}
+                />
+              ))
+            )}
           </div>
         </div>
 
@@ -178,9 +264,7 @@ export function Sidebar() {
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-surface-100">
-                {displayName}
-              </p>
+              <p className="truncate text-sm font-medium text-surface-100">{displayName}</p>
             </div>
           )}
         </div>

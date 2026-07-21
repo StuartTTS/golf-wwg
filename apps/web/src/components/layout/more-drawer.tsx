@@ -2,9 +2,10 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { User, Settings, Shield, LogOut } from 'lucide-react';
+import { User, Settings, Shield, LogOut, Users, MapPin } from 'lucide-react';
 import { logout } from '@/lib/actions/auth';
 import { useAuth } from '@/providers/auth-provider';
+import { featureFlags } from '@/lib/feature-flags';
 
 interface MoreDrawerProps {
   isOpen: boolean;
@@ -49,6 +50,28 @@ export function MoreDrawer({ isOpen, onClose }: MoreDrawerProps) {
 
         {/* Menu items */}
         <div className="space-y-1">
+          {/* In the action-centric nav, Groups & Courses live here (off the bar). */}
+          {featureFlags.navV2 && (
+            <>
+              <Link
+                href="/groups"
+                onClick={onClose}
+                className="flex items-center gap-3 p-3 rounded-golf text-surface-200 hover:bg-surface-700 transition-colors"
+              >
+                <Users className="h-5 w-5" />
+                <span className="text-sm font-medium">Groups</span>
+              </Link>
+              <Link
+                href="/courses"
+                onClick={onClose}
+                className="flex items-center gap-3 p-3 rounded-golf text-surface-200 hover:bg-surface-700 transition-colors"
+              >
+                <MapPin className="h-5 w-5" />
+                <span className="text-sm font-medium">Courses</span>
+              </Link>
+            </>
+          )}
+
           <Link
             href="/profile"
             onClick={onClose}
