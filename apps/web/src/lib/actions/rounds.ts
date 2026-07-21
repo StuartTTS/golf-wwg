@@ -553,39 +553,23 @@ export async function completeRound(roundId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  const { data: round } = await supabase
-    .from('rounds')
-    .select('created_by, group_id')
-    .eq('id', roundId)
-    .single();
-  if (!round) return { error: 'Round not found' };
-
-  let authorized = round.created_by === user.id;
-  if (!authorized) {
-    const { data: membership } = await supabase
-      .from('group_members')
-      .select('role')
-      .eq('group_id', round.group_id)
-      .eq('user_id', user.id)
-      .single();
-    authorized = membership?.role === 'admin';
-  }
-  if (!authorized) return { error: 'Not authorized' };
-
-  const { error } = await supabase
-    .from('rounds')
-    .update({
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-    })
-    .eq('id', roundId);
-
+  // Route through the confirmation model rather than setting status directly:
+  // finalize_round auto-confirms any open cards, stamps rounds.confirmed_at, and
+  // derives status='completed'. Authority (Commish / admin / scorekeeper) is
+  // enforced inside the RPC. Writing status here would bypass the confirmation
+  // invariant (locking + stats gate) added in migration 00024. See
+  // docs/round-confirmation-lock.md.
+  const { error } = await supabase.rpc('finalize_round', { p_round_id: roundId });
   if (error) {
-    console.error('Action error:', error);
-    return { error: 'An error occurred. Please try again.' };
+    console.error('Complete round error:', error);
+    return {
+      error: String(error.message ?? '').includes('Only the Commish')
+        ? 'Only the Commish can complete this round'
+        : 'An error occurred. Please try again.',
+    };
   }
 
-  // Update all playing players to 'completed'
+  // Advance the per-player lifecycle status (separate from confirmation).
   await supabase
     .from('round_players')
     .update({ status: 'completed' })

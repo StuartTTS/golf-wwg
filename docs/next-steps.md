@@ -42,14 +42,16 @@ Restart the dev server (env changed), then drive the real loop:
 
 ### A. Phase 1 correctness (touches existing behavior — do before merge)
 
-- [ ] **Refactor `completeRound` → `finalize_round`.** The round-detail "Complete
-      Round" button still sets `status` directly, which fights the confirmation
-      invariant introduced by `00024`. (See `round-confirmation-lock.md`.)
-- [ ] **Fix the non-scorer self-edit gate.** The Play `enter` view makes non-scorers
-      read-only when a flight scorer is set; the model requires a player can *always*
-      edit their **own** card. Must be right before Phase 2's group play.
+- [x] **`completeRound` → `finalize_round`.** Turned out there is **no live "Complete
+      Round" button** — `completeRound`/`startRound` were dead code, and the only
+      completion path is the Play **Confirm/Reopen** banner (`finalize_round`).
+      Hardened `completeRound` to route through `finalize_round` so it can't
+      reintroduce the direct-status bug if reused later.
+- [x] **Non-scorer self-edit gate fixed.** The Play `enter` view now lets a player
+      **always** enter and track their **own** card; a flight scorer owns everyone
+      *else's* official card (per-player access, not a global lock). Banner reworded.
 - [ ] **Verify existing group rounds** still score/complete under the new score-write
-      RLS (locked-card enforcement, finalize gate).
+      RLS (locked-card enforcement, finalize gate) — covered by end-to-end testing.
 
 ### B. Logistics
 

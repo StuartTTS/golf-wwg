@@ -61,12 +61,17 @@ export function ScoreEntryView({
   const layoutHoles = holesFor(currentUser?.teeBoxId ?? '') ?? round.defaultHoles;
   const hole = layoutHoles[holeIndex];
 
-  // Designated-scorer gate: if the flight has a scorer and it isn't me, I'm read-only.
+  // Designated-scorer gate. A player can ALWAYS enter/track their own card — a
+  // flight scorer only owns everyone *else's* official card (see
+  // docs/round-confirmation-lock.md). So "scorer" access is per-player, not global.
   const flightGroup = round.teeGroups.find(
     (g) => g.id === round.currentUserGroupId
   );
   const designatedScorer = flightGroup?.scorerId ?? null;
-  const canEnter = !designatedScorer || designatedScorer === round.currentUserId;
+  // I'm the scorer if designated, or if no one is (shared self-scoring).
+  const isScorer = !designatedScorer || designatedScorer === round.currentUserId;
+  const someoneElseScoring =
+    !!designatedScorer && designatedScorer !== round.currentUserId;
   const scorerName = designatedScorer
     ? round.players.find((p) => p.id === designatedScorer)?.displayName ?? null
     : null;
@@ -141,10 +146,10 @@ export function ScoreEntryView({
         ))}
       </div>
 
-      {!canEnter && (
+      {someoneElseScoring && (
         <div className="rounded-lg bg-surface-700/60 border border-surface-600 px-4 py-3 text-sm text-surface-200">
-          {scorerName ?? 'A designated scorer'} is entering scores for your
-          group. You can follow along on the Leaderboard and Scorecard tabs.
+          {scorerName ?? 'A designated scorer'} is keeping the group&apos;s
+          official card. You can still enter and track your own card below.
         </div>
       )}
 
@@ -154,6 +159,8 @@ export function ScoreEntryView({
           const score = getScore(player.id, hole.number);
           const par = parFor(player);
           const isMe = player.id === round.currentUserId;
+          // Scorer edits everyone; anyone can always edit their own card.
+          const canEditPlayer = isScorer || isMe;
           const received = strokesReceivedOnHole(
             player.playingHandicap,
             strokeIndexFor(player)
@@ -200,7 +207,7 @@ export function ScoreEntryView({
               <StrokeButtons
                 par={par}
                 value={score?.strokes ?? null}
-                disabled={!canEnter}
+                disabled={!canEditPlayer}
                 onSet={(strokes) =>
                   updateScore(player.id, hole.number, {
                     strokes,
@@ -216,7 +223,7 @@ export function ScoreEntryView({
               />
 
               {/* Full stat grid — ONLY on the current user's own card */}
-              {isMe && canEnter && score?.strokes != null && (
+              {isMe && score?.strokes != null && (
                 <OwnStatPanel
                   par={par}
                   score={score}
