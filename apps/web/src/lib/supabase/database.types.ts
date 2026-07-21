@@ -285,6 +285,7 @@ export type Database = {
           description: string | null
           home_club_id: string | null
           id: string
+          is_personal: boolean
           name: string
         }
         Insert: {
@@ -294,6 +295,7 @@ export type Database = {
           description?: string | null
           home_club_id?: string | null
           id?: string
+          is_personal?: boolean
           name: string
         }
         Update: {
@@ -303,6 +305,7 @@ export type Database = {
           description?: string | null
           home_club_id?: string | null
           id?: string
+          is_personal?: boolean
           name?: string
         }
         Relationships: [
@@ -561,6 +564,8 @@ export type Database = {
       }
       round_players: {
         Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
           course_handicap: number | null
           guest_handicap_index: number | null
           guest_name: string | null
@@ -574,6 +579,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           course_handicap?: number | null
           guest_handicap_index?: number | null
           guest_name?: string | null
@@ -587,6 +594,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           course_handicap?: number | null
           guest_handicap_index?: number | null
           guest_name?: string | null
@@ -600,6 +609,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "round_players_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "round_players_round_id_fkey"
             columns: ["round_id"]
@@ -633,6 +649,8 @@ export type Database = {
       rounds: {
         Row: {
           completed_at: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           course_id: string
           created_at: string
           created_by: string
@@ -640,6 +658,7 @@ export type Database = {
           id: string
           registration_status: string
           round_date: string
+          round_type: string
           scorekeeper_id: string | null
           scoring_mode: string
           status: string
@@ -648,6 +667,8 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           course_id: string
           created_at?: string
           created_by: string
@@ -655,6 +676,7 @@ export type Database = {
           id?: string
           registration_status?: string
           round_date: string
+          round_type?: string
           scorekeeper_id?: string | null
           scoring_mode?: string
           status?: string
@@ -663,6 +685,8 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           course_id?: string
           created_at?: string
           created_by?: string
@@ -670,6 +694,7 @@ export type Database = {
           id?: string
           registration_status?: string
           round_date?: string
+          round_type?: string
           scorekeeper_id?: string | null
           scoring_mode?: string
           status?: string
@@ -677,6 +702,13 @@ export type Database = {
           tee_time?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rounds_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rounds_course_id_fkey"
             columns: ["course_id"]
@@ -983,6 +1015,13 @@ export type Database = {
             referencedRelation: "rounds"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tee_time_groups_scorer_id_fkey"
+            columns: ["scorer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -990,10 +1029,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_finalize_round: {
+        Args: { p_round_id: string; p_user: string }
+        Returns: boolean
+      }
+      can_manage_scorecard: {
+        Args: { p_round_player_id: string; p_user: string }
+        Returns: boolean
+      }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      confirm_flight: {
+        Args: { p_tee_time_group_id: string }
+        Returns: undefined
+      }
+      confirm_scorecard: {
+        Args: { p_round_player_id: string }
+        Returns: undefined
+      }
+      finalize_round: { Args: { p_round_id: string }; Returns: undefined }
+      get_or_create_personal_group: { Args: never; Returns: string }
       is_group_admin: { Args: { check_group_id: string }; Returns: boolean }
       is_group_member: { Args: { check_group_id: string }; Returns: boolean }
+      score_target_locked: {
+        Args: {
+          p_player_id: string
+          p_round_id: string
+          p_round_player_id: string
+        }
+        Returns: boolean
+      }
       shares_group_with: { Args: { target_user_id: string }; Returns: boolean }
+      unfinalize_round: { Args: { p_round_id: string }; Returns: undefined }
+      unlock_scorecard: {
+        Args: { p_round_player_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
