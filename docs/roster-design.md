@@ -30,7 +30,7 @@ reusable list of people you play with, so you can add them to games in a tap and
 |---|----------|----------|
 | D1 | **Ownership** | ✅ **Individual-owned** ("my roster"), `owner_id → profiles`. Confirmed — not everyone is friends with everyone, so a shared roster would leak contacts. Group-shared is deferred. |
 | D2 | **Linked vs unlinked** | One table; `linked_user_id` nullable. Linked = a real profile; unlinked = a name/handicap/email-only contact. |
-| D3 | **Handicap source of truth** | Linked → always the profile's live `current_handicap_index`. Unlinked → the roster's own `handicap_index`. |
+| D3 | **Handicap source of truth** | *Player-claimed* handicap: linked → profile's live `current_handicap_index`; unlinked → roster `handicap_index`. The **game handicap** is separate and Commish-governed — see *Handicap governance* below. |
 | D4 | **Round linkage** | Add `round_players.roster_player_id` so every participation (registered *or* guest) points back to the persistent roster identity. |
 | D5 | **Populating it** | ✅ **Opt-in prompt at join**: when you enter a GameID, offer to add your playing partners to your roster. Plus passive "Recent players" suggestions. Never a silent auto-add. |
 
@@ -43,9 +43,10 @@ CREATE TABLE roster_players (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id       UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,  -- whose roster
   linked_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,          -- real account, if any
-  display_name   TEXT NOT NULL,                                            -- owner's label / nickname
-  email          TEXT,                                                     -- claim/invite matching
-  handicap_index NUMERIC(4,1),                                             -- authoritative only when unlinked
+  display_name   TEXT NOT NULL,                                            -- owner's label / nickname (free text, 2-50, not unique)
+  email          TEXT,                                                     -- claim key (see Q2)
+  phone          TEXT,                                                     -- alt claim key (see Q2 — needs signup/profile phone)
+  handicap_index NUMERIC(4,1),                                             -- player-claimed; NOT the game handicap
   ghin_id        TEXT,                                                     -- reserved (future GHIN import)
   notes          TEXT,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -140,6 +141,25 @@ no identity to key on.)
 
 ---
 
+## Handicap governance — player-claimed vs game handicap
+
+Two lanes, mirroring the scoring model (personal truth vs a Commish-governed game
+value):
+
+- A player **may set/correct their own** handicap — the *player-claimed* value
+  (`profiles.current_handicap_index`, or the roster `handicap_index` while
+  unlinked). This is theirs to edit.
+- Editing it does **not** change the **game handicap** — the values actually used
+  to score the game (`round_players.course_handicap` / `playing_handicap`), which
+  the **Commish controls** to keep games fair (anti-sandbagging).
+- Instead, a player's change (e.g. when they claim a pre-built slot and their real
+  index differs from what the Commish typed) **notifies the Commish**, who can
+  **Accept** — applying it to the round (re-derives course handicap from the tee
+  slope) — or leave the game value as set.
+
+So claiming a slot never silently moves the money math; the Commish stays the
+gate, with a one-tap accept for legitimate corrections.
+
 ## Server actions (sketch)
 
 - `getRoster()` — owner's entries (+ suggestions).
@@ -167,16 +187,23 @@ no identity to key on.)
 - **Ownership (D1)** — individual-owned; group-shared deferred.
 - **Population (D5)** — opt-in join-time prompt to add playing partners, + passive
   suggestions.
+- **Handicap override (Q3)** — a player may correct their own *claimed* handicap; it
+  does **not** change the game handicap — it **notifies the Commish**, who can
+  Accept. See *Handicap governance*.
+- **Name convention (Q4)** — single free-text `display_name` (2–50 chars, not
+  unique, no first/last split — matching how `profiles.display_name` /
+  `guest_name` already work). Duplicate names are allowed; dedup keys on
+  email / phone / linked account, never the name.
 
 ## Open questions for review
 
 1. **Join-prompt scope** — default to pre-checking your **foursome** (opt-out), with
-   a toggle to reveal the whole field? (Proposed: yes — avoids rostering strangers
-   from a big field you never actually played with.)
-2. **Claiming by email** — is email the right match key, or do you want the Commish
-   to also be able to hand a joiner a specific slot manually (no email needed)?
-3. **Unlinked handicap trust** — for a Commish-entered handicap on an unlinked
-   player, do we let the player override it once they claim the slot?
-4. **Guest naming collision** — allow two roster entries with the same
-   `display_name` (e.g., two "Mike"s)? (Proposed: yes; dedup only on email /
-   linked_user_id, not name.)
+   a "show whole field" toggle? (Proposed: yes — avoids rostering strangers from a
+   big field you never actually played with.)
+2. **Claim key: email and/or phone** — support **both** as match keys (flexible;
+   `phone` column added to the draft). Needs more thinking:
+   - The app has **no phone today** (signup is email+password; `profiles` has no
+     phone), so phone matching needs one of — (a) collect phone at signup / on the
+     profile, or (b) Supabase phone auth.
+   - Should the Commish also be able to hand a joiner a slot **manually** (no
+     email/phone match required)?
