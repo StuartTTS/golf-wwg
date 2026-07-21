@@ -71,6 +71,11 @@ Restart the dev server (env changed), then drive the real loop:
 - [ ] **Per-card / per-foursome confirm UI (tiers 1–2)** — only the Commish finalize
       (tier 3) is wired; group games need player self-confirm + foursome-scorer
       confirm. Likely the first Phase 2 task.
+- [ ] **Dual scoring & discrepancy reconciliation** — let the official game score and
+      a player's own tracked score differ (best-ball pickups), and surface mismatches
+      **at confirmation time** (end of round), not live. Add the `player_strokes` +
+      `picked_up` columns in Phase 2 core; reconcile UX rides on the confirm step. See
+      `game-time-score-reconciliation.md`.
 
 ---
 
