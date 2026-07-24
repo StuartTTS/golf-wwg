@@ -14,6 +14,7 @@ import { AddGuestForm } from '@/components/rounds/add-guest-form';
 import { RegistrationCard } from '@/components/rounds/registration-card';
 import TeeAssignmentCard from '@/components/rounds/tee-assignment-card';
 import TeeTimeGroupManager from '@/components/rounds/tee-time-group-manager';
+import { ShareGameButton } from '@/components/rounds/share-game-button';
 
 interface RoundPageProps {
   params: Promise<{ roundId: string }>;
@@ -417,6 +418,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             <Button variant="outline">Commish Setup</Button>
           </Link>
         )}
+        {featureFlags.shareCode && isCommish && <ShareGameButton roundId={roundId} />}
       </div>
 
       {/* Round Info */}

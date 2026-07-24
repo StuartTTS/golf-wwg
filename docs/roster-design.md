@@ -109,15 +109,19 @@ This reuses the existing guest plumbing; the only new thing is the back-link.
   place (per the join doc).
 
 **Populating via the join prompt (primary).** When a user joins a game by GameID
-and is placed, show an optional, opt-in step:
+and is placed, show an optional, opt-in step — **"Add players to your roster?"** —
+with four explicit choices:
 
-> **"Add your playing partners to your roster?"** — lists the other participants
-> (their **foursome** by default, pre-checked; a "show whole field" toggle to add
-> anyone in the game). Multi-select; skips anyone already on their roster.
+| Choice | Adds |
+|--------|------|
+| **a. Add your foursome** | the other players in the joiner's flight (the common case) |
+| **b. Add all players in the game** | everyone in the field |
+| **c. Individually select** | opens a multi-select of the field; pick who to add |
+| **d. Don't add anyone** | dismiss |
 
-On confirm: registered participants → **linked** entries (`linked_user_id`);
-guests → **unlinked** entries (copy name + handicap). This is how a joiner builds
-their roster passively, without manual entry, right after playing with people.
+Skips anyone already on their roster. On add: registered participants → **linked**
+entries (`linked_user_id`); guests → **unlinked** entries (copy name + handicap).
+This is how a joiner builds their roster passively, right after playing with people.
 
 Adding is **one-directional and private** — a contacts model. The added person is
 not notified and gains nothing; there is no new data exposure since profiles are
@@ -202,8 +206,12 @@ gate, with a one-tap accept for legitimate corrections.
   feature (needs phone numbers + an SMS provider — see `product-tiers.md`). The
   Commish can also assign a slot **manually** as a fallback to email matching.
 
-## Open questions for review
+- **Join-prompt scope (Q1)** — four explicit choices on join: **(a)** add your
+  foursome, **(b)** add all players in the game, **(c)** individually select, **(d)**
+  don't add anyone. See *Populating via the join prompt*.
 
-1. **Join-prompt scope** — default to pre-checking your **foursome** (opt-out), with
-   a "show whole field" toggle? (Proposed: yes — avoids rostering strangers from a
-   big field you never actually played with.)
+## Open questions
+
+None — the roster design is fully specified. Ready to become the `00025` migration
++ server actions. (Phone-based *reach* still needs its own discussion, but that's a
+`product-tiers` / auth topic, not a roster blocker — email is the claim key.)
