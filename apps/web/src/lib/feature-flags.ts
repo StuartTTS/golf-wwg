@@ -29,6 +29,13 @@ export const featureFlags = {
    * object-centric nav (Home · Groups · Courses · Rounds) renders. Ships dark.
    */
   navV2: process.env.NEXT_PUBLIC_FEATURE_NAV_V2 === 'true',
+
+  /**
+   * Share code / GameID: a Commish "Share" action on a round and a /join page so
+   * friends can join a round by code (adds them to the round's group + as a
+   * player). Ships dark.
+   */
+  shareCode: process.env.NEXT_PUBLIC_FEATURE_SHARE_CODE === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;

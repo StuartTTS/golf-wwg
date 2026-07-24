@@ -137,14 +137,17 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-surface-900/95 backdrop-blur border-b border-surface-700 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold text-surface-50 leading-tight">
+      {/* Header — single top bar (the global app header is hidden on /play) */}
+      <div className="sticky top-0 z-30 bg-surface-900/95 backdrop-blur border-b border-surface-700 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-golf-500 font-display text-lg font-extrabold">
+            WWG
+          </span>
+          <div className="flex-1 min-w-0 text-center">
+            <h1 className="text-base font-bold text-surface-50 leading-tight truncate">
               {round.courseName}
             </h1>
-            <p className="text-xs text-surface-400">
+            <p className="text-xs text-surface-400 leading-tight">
               {new Date(round.date).toLocaleDateString('en-US', {
                 weekday: 'short',
                 month: 'short',
@@ -154,61 +157,15 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
           </div>
           <button
             onClick={() => router.push(`/rounds/${roundId}`)}
-            className="text-xs text-surface-300 hover:text-surface-100 px-2 py-1"
+            aria-label="Close and return to round"
+            className="flex items-center justify-center h-9 w-9 shrink-0 rounded-full text-surface-300 hover:bg-surface-700 hover:text-surface-100 transition-colors"
           >
-            Done
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       </div>
-
-      {/* Confirm / Final banner (Commish finalize gate) */}
-      {(round.isCommish || confirmed) && (
-        <div className="max-w-2xl mx-auto px-4 pt-3">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-surface-600 bg-surface-800 px-3 py-2">
-            {confirmed ? (
-              <>
-                <span className="flex items-center gap-1.5 text-sm font-medium text-golf-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Final — posted to stats
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => router.push('/profile/stats')}
-                    className="text-xs text-surface-300 hover:text-surface-100 px-2 py-1"
-                  >
-                    View stats
-                  </button>
-                  {round.isCommish && (
-                    <button
-                      onClick={handleReopen}
-                      disabled={confirmWorking}
-                      className="text-xs px-2 py-1 rounded border border-surface-500 text-surface-200 hover:bg-surface-700 disabled:opacity-50"
-                    >
-                      {confirmWorking ? '…' : 'Reopen'}
-                    </button>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <span className="text-sm text-surface-300">
-                  Finished? Confirm to lock scores and post to stats.
-                </span>
-                <button
-                  onClick={handleFinalize}
-                  disabled={confirmWorking}
-                  className="text-xs px-3 py-1.5 rounded bg-golf-600 text-white font-medium hover:bg-golf-500 disabled:opacity-50 whitespace-nowrap"
-                >
-                  {confirmWorking ? 'Confirming…' : 'Confirm round'}
-                </button>
-              </>
-            )}
-          </div>
-          {confirmError && <p className="mt-2 text-xs text-red-400">{confirmError}</p>}
-        </div>
-      )}
 
       {/* Active tab content */}
       <div className="max-w-2xl mx-auto px-4 py-4 pb-28">
@@ -227,6 +184,55 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
             updateScore={updateScore}
             saving={saving}
           />
+        )}
+
+        {/* Confirm / Final — at the bottom; only needed at the end of the round */}
+        {(round.isCommish || confirmed) && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-surface-600 bg-surface-800 px-3 py-2">
+              {confirmed ? (
+                <>
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-golf-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Final — posted to stats
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => router.push('/profile/stats')}
+                      className="text-xs text-surface-300 hover:text-surface-100 px-2 py-1"
+                    >
+                      View stats
+                    </button>
+                    {round.isCommish && (
+                      <button
+                        onClick={handleReopen}
+                        disabled={confirmWorking}
+                        className="text-xs px-2 py-1 rounded border border-surface-500 text-surface-200 hover:bg-surface-700 disabled:opacity-50"
+                      >
+                        {confirmWorking ? '…' : 'Reopen'}
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm text-surface-300">
+                    Finished? Confirm to lock scores and post to stats.
+                  </span>
+                  <button
+                    onClick={handleFinalize}
+                    disabled={confirmWorking}
+                    className="text-xs px-3 py-1.5 rounded bg-golf-600 text-white font-medium hover:bg-golf-500 disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {confirmWorking ? 'Confirming…' : 'Confirm round'}
+                  </button>
+                </>
+              )}
+            </div>
+            {confirmError && <p className="mt-2 text-xs text-red-400">{confirmError}</p>}
+          </div>
         )}
       </div>
 
