@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { featureFlags } from '@/lib/feature-flags';
+import { HomeActionCards } from '@/components/home/action-cards';
 import {
   Card,
   CardHeader,
@@ -63,21 +64,26 @@ export default async function DashboardHomePage() {
         </p>
       </div>
 
-      {/* Tee It Up Now — primary solo CTA (Type A) */}
-      {featureFlags.teeItUp && featureFlags.playExperience && (
-        <Link href="/tee-it-up" className="block">
-          <Card className="transition-shadow hover:shadow-md cursor-pointer border-2 border-golf-600 bg-golf-900/20">
-            <CardHeader className="flex-row items-center justify-between gap-4">
-              <div>
-                <CardTitle className="text-lg">Tee It Up Now</CardTitle>
-                <CardDescription>
-                  Start a solo round and track your score &amp; stats.
-                </CardDescription>
-              </div>
-              <Button>Start</Button>
-            </CardHeader>
-          </Card>
-        </Link>
+      {/* Action-centric start row (navV2) — otherwise the single solo CTA */}
+      {featureFlags.navV2 ? (
+        <HomeActionCards />
+      ) : (
+        featureFlags.teeItUp &&
+        featureFlags.playExperience && (
+          <Link href="/tee-it-up" className="block">
+            <Card className="transition-shadow hover:shadow-md cursor-pointer border-2 border-golf-600 bg-golf-900/20">
+              <CardHeader className="flex-row items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-lg">Tee It Up Now</CardTitle>
+                  <CardDescription>
+                    Start a solo round and track your score &amp; stats.
+                  </CardDescription>
+                </div>
+                <Button>Start</Button>
+              </CardHeader>
+            </Card>
+          </Link>
+        )
       )}
 
       {/* Quick Links */}

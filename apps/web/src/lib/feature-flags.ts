@@ -21,6 +21,14 @@ export const featureFlags = {
    * `playExperience` are on. Ships dark until enabled.
    */
   teeItUp: process.env.NEXT_PUBLIC_FEATURE_TEE_IT_UP === 'true',
+
+  /**
+   * Action-centric navigation shell (v2): a "Start" parent → modes (Tee It Up /
+   * Game Time / Cup Time, unbuilt modes shown as "Soon"), a "Join Game" button,
+   * and Groups/Courses moved into Manage/More. When off, the original
+   * object-centric nav (Home · Groups · Courses · Rounds) renders. Ships dark.
+   */
+  navV2: process.env.NEXT_PUBLIC_FEATURE_NAV_V2 === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;

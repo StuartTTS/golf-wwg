@@ -32,6 +32,8 @@ export default async function PlayPage({ params }: PlayPageProps) {
       course_id,
       status,
       round_date,
+      created_by,
+      confirmed_at,
       courses ( id, name ),
       round_players (
         id,
@@ -174,6 +176,8 @@ export default async function PlayPage({ params }: PlayPageProps) {
     currentUserId: user?.id ?? null,
     currentUserGroupId,
     scoring,
+    isCommish: !!user && (roundData as any).created_by === user.id,
+    confirmed: !!(roundData as any).confirmed_at,
   };
 
   return <PlayView round={round} initialScores={initialScores} />;

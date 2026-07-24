@@ -5,12 +5,6 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createRoundSchema, createSoloRoundSchema } from '@golf/core';
 import { sendEmail, escapeHtml } from '@/lib/email';
 
-// NOTE: the new RPCs (get_or_create_personal_group, finalize_round, …) and new
-// columns (round_type, confirmed_at, …) land in migrations 00023/00024. Until
-// `database.types.ts` is regenerated against those migrations, the calls below
-// are cast to keep the app buildable. The casts are marked TODO(types) and
-// should be removed after regeneration.
-
 /**
  * "Tee It Up Now" (Type A). Start a solo round with no group ceremony: it hangs
  * off the caller's personal group and opens already in progress. See
@@ -25,8 +19,7 @@ export async function createSoloRound(input: { courseId: string; teeBoxId: strin
   if (!parsed.success) return { error: parsed.error.errors[0].message };
 
   // Resolve (or lazily create) the caller's personal group.
-  // TODO(types): rpc name resolves once database.types.ts is regenerated.
-  const { data: groupId, error: gErr } = await (supabase.rpc as any)(
+  const { data: groupId, error: gErr } = await supabase.rpc(
     'get_or_create_personal_group'
   );
   if (gErr || !groupId) {
@@ -48,7 +41,7 @@ export async function createSoloRound(input: { courseId: string; teeBoxId: strin
   const { data: round, error } = await supabase
     .from('rounds')
     .insert({
-      group_id: groupId as string,
+      group_id: groupId,
       course_id: parsed.data.courseId,
       tee_box_id: parsed.data.teeBoxId,
       round_date: today,
@@ -56,7 +49,7 @@ export async function createSoloRound(input: { courseId: string; teeBoxId: strin
       status: 'in_progress',
       scoring_mode: 'shared',
       created_by: user.id,
-    } as any) // TODO(types): round_type after regen
+    })
     .select('id')
     .single();
   if (error || !round) {
@@ -79,7 +72,7 @@ export async function createSoloRound(input: { courseId: string; teeBoxId: strin
     return { error: 'Could not start round' };
   }
 
-  return { success: true, roundId: round.id as string };
+  return { success: true, roundId: round.id };
 }
 
 // ---- Confirmation & lock/unlock (see docs/round-confirmation-lock.md) ------
@@ -89,8 +82,7 @@ export async function confirmScorecard(roundPlayerId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
-  // TODO(types): rpc names resolve once database.types.ts is regenerated.
-  const { error } = await (supabase.rpc as any)('confirm_scorecard', {
+  const { error } = await supabase.rpc('confirm_scorecard', {
     p_round_player_id: roundPlayerId,
   });
   if (error) {
@@ -105,7 +97,7 @@ export async function unlockScorecard(roundPlayerId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
-  const { error } = await (supabase.rpc as any)('unlock_scorecard', {
+  const { error } = await supabase.rpc('unlock_scorecard', {
     p_round_player_id: roundPlayerId,
   });
   if (error) {
@@ -120,7 +112,7 @@ export async function finalizeRound(roundId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
-  const { error } = await (supabase.rpc as any)('finalize_round', { p_round_id: roundId });
+  const { error } = await supabase.rpc('finalize_round', { p_round_id: roundId });
   if (error) {
     console.error('Finalize round error:', error);
     return {
@@ -137,7 +129,7 @@ export async function unfinalizeRound(roundId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
-  const { error } = await (supabase.rpc as any)('unfinalize_round', { p_round_id: roundId });
+  const { error } = await supabase.rpc('unfinalize_round', { p_round_id: roundId });
   if (error) {
     console.error('Unfinalize round error:', error);
     return { error: 'Could not reopen round' };
@@ -561,39 +553,23 @@ export async function completeRound(roundId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  const { data: round } = await supabase
-    .from('rounds')
-    .select('created_by, group_id')
-    .eq('id', roundId)
-    .single();
-  if (!round) return { error: 'Round not found' };
-
-  let authorized = round.created_by === user.id;
-  if (!authorized) {
-    const { data: membership } = await supabase
-      .from('group_members')
-      .select('role')
-      .eq('group_id', round.group_id)
-      .eq('user_id', user.id)
-      .single();
-    authorized = membership?.role === 'admin';
-  }
-  if (!authorized) return { error: 'Not authorized' };
-
-  const { error } = await supabase
-    .from('rounds')
-    .update({
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-    })
-    .eq('id', roundId);
-
+  // Route through the confirmation model rather than setting status directly:
+  // finalize_round auto-confirms any open cards, stamps rounds.confirmed_at, and
+  // derives status='completed'. Authority (Commish / admin / scorekeeper) is
+  // enforced inside the RPC. Writing status here would bypass the confirmation
+  // invariant (locking + stats gate) added in migration 00024. See
+  // docs/round-confirmation-lock.md.
+  const { error } = await supabase.rpc('finalize_round', { p_round_id: roundId });
   if (error) {
-    console.error('Action error:', error);
-    return { error: 'An error occurred. Please try again.' };
+    console.error('Complete round error:', error);
+    return {
+      error: String(error.message ?? '').includes('Only the Commish')
+        ? 'Only the Commish can complete this round'
+        : 'An error occurred. Please try again.',
+    };
   }
 
-  // Update all playing players to 'completed'
+  // Advance the per-player lifecycle status (separate from confirmation).
   await supabase
     .from('round_players')
     .update({ status: 'completed' })
