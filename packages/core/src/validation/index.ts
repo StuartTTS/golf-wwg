@@ -102,6 +102,17 @@ export const createSoloRoundSchema = z.object({
   teeBoxId: z.string().uuid(),
 });
 
+// Roster entry (Phase 2). display_name follows the app's single free-text
+// convention (2-50, not unique). email is the durable claim key. See
+// docs/roster-design.md.
+export const rosterPlayerSchema = z.object({
+  displayName: z.string().trim().min(2, 'Name must be at least 2 characters').max(50),
+  email: z.string().email('Invalid email').optional(),
+  phone: z.string().max(30).optional(),
+  handicapIndex: z.number().min(-10).max(54).nullable().optional(),
+  linkedUserId: z.string().uuid().nullable().optional(),
+});
+
 // ---------- Score ----------
 export const scoreEntrySchema = z.object({
   roundId: z.string().uuid(),
@@ -181,6 +192,7 @@ export type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
 export type CreateRoundInput = z.infer<typeof createRoundSchema>;
 export type CreateSoloRoundInput = z.infer<typeof createSoloRoundSchema>;
+export type RosterPlayerInput = z.infer<typeof rosterPlayerSchema>;
 export type ScoreEntryInput = z.infer<typeof scoreEntrySchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type SettlementInput = z.infer<typeof settlementSchema>;

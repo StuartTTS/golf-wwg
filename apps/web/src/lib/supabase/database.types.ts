@@ -562,6 +562,63 @@ export type Database = {
         }
         Relationships: []
       }
+      roster_players: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string | null
+          ghin_id: string | null
+          handicap_index: number | null
+          id: string
+          linked_user_id: string | null
+          notes: string | null
+          owner_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email?: string | null
+          ghin_id?: string | null
+          handicap_index?: number | null
+          id?: string
+          linked_user_id?: string | null
+          notes?: string | null
+          owner_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          ghin_id?: string | null
+          handicap_index?: number | null
+          id?: string
+          linked_user_id?: string | null
+          notes?: string | null
+          owner_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_players_linked_user_id_fkey"
+            columns: ["linked_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_players_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       round_players: {
         Row: {
           confirmed_at: string | null
@@ -572,6 +629,7 @@ export type Database = {
           handicap_index_at_round: number | null
           id: string
           playing_handicap: number | null
+          roster_player_id: string | null
           round_id: string
           status: string
           tee_box_id: string
@@ -587,6 +645,7 @@ export type Database = {
           handicap_index_at_round?: number | null
           id?: string
           playing_handicap?: number | null
+          roster_player_id?: string | null
           round_id: string
           status?: string
           tee_box_id: string
@@ -602,6 +661,7 @@ export type Database = {
           handicap_index_at_round?: number | null
           id?: string
           playing_handicap?: number | null
+          roster_player_id?: string | null
           round_id?: string
           status?: string
           tee_box_id?: string
@@ -614,6 +674,13 @@ export type Database = {
             columns: ["confirmed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_players_roster_player_id_fkey"
+            columns: ["roster_player_id"]
+            isOneToOne: false
+            referencedRelation: "roster_players"
             referencedColumns: ["id"]
           },
           {
