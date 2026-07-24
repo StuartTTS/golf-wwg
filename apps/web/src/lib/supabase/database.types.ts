@@ -728,6 +728,7 @@ export type Database = {
           round_type: string
           scorekeeper_id: string | null
           scoring_mode: string
+          share_code: string | null
           status: string
           tee_box_id: string
           tee_time: string | null
@@ -746,6 +747,7 @@ export type Database = {
           round_type?: string
           scorekeeper_id?: string | null
           scoring_mode?: string
+          share_code?: string | null
           status?: string
           tee_box_id: string
           tee_time?: string | null
@@ -764,6 +766,7 @@ export type Database = {
           round_type?: string
           scorekeeper_id?: string | null
           scoring_mode?: string
+          share_code?: string | null
           status?: string
           tee_box_id?: string
           tee_time?: string | null
@@ -1113,10 +1116,13 @@ export type Database = {
         Args: { p_round_player_id: string }
         Returns: undefined
       }
+      ensure_round_share_code: { Args: { p_round_id: string }; Returns: string }
       finalize_round: { Args: { p_round_id: string }; Returns: undefined }
+      gen_share_code: { Args: never; Returns: string }
       get_or_create_personal_group: { Args: never; Returns: string }
       is_group_admin: { Args: { check_group_id: string }; Returns: boolean }
       is_group_member: { Args: { check_group_id: string }; Returns: boolean }
+      join_round_by_code: { Args: { p_code: string }; Returns: string }
       score_target_locked: {
         Args: {
           p_player_id: string

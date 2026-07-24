@@ -80,18 +80,30 @@ export function MobileNav() {
               <span className="text-xs font-medium -mt-1">Start</span>
             </button>
 
-            {/* Join Game (coming soon) */}
-            <button
-              type="button"
-              disabled
-              title="Join Game — coming soon"
-              className="flex flex-1 flex-col items-center justify-center gap-0.5 text-surface-500 cursor-default"
-            >
-              <JoinIcon className="h-5 w-5" />
-              <span className="mt-1 flex items-center gap-1 text-xs font-medium">
-                Join Game
-              </span>
-            </button>
+            {/* Join Game */}
+            {joinGame.available ? (
+              <Link
+                href={joinGame.href}
+                className={`flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${
+                  pathname.startsWith('/join')
+                    ? 'text-gold-500 border-t-2 border-gold-500'
+                    : 'text-surface-400'
+                }`}
+              >
+                <JoinIcon className="h-5 w-5" />
+                <span className="mt-1 text-xs font-medium">Join Game</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="Join Game — coming soon"
+                className="flex flex-1 flex-col items-center justify-center gap-0.5 text-surface-500 cursor-default"
+              >
+                <JoinIcon className="h-5 w-5" />
+                <span className="mt-1 text-xs font-medium">Join Game</span>
+              </button>
+            )}
 
             <button
               type="button"

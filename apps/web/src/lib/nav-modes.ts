@@ -61,7 +61,7 @@ export const joinGame: NavAction = {
   label: 'Join Game',
   shortTag: 'Join',
   description: "Enter a GameID to join someone's game",
-  href: '#',
+  href: '/join',
   icon: Ticket,
-  available: false, // Phase 2
+  available: featureFlags.shareCode,
 };

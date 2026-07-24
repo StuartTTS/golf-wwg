@@ -137,6 +137,48 @@ export async function unfinalizeRound(roundId: string) {
   return { success: true };
 }
 
+// ---- Share code / GameID (see docs/gameid-join-roles.md) -------------------
+
+/** Commish/admin: get-or-create the round's share code. */
+export async function ensureRoundShareCode(roundId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { data, error } = await supabase.rpc('ensure_round_share_code', {
+    p_round_id: roundId,
+  });
+  if (error) {
+    console.error('Ensure share code error:', error);
+    return {
+      error: String(error.message ?? '').includes('creator or a group admin')
+        ? 'Only the Commish can create a share code'
+        : 'Could not create share code',
+    };
+  }
+  return { success: true, code: data as string };
+}
+
+/** Any signed-in user: join a round by its share code. Returns the round id. */
+export async function joinRoundByCode(code: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { data, error } = await supabase.rpc('join_round_by_code', {
+    p_code: code,
+  });
+  if (error) {
+    const msg = String(error.message ?? '');
+    return {
+      error: msg.includes('No game found')
+        ? "That code didn't match a game. Double-check it and try again."
+        : msg.includes('Enter a code')
+          ? 'Enter a code'
+          : 'Could not join the game',
+    };
+  }
+  return { success: true, roundId: data as string };
+}
+
 export async function createRound(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
