@@ -44,8 +44,8 @@ CREATE TABLE roster_players (
   owner_id       UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,  -- whose roster
   linked_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,          -- real account, if any
   display_name   TEXT NOT NULL,                                            -- owner's label / nickname (free text, 2-50, not unique)
-  email          TEXT,                                                     -- claim key (see Q2)
-  phone          TEXT,                                                     -- alt claim key (see Q2 — needs signup/profile phone)
+  email          TEXT,                                                     -- the claim/match key (durable)
+  phone          TEXT,                                                     -- optional contact: copy-to-text share now, premium SMS later
   handicap_index NUMERIC(4,1),                                             -- player-claimed; NOT the game handicap
   ghin_id        TEXT,                                                     -- reserved (future GHIN import)
   notes          TEXT,
@@ -194,16 +194,16 @@ gate, with a one-tap accept for legitimate corrections.
   unique, no first/last split — matching how `profiles.display_name` /
   `guest_name` already work). Duplicate names are allowed; dedup keys on
   email / phone / linked account, never the name.
+- **Claim key & reach (Q2)** — the **match/claim key is email** (durable, always
+  present since everyone signs up). **Phone is an optional roster contact field**,
+  not a match key — so no phone-at-signup or phone-auth prerequisite. *Reach* is
+  handled separately from identity: **copy-invite / native share** on all tiers
+  (the Commish texts it themselves); **integrated SMS-to-roster** is a premium-tier
+  feature (needs phone numbers + an SMS provider — see `product-tiers.md`). The
+  Commish can also assign a slot **manually** as a fallback to email matching.
 
 ## Open questions for review
 
 1. **Join-prompt scope** — default to pre-checking your **foursome** (opt-out), with
    a "show whole field" toggle? (Proposed: yes — avoids rostering strangers from a
    big field you never actually played with.)
-2. **Claim key: email and/or phone** — support **both** as match keys (flexible;
-   `phone` column added to the draft). Needs more thinking:
-   - The app has **no phone today** (signup is email+password; `profiles` has no
-     phone), so phone matching needs one of — (a) collect phone at signup / on the
-     profile, or (b) Supabase phone auth.
-   - Should the Commish also be able to hand a joiner a slot **manually** (no
-     email/phone match required)?

@@ -13,6 +13,21 @@ participate. This sits inside the (not-yet-built) **GameID subsystem**
 
 ---
 
+## Sharing the GameID (identity vs. reach)
+
+Two separate concerns, deliberately decoupled:
+
+- **Identity / claim key = email.** Durable and always present (everyone signs up
+  with one). This is what a joiner is matched on when they claim a pre-built slot.
+- **Reach / notification = text.** People read texts more than email, but that
+  doesn't require SMS *integration*:
+  - **All tiers:** a **"Copy invite" / native share** action gives the Commish a
+    prefilled message (game name + code + join link) to send from their own
+    Messages / WhatsApp / etc. Zero backend cost.
+  - **Premium tier:** **integrated SMS-to-roster** — the app sends the invite texts
+    directly to roster members (needs phone numbers on roster entries + an SMS
+    provider). See `product-tiers.md` and `roster-design.md`.
+
 ## Ground rule: no anonymous access
 
 **Entering a GameID requires signing up / logging in first.** There is no
