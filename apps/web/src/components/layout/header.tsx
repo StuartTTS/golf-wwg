@@ -45,6 +45,11 @@ function Breadcrumb() {
 
 export function Header() {
   const { user, profile } = useAuth();
+  const pathname = usePathname();
+
+  // The phone-first Play experience owns its own header/nav — suppress the
+  // global app header there so there's a single, clean top bar.
+  if (pathname?.endsWith('/play')) return null;
 
   const displayName = profile?.display_name || user?.email;
 

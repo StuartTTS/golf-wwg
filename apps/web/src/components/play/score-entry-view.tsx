@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   type PlayRound,
   type PlayScore,
@@ -99,20 +99,21 @@ export function ScoreEntryView({
   return (
     <div className="space-y-4">
       {/* Hole navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => setHoleIndex(Math.max(0, holeIndex - 1))}
           disabled={holeIndex === 0}
-          className="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-30 transition-colors"
+          className="flex items-center gap-1 h-10 pl-2 pr-3 rounded-full bg-surface-800 border border-surface-600 text-sm font-medium text-surface-100 hover:bg-surface-700 disabled:opacity-25 transition-colors"
           aria-label="Previous hole"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
+          Prev
         </button>
         <div className="text-center">
-          <p className="text-2xl font-bold text-surface-50">Hole {hole.number}</p>
-          <p className="text-xs text-surface-300">
+          <p className="text-2xl font-bold text-surface-50 leading-none">Hole {hole.number}</p>
+          <p className="text-xs text-surface-300 mt-0.5">
             Par {hole.par} · {hole.yardage} yds · SI {hole.strokeIndex}
           </p>
         </div>
@@ -121,10 +122,11 @@ export function ScoreEntryView({
             setHoleIndex(Math.min(layoutHoles.length - 1, holeIndex + 1))
           }
           disabled={holeIndex === layoutHoles.length - 1}
-          className="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-30 transition-colors"
+          className="flex items-center gap-1 h-10 pl-3 pr-2 rounded-full bg-golf-600 text-sm font-semibold text-white hover:bg-golf-500 disabled:opacity-25 disabled:bg-surface-700 disabled:text-surface-300 transition-colors"
           aria-label="Next hole"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          Next
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -222,6 +224,16 @@ export function ScoreEntryView({
                 }
               />
 
+              {isMe && score?.strokes != null && (
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-surface-600" />
+                  <span className="whitespace-nowrap text-[11px] font-medium text-surface-300">
+                    {saving ? 'Saving…' : 'Scores save automatically'}
+                  </span>
+                  <span className="h-px flex-1 bg-surface-600" />
+                </div>
+              )}
+
               {/* Full stat grid — ONLY on the current user's own card */}
               {isMe && score?.strokes != null && (
                 <OwnStatPanel
@@ -235,9 +247,11 @@ export function ScoreEntryView({
         })}
       </div>
 
-      <p className="text-center text-xs text-surface-500 h-4">
-        {saving ? 'Saving…' : 'Scores save automatically'}
-      </p>
+      {holeIndex === layoutHoles.length - 1 && (
+        <p className="text-center text-sm text-surface-400">
+          Last hole — tap <span className="text-golf-400 font-medium">Confirm round</span> when you&apos;re done.
+        </p>
+      )}
     </div>
   );
 }
@@ -255,28 +269,46 @@ function StrokeButtons({
   disabled: boolean;
   onSet: (strokes: number) => void;
 }) {
-  const quick = [par - 2, par - 1, par, par + 1, par + 2, par + 3].filter(
-    (s) => s >= 1
-  );
+  const nums = [par - 2, par - 1, par, par + 1].filter((s) => s >= 1);
+  const showMinus = nums[0] > 1; // room to score below the lowest number shown
+  const cur = value ?? par;
+  const btn =
+    'flex-1 py-2.5 rounded-lg text-base font-bold transition-colors disabled:opacity-40';
+  const plain = 'bg-surface-700 text-surface-200 hover:bg-surface-600';
   return (
-    <div className="grid grid-cols-6 gap-1.5">
-      {quick.map((s) => {
-        const active = value === s;
-        return (
-          <button
-            key={s}
-            disabled={disabled}
-            onClick={() => onSet(s)}
-            className={`py-2.5 rounded-lg text-base font-bold transition-colors disabled:opacity-40 ${
-              active
-                ? 'bg-golf-600 text-white'
-                : 'bg-surface-700 text-surface-100 hover:bg-surface-600'
-            }`}
-          >
-            {s}
-          </button>
-        );
-      })}
+    <div className="flex gap-1.5">
+      {showMinus && (
+        <button
+          disabled={disabled}
+          onClick={() => onSet(Math.max(1, cur - 1))}
+          aria-label="Lower score"
+          className={`${btn} ${plain}`}
+        >
+          −
+        </button>
+      )}
+      {nums.map((s) => (
+        <button
+          key={s}
+          disabled={disabled}
+          onClick={() => onSet(s)}
+          className={`${btn} ${
+            value === s
+              ? 'bg-golf-600 text-white'
+              : 'bg-surface-700 text-surface-100 hover:bg-surface-600'
+          }`}
+        >
+          {s}
+        </button>
+      ))}
+      <button
+        disabled={disabled}
+        onClick={() => onSet(cur + 1)}
+        aria-label="Raise score"
+        className={`${btn} ${plain}`}
+      >
+        +
+      </button>
     </div>
   );
 }
@@ -293,44 +325,52 @@ function OwnStatPanel({
   onPatch: (patch: Partial<PlayScore>) => void;
 }) {
   const missedGreen = score.gir === false;
+  const [showMore, setShowMore] = useState(false);
 
   return (
-    <div className="mt-4 pt-4 border-t border-surface-700 space-y-4">
-      {/* Putts */}
-      <StatRow label="Putts">
-        <div className="flex gap-1.5">
-          {[0, 1, 2, 3, 4].map((p) => (
-            <Chip
-              key={p}
-              active={score.putts === p}
+    <div className="mt-1">
+      <div className="divide-y divide-surface-700/60">
+        {/* Putts */}
+        <div className="py-3">
+          <p className="mb-2 text-xs font-medium text-surface-300">Putts</p>
+          <div className="flex gap-1.5">
+            {[0, 1, 2, 3].map((p) => (
+              <button
+                key={p}
+                onClick={() =>
+                  onPatch({
+                    putts: p,
+                    gir: recomputeGir(score.strokes, p, par, score.greenMiss),
+                  })
+                }
+                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
+                  score.putts === p
+                    ? 'bg-golf-600 text-white'
+                    : 'bg-surface-700 text-surface-200 hover:bg-surface-600'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              aria-label="More putts"
               onClick={() =>
                 onPatch({
-                  putts: p,
-                  gir: recomputeGir(score.strokes, p, par, score.greenMiss),
+                  putts: (score.putts ?? 0) + 1,
+                  gir: recomputeGir(
+                    score.strokes,
+                    (score.putts ?? 0) + 1,
+                    par,
+                    score.greenMiss
+                  ),
                 })
               }
+              className="flex-1 py-2 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 text-sm font-bold"
             >
-              {p}
-            </Chip>
-          ))}
-          <button
-            onClick={() =>
-              onPatch({
-                putts: (score.putts ?? 0) + 1,
-                gir: recomputeGir(
-                  score.strokes,
-                  (score.putts ?? 0) + 1,
-                  par,
-                  score.greenMiss
-                ),
-              })
-            }
-            className="px-3 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 text-sm"
-          >
-            +
-          </button>
+              +
+            </button>
+          </div>
         </div>
-      </StatRow>
 
       {/* Fairway — only on par 4/5 */}
       {par >= 4 && (
@@ -425,50 +465,74 @@ function OwnStatPanel({
         </StatRow>
       )}
 
-      {/* Bunkers */}
-      <StatRow label="Bunker">
-        <div className="flex gap-1.5">
-          <Chip
-            active={score.fairwayBunker === true}
-            onClick={() =>
-              onPatch({ fairwayBunker: !(score.fairwayBunker === true) })
-            }
+        {/* More detail — bunker + penalties tucked away to reduce scrolling */}
+        <div className="py-3">
+          <button
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium text-golf-400"
           >
-            Fairway
-          </Chip>
-          <Chip
-            active={score.greensideBunker === true}
-            onClick={() =>
-              onPatch({ greensideBunker: !(score.greensideBunker === true) })
-            }
-          >
-            Greenside
-          </Chip>
-        </div>
-      </StatRow>
+            {showMore ? 'Hide bunker / penalty' : 'Bunker or penalty'}
+            <svg
+              className={`w-3.5 h-3.5 transition-transform ${showMore ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-      {/* Penalties */}
-      <StatRow label="Penalties">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() =>
-              onPatch({ penalties: Math.max(0, (score.penalties ?? 0) - 1) })
-            }
-            className="w-9 h-9 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 text-lg font-bold"
-          >
-            −
-          </button>
-          <span className="w-6 text-center text-lg font-bold tabular-nums text-surface-50">
-            {score.penalties ?? 0}
-          </span>
-          <button
-            onClick={() => onPatch({ penalties: (score.penalties ?? 0) + 1 })}
-            className="w-9 h-9 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 text-lg font-bold"
-          >
-            +
-          </button>
+          {showMore && (
+            <div className="mt-1 divide-y divide-surface-700/60">
+              {/* Bunkers */}
+              <StatRow label="Bunker">
+                <div className="flex gap-1.5">
+                  <Chip
+                    active={score.fairwayBunker === true}
+                    onClick={() =>
+                      onPatch({ fairwayBunker: !(score.fairwayBunker === true) })
+                    }
+                  >
+                    Fairway
+                  </Chip>
+                  <Chip
+                    active={score.greensideBunker === true}
+                    onClick={() =>
+                      onPatch({ greensideBunker: !(score.greensideBunker === true) })
+                    }
+                  >
+                    Greenside
+                  </Chip>
+                </div>
+              </StatRow>
+
+              {/* Penalties */}
+              <StatRow label="Penalties">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() =>
+                      onPatch({ penalties: Math.max(0, (score.penalties ?? 0) - 1) })
+                    }
+                    className="w-9 h-9 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 text-lg font-bold"
+                  >
+                    −
+                  </button>
+                  <span className="w-6 text-center text-lg font-bold tabular-nums text-surface-50">
+                    {score.penalties ?? 0}
+                  </span>
+                  <button
+                    onClick={() => onPatch({ penalties: (score.penalties ?? 0) + 1 })}
+                    className="w-9 h-9 rounded-lg bg-surface-700 text-surface-200 hover:bg-surface-600 text-lg font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+              </StatRow>
+            </div>
+          )}
         </div>
-      </StatRow>
+      </div>
     </div>
   );
 }
@@ -507,7 +571,7 @@ function StatRow({
   children: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className="flex items-start justify-between gap-3 py-3">
       <span className="text-xs font-medium text-surface-300 pt-2 w-20 shrink-0">
         {label}
       </span>
