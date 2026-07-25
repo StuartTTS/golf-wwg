@@ -562,6 +562,71 @@ export type Database = {
         }
         Relationships: []
       }
+      roster_group_members: {
+        Row: {
+          added_at: string
+          roster_group_id: string
+          roster_player_id: string
+        }
+        Insert: {
+          added_at?: string
+          roster_group_id: string
+          roster_player_id: string
+        }
+        Update: {
+          added_at?: string
+          roster_group_id?: string
+          roster_player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_group_members_roster_group_id_fkey"
+            columns: ["roster_group_id"]
+            isOneToOne: false
+            referencedRelation: "roster_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_group_members_roster_player_id_fkey"
+            columns: ["roster_player_id"]
+            isOneToOne: false
+            referencedRelation: "roster_players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roster_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_groups_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roster_players: {
         Row: {
           created_at: string

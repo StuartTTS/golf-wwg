@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { User, Settings, Shield, LogOut, Users, MapPin } from 'lucide-react';
+import { User, Settings, Shield, LogOut, Users, MapPin, Contact } from 'lucide-react';
 import { logout } from '@/lib/actions/auth';
 import { useAuth } from '@/providers/auth-provider';
 import { featureFlags } from '@/lib/feature-flags';
@@ -70,6 +70,17 @@ export function MoreDrawer({ isOpen, onClose }: MoreDrawerProps) {
                 <span className="text-sm font-medium">Courses</span>
               </Link>
             </>
+          )}
+
+          {featureFlags.roster && (
+            <Link
+              href="/roster"
+              onClick={onClose}
+              className="flex items-center gap-3 p-3 rounded-golf text-surface-200 hover:bg-surface-700 transition-colors"
+            >
+              <Contact className="h-5 w-5" />
+              <span className="text-sm font-medium">Roster</span>
+            </Link>
           )}
 
           <Link

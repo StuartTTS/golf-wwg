@@ -14,6 +14,7 @@ import {
   Shield,
   Flag,
   ClipboardList,
+  Contact,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
@@ -39,6 +40,7 @@ const legacyPlayItems: NavItem[] = [
 const manageItems: NavItem[] = [
   { href: '/groups', label: 'Groups', icon: Users },
   { href: '/courses', label: 'Courses', icon: MapPin },
+  ...(featureFlags.roster ? [{ href: '/roster', label: 'Roster', icon: Contact }] : []),
 ];
 
 const accountItems: NavItem[] = [
