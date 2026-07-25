@@ -269,9 +269,17 @@ function StrokeButtons({
   disabled: boolean;
   onSet: (strokes: number) => void;
 }) {
-  const nums = [par - 2, par - 1, par, par + 1].filter((s) => s >= 1);
-  const showMinus = nums[0] > 1; // room to score below the lowest number shown
-  const cur = value ?? par;
+  // A 4-number window that defaults to par-2..par+1 and "rolls" to keep the
+  // current value in view — tapping + past the right edge scrolls the window
+  // right (2,3,4,5 → 3,4,5,6 with 6 selected); − rolls it back.
+  // Default window: par 4/5 show birdie·par·bogey·double (par-1..par+2);
+  // par 3 keeps ace·birdie·par·bogey (par-2..par+1) so a hole-in-one is one tap.
+  const base = par >= 4 ? par + 2 : par + 1;
+  let right = value == null || value <= base ? base : value;
+  if (value != null && value < right - 3) right = value + 3; // rare low scores
+  const start = Math.max(1, right - 3);
+  const nums = [start, start + 1, start + 2, start + 3];
+  const showMinus = start > 1;
   const btn =
     'flex-1 py-2.5 rounded-lg text-base font-bold transition-colors disabled:opacity-40';
   const plain = 'bg-surface-700 text-surface-200 hover:bg-surface-600';
@@ -280,7 +288,7 @@ function StrokeButtons({
       {showMinus && (
         <button
           disabled={disabled}
-          onClick={() => onSet(Math.max(1, cur - 1))}
+          onClick={() => onSet(Math.max(1, (value ?? par + 1) - 1))}
           aria-label="Lower score"
           className={`${btn} ${plain}`}
         >
@@ -303,7 +311,7 @@ function StrokeButtons({
       ))}
       <button
         disabled={disabled}
-        onClick={() => onSet(cur + 1)}
+        onClick={() => onSet((value ?? par - 1) + 1)}
         aria-label="Raise score"
         className={`${btn} ${plain}`}
       >
