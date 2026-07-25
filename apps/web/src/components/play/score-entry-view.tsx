@@ -272,7 +272,9 @@ function StrokeButtons({
   // A 4-number window that defaults to par-2..par+1 and "rolls" to keep the
   // current value in view — tapping + past the right edge scrolls the window
   // right (2,3,4,5 → 3,4,5,6 with 6 selected); − rolls it back.
-  const base = par + 1;
+  // Default window: par 4/5 show birdie·par·bogey·double (par-1..par+2);
+  // par 3 keeps ace·birdie·par·bogey (par-2..par+1) so a hole-in-one is one tap.
+  const base = par >= 4 ? par + 2 : par + 1;
   let right = value == null || value <= base ? base : value;
   if (value != null && value < right - 3) right = value + 3; // rare low scores
   const start = Math.max(1, right - 3);
