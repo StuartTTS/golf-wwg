@@ -43,5 +43,10 @@ export async function saveJoinProfile(input: JoinProfileInput) {
     data: { display_name: displayName, profile_completed: true },
   });
 
+  // Claim any roster entries others added for this email, and reconcile the
+  // guest placeholders they created. Best-effort — never block the join on it.
+  const { error: claimError } = await supabase.rpc('claim_roster_by_email');
+  if (claimError) console.error('Roster claim error:', claimError);
+
   return { success: true };
 }
