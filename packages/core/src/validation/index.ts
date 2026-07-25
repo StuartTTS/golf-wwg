@@ -105,6 +105,14 @@ export const createSoloRoundSchema = z.object({
 // Roster entry (Phase 2). display_name follows the app's single free-text
 // convention (2-50, not unique). email is the durable claim key. See
 // docs/roster-design.md.
+// "Game Time" round (Phase 2): course + tees + the roster players selected for
+// the game. See docs/groups-as-roster-folders.md.
+export const createGameTimeRoundSchema = z.object({
+  courseId: z.string().uuid(),
+  teeBoxId: z.string().uuid(),
+  rosterPlayerIds: z.array(z.string().uuid()).default([]),
+});
+
 export const rosterPlayerSchema = z.object({
   displayName: z.string().trim().min(2, 'Name must be at least 2 characters').max(50),
   email: z.string().email('Invalid email').optional(),
@@ -192,6 +200,7 @@ export type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
 export type CreateRoundInput = z.infer<typeof createRoundSchema>;
 export type CreateSoloRoundInput = z.infer<typeof createSoloRoundSchema>;
+export type CreateGameTimeRoundInput = z.infer<typeof createGameTimeRoundSchema>;
 export type RosterPlayerInput = z.infer<typeof rosterPlayerSchema>;
 export type ScoreEntryInput = z.infer<typeof scoreEntrySchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
