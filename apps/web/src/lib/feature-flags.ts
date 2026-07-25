@@ -42,6 +42,14 @@ export const featureFlags = {
    * plus its nav entry. Ships dark.
    */
   roster: process.env.NEXT_PUBLIC_FEATURE_ROSTER === 'true',
+
+  /**
+   * "Game Time" (Type B): the /game-time setup flow — pick a course, pick
+   * players from a Group or the full Roster, then hand off to the round page
+   * for games / foursomes / tees / Share. Requires PLAY_EXPERIENCE + ROSTER.
+   * Ships dark.
+   */
+  gameTime: process.env.NEXT_PUBLIC_FEATURE_GAME_TIME === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;

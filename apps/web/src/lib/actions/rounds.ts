@@ -2,7 +2,7 @@
 
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createRoundSchema, createSoloRoundSchema } from '@golf/core';
+import { createRoundSchema, createSoloRoundSchema, createGameTimeRoundSchema } from '@golf/core';
 import { sendEmail, escapeHtml } from '@/lib/email';
 
 /**
@@ -70,6 +70,128 @@ export async function createSoloRound(input: { courseId: string; teeBoxId: strin
   if (rpError) {
     console.error('Add solo player error:', rpError);
     return { error: 'Could not start round' };
+  }
+
+  return { success: true, roundId: round.id };
+}
+
+/**
+ * "Game Time" (Type B). Create a game round on the caller's personal group with
+ * the selected roster players (linked → registered participant, unlinked →
+ * guest, both stamped with roster_player_id), then hand off to the round page
+ * for games / foursomes / tees / Share. See docs/groups-as-roster-folders.md.
+ */
+export async function createGameTimeRound(input: {
+  courseId: string;
+  teeBoxId: string;
+  rosterPlayerIds: string[];
+}) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const parsed = createGameTimeRoundSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.errors[0].message };
+
+  const { data: groupId, error: gErr } = await supabase.rpc('get_or_create_personal_group');
+  if (gErr || !groupId) {
+    console.error('Personal group error:', gErr);
+    return { error: 'Could not start game' };
+  }
+
+  const { data: teeBox } = await supabase
+    .from('tee_boxes')
+    .select('slope_rating')
+    .eq('id', parsed.data.teeBoxId)
+    .single();
+  const slope = teeBox?.slope_rating ?? null;
+  const courseHcp = (idx: number | null) =>
+    idx != null && slope != null ? Math.round(idx * (slope / 113)) : null;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: round, error } = await supabase
+    .from('rounds')
+    .insert({
+      group_id: groupId,
+      course_id: parsed.data.courseId,
+      tee_box_id: parsed.data.teeBoxId,
+      round_date: today,
+      round_type: 'group',
+      status: 'in_progress',
+      scoring_mode: 'shared',
+      created_by: user.id,
+    })
+    .select('id')
+    .single();
+  if (error || !round) {
+    console.error('Create game round error:', error);
+    return { error: 'Could not start game' };
+  }
+
+  // Creator plays too.
+  const { data: me } = await supabase
+    .from('profiles')
+    .select('current_handicap_index')
+    .eq('id', user.id)
+    .single();
+  const meHcp = me?.current_handicap_index ?? null;
+  const rows: Record<string, unknown>[] = [
+    {
+      round_id: round.id,
+      user_id: user.id,
+      tee_box_id: parsed.data.teeBoxId,
+      handicap_index_at_round: meHcp,
+      course_handicap: courseHcp(meHcp),
+      playing_handicap: courseHcp(meHcp),
+      status: 'playing',
+    },
+  ];
+
+  // Add the selected roster players (owner-scoped; linked → registered, else guest).
+  const ids = parsed.data.rosterPlayerIds.filter(Boolean);
+  if (ids.length > 0) {
+    const { data: entries } = await supabase
+      .from('roster_players')
+      .select('id, display_name, handicap_index, linked_user_id, owner_id')
+      .in('id', ids)
+      .eq('owner_id', user.id);
+
+    const linkedIds = (entries ?? [])
+      .map((e) => e.linked_user_id)
+      .filter((v): v is string => !!v && v !== user.id);
+    const profMap = new Map<string, number | null>();
+    if (linkedIds.length > 0) {
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, current_handicap_index')
+        .in('id', linkedIds);
+      for (const p of profs ?? []) profMap.set(p.id, p.current_handicap_index);
+    }
+
+    for (const e of entries ?? []) {
+      const linked = !!e.linked_user_id && e.linked_user_id !== user.id;
+      const hcp = linked
+        ? profMap.get(e.linked_user_id as string) ?? e.handicap_index ?? null
+        : e.handicap_index ?? null;
+      const ch = courseHcp(hcp);
+      rows.push({
+        round_id: round.id,
+        tee_box_id: parsed.data.teeBoxId,
+        handicap_index_at_round: hcp,
+        course_handicap: ch,
+        playing_handicap: ch,
+        status: 'registered',
+        roster_player_id: e.id,
+        user_id: linked ? e.linked_user_id : null,
+        ...(linked ? {} : { guest_name: e.display_name, guest_handicap_index: e.handicap_index ?? null }),
+      });
+    }
+  }
+
+  const { error: rpErr } = await supabase.from('round_players').insert(rows as any);
+  if (rpErr) {
+    console.error('Add game players error:', rpErr);
+    return { error: 'Game created, but adding players failed. Add them on the round page.', roundId: round.id };
   }
 
   return { success: true, roundId: round.id };

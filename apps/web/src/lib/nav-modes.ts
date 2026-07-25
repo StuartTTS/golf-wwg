@@ -41,9 +41,9 @@ export const startModes: NavAction[] = [
     label: 'Game Time',
     shortTag: 'With friends',
     description: 'One round of side games with friends — skins, best ball, and more',
-    href: '#',
+    href: '/game-time',
     icon: Swords,
-    available: false, // Phase 2
+    available: featureFlags.gameTime && featureFlags.playExperience && featureFlags.roster,
   },
   {
     key: 'cup-time',
