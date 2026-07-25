@@ -36,6 +36,12 @@ export const featureFlags = {
    * player). Ships dark.
    */
   shareCode: process.env.NEXT_PUBLIC_FEATURE_SHARE_CODE === 'true',
+
+  /**
+   * Player roster: the /roster page to view/add/edit the people you play with,
+   * plus its nav entry. Ships dark.
+   */
+  roster: process.env.NEXT_PUBLIC_FEATURE_ROSTER === 'true',
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;
