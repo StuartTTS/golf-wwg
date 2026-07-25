@@ -15,12 +15,16 @@ export interface PlayHole {
 export interface PlayPlayer {
   /** user_id for members, round_players.id for guests. */
   id: string;
+  /** round_players.id — the confirm/unlock target (distinct from `id`). */
+  roundPlayerId: string;
   displayName: string;
   handicap: number | null;
   playingHandicap: number;
   teeBoxId: string;
   teeTimeGroupId: string | null;
   isGuest: boolean;
+  /** This player's scorecard is confirmed (locked from edits). */
+  confirmed: boolean;
 }
 
 export interface PlayTeeGroup {
@@ -64,6 +68,36 @@ export interface PlayRound {
   isCommish: boolean;
   /** Round finalized by the Commish (rounds.confirmed_at set) → counts in stats. */
   confirmed: boolean;
+  /** Round scoring mode — 'scorekeeper' means one person scores the whole round. */
+  scoringMode: string | null;
+  /** The designated whole-round scorekeeper (profile id), when scoringMode is 'scorekeeper'. */
+  scorekeeperId: string | null;
+}
+
+/**
+ * Whether the current user may confirm/unlock a given player's scorecard —
+ * the client-side mirror of the can_manage_scorecard RPC (which is the real
+ * gate). Self always may; plus the Commish, the whole-round scorekeeper, and
+ * the player's flight scorer. Used to decide which confirm controls to show.
+ */
+export function canManageCard(round: PlayRound, player: PlayPlayer): boolean {
+  const me = round.currentUserId;
+  if (!me) return false;
+  if (!player.isGuest && player.id === me) return true; // own card
+  if (round.isCommish) return true;
+  if (round.scoringMode === 'scorekeeper' && round.scorekeeperId === me) return true;
+  const flight = round.teeGroups.find((g) => g.id === player.teeTimeGroupId);
+  return !!flight && flight.scorerId === me;
+}
+
+/** Whether the current user may finalize/reopen the whole round (Commish or scorekeeper). */
+export function canFinalizeRound(round: PlayRound): boolean {
+  const me = round.currentUserId;
+  if (!me) return false;
+  return (
+    round.isCommish ||
+    (round.scoringMode === 'scorekeeper' && round.scorekeeperId === me)
+  );
 }
 
 export function blankScore(playerId: string, holeNumber: number): PlayScore {

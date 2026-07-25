@@ -22,6 +22,8 @@ interface ScoreEntryViewProps {
     patch: Partial<PlayScore>
   ) => void;
   saving: boolean;
+  /** Player ids whose card is confirmed/locked — inputs are read-only. */
+  lockedPlayerIds: Set<string>;
 }
 
 /** GIR auto-derivation: on the green in regulation = reached green with 2 strokes to spare. */
@@ -44,6 +46,7 @@ export function ScoreEntryView({
   setHoleIndex,
   updateScore,
   saving,
+  lockedPlayerIds,
 }: ScoreEntryViewProps) {
   const hasFlights = round.players.some((p) => p.teeTimeGroupId !== null);
 
@@ -161,8 +164,11 @@ export function ScoreEntryView({
           const score = getScore(player.id, hole.number);
           const par = parFor(player);
           const isMe = player.id === round.currentUserId;
-          // Scorer edits everyone; anyone can always edit their own card.
-          const canEditPlayer = isScorer || isMe;
+          const locked = lockedPlayerIds.has(player.id);
+          // Scorer edits everyone; anyone can always edit their own card —
+          // unless the card is confirmed (locked), which no one may edit until
+          // it's unlocked from the Confirm panel.
+          const canEditPlayer = (isScorer || isMe) && !locked;
           const received = strokesReceivedOnHole(
             player.playingHandicap,
             strokeIndexFor(player)
@@ -185,6 +191,14 @@ export function ScoreEntryView({
                   {isMe && (
                     <span className="text-[10px] font-semibold text-golf-400 border border-golf-500/40 rounded px-1.5 py-0.5">
                       YOU
+                    </span>
+                  )}
+                  {locked && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-surface-300 border border-surface-500 rounded px-1.5 py-0.5">
+                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      LOCKED
                     </span>
                   )}
                   {received > 0 && (
@@ -228,7 +242,11 @@ export function ScoreEntryView({
                 <div className="mt-3 flex items-center gap-3">
                   <span className="h-px flex-1 bg-surface-600" />
                   <span className="whitespace-nowrap text-[11px] font-medium text-surface-300">
-                    {saving ? 'Saving…' : 'Scores save automatically'}
+                    {locked
+                      ? 'Card confirmed — unlock to edit'
+                      : saving
+                        ? 'Saving…'
+                        : 'Scores save automatically'}
                   </span>
                   <span className="h-px flex-1 bg-surface-600" />
                 </div>
@@ -236,11 +254,13 @@ export function ScoreEntryView({
 
               {/* Full stat grid — ONLY on the current user's own card */}
               {isMe && score?.strokes != null && (
-                <OwnStatPanel
-                  par={par}
-                  score={score}
-                  onPatch={(patch) => updateScore(player.id, hole.number, patch)}
-                />
+                <div className={locked ? 'opacity-60 pointer-events-none' : ''}>
+                  <OwnStatPanel
+                    par={par}
+                    score={score}
+                    onPatch={(patch) => updateScore(player.id, hole.number, patch)}
+                  />
+                </div>
               )}
             </div>
           );

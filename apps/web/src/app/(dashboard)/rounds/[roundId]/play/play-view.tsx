@@ -1,14 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import type { HoleScore } from '@golf/core';
 import { useRealtimeScores } from '@/hooks/use-realtime-scores';
 import { upsertScore } from '@/lib/actions/scores';
-import { finalizeRound, unfinalizeRound } from '@/lib/actions/rounds';
+import {
+  confirmScorecard,
+  unlockScorecard,
+  confirmFlight,
+  finalizeRound,
+  unfinalizeRound,
+} from '@/lib/actions/rounds';
 import { LeaderboardView } from '@/components/play/leaderboard-view';
 import { GroupScorecardView } from '@/components/play/group-scorecard-view';
 import { ScoreEntryView } from '@/components/play/score-entry-view';
+import { ConfirmPanel } from '@/components/play/confirm-panel';
 import { type PlayRound, type PlayScore, blankScore } from '@/components/play/shared';
 
 type Tab = 'leaderboard' | 'scorecard' | 'enter';
@@ -52,36 +59,100 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
   );
   const [saving, setSaving] = useState(false);
 
-  // Round finalization (Commish confirm / reopen). See docs/round-confirmation-lock.md.
+  // Scorecard confirmation (tiers 1–3). See docs/round-confirmation-lock.md.
+  // `confirmed` = round finalized (tier 3); `confirmedCards` = per-card locks
+  // (tiers 1–2) keyed by roundPlayerId so score entry can lock in step.
   const [confirmed, setConfirmed] = useState(round.confirmed);
-  const [confirmWorking, setConfirmWorking] = useState(false);
+  const [confirmedCards, setConfirmedCards] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(round.players.map((p) => [p.roundPlayerId, p.confirmed]))
+  );
+  const [working, setWorking] = useState<string | null>(null); // roundPlayerId | flightId | 'round'
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
+  const setCards = useCallback(
+    (ids: string[], value: boolean) =>
+      setConfirmedCards((prev) => {
+        const next = { ...prev };
+        for (const id of ids) next[id] = value;
+        return next;
+      }),
+    []
+  );
+
+  const handleConfirmCard = useCallback(
+    async (roundPlayerId: string) => {
+      setWorking(roundPlayerId);
+      setConfirmError(null);
+      const res = await confirmScorecard(roundPlayerId);
+      setWorking(null);
+      if (res.error) return setConfirmError(res.error);
+      setCards([roundPlayerId], true);
+      router.refresh();
+    },
+    [setCards, router]
+  );
+
+  const handleUnlockCard = useCallback(
+    async (roundPlayerId: string) => {
+      setWorking(roundPlayerId);
+      setConfirmError(null);
+      const res = await unlockScorecard(roundPlayerId);
+      setWorking(null);
+      if (res.error) return setConfirmError(res.error);
+      setCards([roundPlayerId], false);
+      router.refresh();
+    },
+    [setCards, router]
+  );
+
+  const handleConfirmFlight = useCallback(
+    async (flightId: string) => {
+      setWorking(flightId);
+      setConfirmError(null);
+      const res = await confirmFlight(flightId);
+      setWorking(null);
+      if (res.error) return setConfirmError(res.error);
+      setCards(
+        round.players.filter((p) => p.teeTimeGroupId === flightId).map((p) => p.roundPlayerId),
+        true
+      );
+      router.refresh();
+    },
+    [setCards, round.players, router]
+  );
+
   const handleFinalize = useCallback(async () => {
-    setConfirmWorking(true);
+    setWorking('round');
     setConfirmError(null);
     const res = await finalizeRound(roundId);
-    setConfirmWorking(false);
-    if (res.error) {
-      setConfirmError(res.error);
-      return;
-    }
+    setWorking(null);
+    if (res.error) return setConfirmError(res.error);
     setConfirmed(true);
+    setCards(round.players.map((p) => p.roundPlayerId), true); // finalize auto-confirms stragglers
+    router.refresh();
+  }, [roundId, setCards, round.players, router]);
+
+  const handleReopen = useCallback(async () => {
+    setWorking('round');
+    setConfirmError(null);
+    const res = await unfinalizeRound(roundId);
+    setWorking(null);
+    if (res.error) return setConfirmError(res.error);
+    setConfirmed(false); // cards stay individually locked until unlocked
     router.refresh();
   }, [roundId, router]);
 
-  const handleReopen = useCallback(async () => {
-    setConfirmWorking(true);
-    setConfirmError(null);
-    const res = await unfinalizeRound(roundId);
-    setConfirmWorking(false);
-    if (res.error) {
-      setConfirmError(res.error);
-      return;
-    }
-    setConfirmed(false);
-    router.refresh();
-  }, [roundId, router]);
+  // Player ids whose card is locked from edits: any confirmed card, or the
+  // whole round once finalized. ScoreEntryView uses this to disable inputs.
+  const lockedPlayerIds = useMemo(
+    () =>
+      new Set(
+        round.players
+          .filter((p) => confirmed || (confirmedCards[p.roundPlayerId] ?? p.confirmed))
+          .map((p) => p.id)
+      ),
+    [round.players, confirmed, confirmedCards]
+  );
 
   // Keep a ref so updateScore always merges against the latest state.
   const scoresRef = useRef(scores);
@@ -208,57 +279,25 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
             setHoleIndex={setHoleIndex}
             updateScore={updateScore}
             saving={saving}
+            lockedPlayerIds={lockedPlayerIds}
           />
         )}
 
-        {/* Confirm / Final — at the bottom; only needed at the end of the round */}
-        {(round.isCommish || confirmed) && (
-          <div className="mt-3">
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-surface-600 bg-surface-800 px-3 py-2">
-              {confirmed ? (
-                <>
-                  <span className="flex items-center gap-1.5 text-sm font-medium text-golf-400">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Final — posted to stats
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => router.push('/profile/stats')}
-                      className="text-xs text-surface-300 hover:text-surface-100 px-2 py-1"
-                    >
-                      View stats
-                    </button>
-                    {round.isCommish && (
-                      <button
-                        onClick={handleReopen}
-                        disabled={confirmWorking}
-                        className="text-xs px-2 py-1 rounded border border-surface-500 text-surface-200 hover:bg-surface-700 disabled:opacity-50"
-                      >
-                        {confirmWorking ? '…' : 'Reopen'}
-                      </button>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <span className="text-sm text-surface-300">
-                    Finished? Confirm to lock scores and post to stats.
-                  </span>
-                  <button
-                    onClick={handleFinalize}
-                    disabled={confirmWorking}
-                    className="text-xs px-3 py-1.5 rounded bg-golf-600 text-white font-medium hover:bg-golf-500 disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {confirmWorking ? 'Confirming…' : 'Confirm round'}
-                  </button>
-                </>
-              )}
-            </div>
-            {confirmError && <p className="mt-2 text-xs text-red-400">{confirmError}</p>}
-          </div>
-        )}
+        {/* Scorecard confirmation — tiers 1–3, collapsed into one panel */}
+        <ConfirmPanel
+          round={round}
+          scores={scores}
+          confirmedCards={confirmedCards}
+          finalized={confirmed}
+          working={working}
+          error={confirmError}
+          onConfirmCard={handleConfirmCard}
+          onUnlockCard={handleUnlockCard}
+          onConfirmFlight={handleConfirmFlight}
+          onFinalize={handleFinalize}
+          onReopen={handleReopen}
+          onViewStats={() => router.push('/profile/stats')}
+        />
       </div>
 
       {/* Bottom tab bar */}
