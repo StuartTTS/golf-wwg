@@ -283,6 +283,13 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
     }
   }
 
+  // Game owner (round creator) name for the share invite line.
+  const ownerName =
+    (players ?? []).find((p) => p.user_id === round.created_by)?.profile
+      ? ((players ?? []).find((p) => p.user_id === round.created_by)!.profile as any)
+          ?.display_name
+      : null;
+
   // Permissions
   const isCreator = round.created_by === user?.id;
   const isPlayer = players?.some((p) => p.user_id === user?.id);
@@ -418,7 +425,9 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             <Button variant="outline">Commish Setup</Button>
           </Link>
         )}
-        {featureFlags.shareCode && isCommish && <ShareGameButton roundId={roundId} />}
+        {featureFlags.shareCode && isCommish && (
+          <ShareGameButton roundId={roundId} ownerName={ownerName} />
+        )}
       </div>
 
       {/* Round Info */}

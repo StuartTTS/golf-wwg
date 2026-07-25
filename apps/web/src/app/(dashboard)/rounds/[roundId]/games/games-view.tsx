@@ -49,15 +49,16 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   bingo_bango_bongo: 'Bingo Bango Bongo',
 };
 
+// `comingSoon` = shown in the picker but not yet selectable (no scoring engine).
 const GAME_TYPES = [
   { value: 'nassau', label: 'Nassau', description: 'Front 9, Back 9, and Overall bets' },
   { value: 'skins', label: 'Skins', description: 'Win the hole outright to collect a skin' },
   { value: 'wolf', label: 'Wolf', description: 'Choose partners or go lone wolf' },
   { value: 'best_ball', label: 'Best Ball', description: 'Team best score on each hole' },
   { value: 'progressive_best_ball', label: 'Progressive Best Ball', description: 'Best ball with increasing balls counting per segment' },
-  { value: 'stableford', label: 'Stableford', description: 'Points-based scoring system' },
+  { value: 'stableford', label: 'Stableford', description: 'Points-based scoring system', comingSoon: true },
   { value: 'match_play', label: 'Match Play', description: 'Win individual holes' },
-  { value: 'bingo_bango_bongo', label: 'Bingo Bango Bongo', description: 'Points for first on, closest, first in' },
+  { value: 'bingo_bango_bongo', label: 'Bingo Bango Bongo', description: 'Points for first on, closest, first in', comingSoon: true },
 ];
 
 // Game-specific configuration options
@@ -504,16 +505,32 @@ function AddGameModal({
           {/* Step 1: Select game type */}
           {step === 'type' && (
             <div className="grid grid-cols-1 gap-2">
-              {GAME_TYPES.map((gt) => (
-                <button
-                  key={gt.value}
-                  onClick={() => handleSelectType(gt.value)}
-                  className="text-left p-3 rounded-lg border border-surface-500 hover:border-golf-500 hover:bg-golf-900/20 transition-colors"
-                >
-                  <p className="text-sm font-medium text-surface-50">{gt.label}</p>
-                  <p className="text-xs text-surface-300">{gt.description}</p>
-                </button>
-              ))}
+              {GAME_TYPES.map((gt) =>
+                gt.comingSoon ? (
+                  <div
+                    key={gt.value}
+                    aria-disabled="true"
+                    className="text-left p-3 rounded-lg border border-surface-600 bg-surface-800/40 opacity-60 cursor-not-allowed"
+                  >
+                    <p className="text-sm font-medium text-surface-200 flex items-center gap-2">
+                      {gt.label}
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-golf-400 border border-golf-600/40 rounded px-1.5 py-0.5">
+                        Coming soon
+                      </span>
+                    </p>
+                    <p className="text-xs text-surface-400">{gt.description}</p>
+                  </div>
+                ) : (
+                  <button
+                    key={gt.value}
+                    onClick={() => handleSelectType(gt.value)}
+                    className="text-left p-3 rounded-lg border border-surface-500 hover:border-golf-500 hover:bg-golf-900/20 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-surface-50">{gt.label}</p>
+                    <p className="text-xs text-surface-300">{gt.description}</p>
+                  </button>
+                )
+              )}
             </div>
           )}
 

@@ -480,6 +480,7 @@ export type Database = {
           email: string
           id: string
           is_site_admin: boolean
+          phone: string | null
           profile_completed: boolean
           updated_at: string
         }
@@ -492,6 +493,7 @@ export type Database = {
           email: string
           id: string
           is_site_admin?: boolean
+          phone?: string | null
           profile_completed?: boolean
           updated_at?: string
         }
@@ -504,6 +506,7 @@ export type Database = {
           email?: string
           id?: string
           is_site_admin?: boolean
+          phone?: string | null
           profile_completed?: boolean
           updated_at?: string
         }
