@@ -113,6 +113,16 @@ export const createGameTimeRoundSchema = z.object({
   rosterPlayerIds: z.array(z.string().uuid()).default([]),
 });
 
+// Profile setup required when joining a game by GameID: name + email are the
+// identity/claim key, phone is an optional contact, handicap feeds net scoring.
+// See docs/gameid-join-roles.md.
+export const joinProfileSchema = z.object({
+  displayName: z.string().trim().min(2, 'Name must be at least 2 characters').max(50),
+  email: z.string().email('Enter a valid email'),
+  phone: z.string().trim().max(30).optional().nullable(),
+  handicapIndex: z.number().min(-10).max(54).nullable().optional(),
+});
+
 export const rosterPlayerSchema = z.object({
   displayName: z.string().trim().min(2, 'Name must be at least 2 characters').max(50),
   email: z.string().email('Invalid email').optional(),
@@ -202,6 +212,7 @@ export type CreateRoundInput = z.infer<typeof createRoundSchema>;
 export type CreateSoloRoundInput = z.infer<typeof createSoloRoundSchema>;
 export type CreateGameTimeRoundInput = z.infer<typeof createGameTimeRoundSchema>;
 export type RosterPlayerInput = z.infer<typeof rosterPlayerSchema>;
+export type JoinProfileInput = z.infer<typeof joinProfileSchema>;
 export type ScoreEntryInput = z.infer<typeof scoreEntrySchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type SettlementInput = z.infer<typeof settlementSchema>;

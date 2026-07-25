@@ -9,7 +9,13 @@ import { Button } from '@/components/ui';
  * share of a prefilled invite. Identity is email; reach is a text the Commish
  * sends themselves (premium integrated SMS is later). See docs/gameid-join-roles.md.
  */
-export function ShareGameButton({ roundId }: { roundId: string }) {
+export function ShareGameButton({
+  roundId,
+  ownerName,
+}: {
+  roundId: string;
+  ownerName?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,7 +44,11 @@ export function ShareGameButton({ roundId }: { roundId: string }) {
   }
 
   const joinUrl = code && origin ? `${origin}/join?code=${code}` : '';
-  const message = code ? `Join my golf game — ${joinUrl} (code: ${code})` : '';
+  // The invite line the Commish copies/texts. Owner name personalizes it.
+  const inviteLine = code
+    ? `Join ${ownerName || 'my'} live leaderboard with game id = ${code}`
+    : '';
+  const message = code ? `${inviteLine}\n${joinUrl}` : '';
 
   async function copyInvite() {
     if (!message) return;
@@ -83,7 +93,10 @@ export function ShareGameButton({ roundId }: { roundId: string }) {
                   </p>
                   <p className="text-3xl font-bold tracking-[0.3em] text-golf-400">{code}</p>
                 </div>
-                {joinUrl && <p className="break-all text-xs text-surface-400">{joinUrl}</p>}
+                <div className="rounded-lg bg-surface-900 border border-surface-600 p-3">
+                  <p className="text-sm text-surface-100">{inviteLine}</p>
+                  {joinUrl && <p className="mt-1 break-all text-xs text-golf-400">{joinUrl}</p>}
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={copyInvite} className="flex-1">
                     {copied ? 'Copied!' : 'Copy invite'}
