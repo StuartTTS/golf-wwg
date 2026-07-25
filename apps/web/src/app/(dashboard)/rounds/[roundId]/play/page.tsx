@@ -34,6 +34,8 @@ export default async function PlayPage({ params }: PlayPageProps) {
       round_date,
       created_by,
       confirmed_at,
+      scoring_mode,
+      scorekeeper_id,
       courses ( id, name ),
       round_players (
         id,
@@ -43,6 +45,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
         playing_handicap,
         guest_name,
         guest_handicap_index,
+        confirmed_at,
         profiles:profiles!round_players_user_id_fkey (
           id,
           display_name,
@@ -153,6 +156,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
     const isGuest = !rp.user_id;
     return {
       id: isGuest ? rp.id : rp.profiles.id,
+      roundPlayerId: rp.id,
       displayName: isGuest ? rp.guest_name : rp.profiles.display_name,
       handicap: isGuest
         ? rp.guest_handicap_index
@@ -161,6 +165,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
       teeBoxId: rp.tee_box_id,
       teeTimeGroupId: rp.tee_time_group_id ?? null,
       isGuest,
+      confirmed: !!rp.confirmed_at,
     };
   });
 
@@ -178,6 +183,8 @@ export default async function PlayPage({ params }: PlayPageProps) {
     scoring,
     isCommish: !!user && (roundData as any).created_by === user.id,
     confirmed: !!(roundData as any).confirmed_at,
+    scoringMode: (roundData as any).scoring_mode ?? null,
+    scorekeeperId: (roundData as any).scorekeeper_id ?? null,
   };
 
   return <PlayView round={round} initialScores={initialScores} />;

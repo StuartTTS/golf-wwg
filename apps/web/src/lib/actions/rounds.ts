@@ -229,6 +229,25 @@ export async function unlockScorecard(roundPlayerId: string) {
   return { success: true };
 }
 
+/** Tier 2: the flight scorer (or Commish) confirms every open card in a foursome. */
+export async function confirmFlight(teeTimeGroupId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { error } = await supabase.rpc('confirm_flight', {
+    p_tee_time_group_id: teeTimeGroupId,
+  });
+  if (error) {
+    console.error('Confirm flight error:', error);
+    return {
+      error: String(error.message ?? '').includes('flight scorer or Commish')
+        ? 'Only the flight scorer or Commish can confirm this foursome'
+        : 'Could not confirm foursome',
+    };
+  }
+  return { success: true };
+}
+
 /** Tier 3: Commish final sign-off. Auto-confirms open cards → round counts. */
 export async function finalizeRound(roundId: string) {
   const supabase = await createServerSupabaseClient();
