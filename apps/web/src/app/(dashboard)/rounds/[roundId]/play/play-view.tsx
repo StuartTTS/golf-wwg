@@ -18,13 +18,38 @@ interface PlayViewProps {
   initialScores: PlayScore[];
 }
 
+/**
+ * Resume where the player left off: the first hole the current user hasn't
+ * scored yet — so a reconnect/reload doesn't dump them back on hole 1 (scores
+ * are already saved server-side). Falls back to the last hole once every hole
+ * is scored, or hole 1 if we can't determine the user's holes.
+ */
+function resumeHoleIndex(round: PlayRound, scores: PlayScore[]): number {
+  const me = round.currentUserId;
+  if (!me) return 0;
+  const currentUser = round.players.find((p) => p.id === me);
+  const holes =
+    (currentUser && round.holesByTeeBox[currentUser.teeBoxId]) ||
+    round.defaultHoles;
+  if (!holes || holes.length === 0) return 0;
+  const scored = new Set(
+    scores
+      .filter((s) => s.playerId === me && s.strokes != null)
+      .map((s) => s.holeNumber)
+  );
+  const idx = holes.findIndex((h) => !scored.has(h.number));
+  return idx === -1 ? holes.length - 1 : idx;
+}
+
 export default function PlayView({ round, initialScores }: PlayViewProps) {
   const router = useRouter();
   const roundId = round.id;
 
   const [tab, setTab] = useState<Tab>('enter');
   const [scores, setScores] = useState<PlayScore[]>(initialScores);
-  const [holeIndex, setHoleIndex] = useState(0);
+  const [holeIndex, setHoleIndex] = useState(() =>
+    resumeHoleIndex(round, initialScores)
+  );
   const [saving, setSaving] = useState(false);
 
   // Round finalization (Commish confirm / reopen). See docs/round-confirmation-lock.md.
