@@ -197,6 +197,38 @@ export async function createGameTimeRound(input: {
   return { success: true, roundId: round.id };
 }
 
+// ---- Self-service scorer (claim / hand off, any player, mid-round) ---------
+
+/** Claim (or take over) keeping score for your group — your flight, else the round. */
+export async function claimScorer(roundId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { error } = await supabase.rpc('claim_scorer', { p_round_id: roundId });
+  if (error) {
+    console.error('Claim scorer error:', error);
+    return {
+      error: String(error.message ?? '').includes('not in this round')
+        ? 'Join the round before keeping score'
+        : 'Could not take over scoring',
+    };
+  }
+  return { success: true };
+}
+
+/** Step back from scoring so the group self-scores until someone else claims it. */
+export async function releaseScorer(roundId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const { error } = await supabase.rpc('release_scorer', { p_round_id: roundId });
+  if (error) {
+    console.error('Release scorer error:', error);
+    return { error: 'Could not step back from scoring' };
+  }
+  return { success: true };
+}
+
 // ---- Change course / default tee (Commish, even mid-round) -----------------
 
 /**

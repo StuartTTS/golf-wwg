@@ -1176,6 +1176,8 @@ export type Database = {
         Returns: boolean
       }
       claim_roster_by_email: { Args: never; Returns: number }
+      claim_scorer: { Args: { p_round_id: string }; Returns: undefined }
+      release_scorer: { Args: { p_round_id: string }; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       confirm_flight: {
         Args: { p_tee_time_group_id: string }
