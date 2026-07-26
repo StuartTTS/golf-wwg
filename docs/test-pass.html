@@ -1,0 +1,397 @@
+<title>Golf WWG — Test Pass</title>
+<style>
+  :root {
+    --bg: #f4f7f4;
+    --surface: #ffffff;
+    --surface-2: #eef2ee;
+    --border: #d9e2dc;
+    --text: #16211c;
+    --muted: #5b6a63;
+    --faint: #86958d;
+    --accent: #15803d;
+    --accent-strong: #166534;
+    --accent-soft: rgba(21,128,61,.10);
+    --track: #e3ebe5;
+    --pa: #16a34a; /* persona A */
+    --pb: #0d9488; /* persona B */
+    --pc: #b45309; /* persona C */
+    --pf: #475569; /* foundation */
+    --pr: #7c3aed; /* regression */
+    --shadow: 0 1px 2px rgba(16,32,24,.06), 0 8px 24px rgba(16,32,24,.05);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1411;
+      --surface: #141d18;
+      --surface-2: #1a2620;
+      --border: #263329;
+      --text: #e7efe9;
+      --muted: #94a59c;
+      --faint: #6d7f76;
+      --accent: #22c55e;
+      --accent-strong: #4ade80;
+      --accent-soft: rgba(34,197,94,.14);
+      --track: #223029;
+      --pa: #34d399;
+      --pb: #2dd4bf;
+      --pc: #d69e2e;
+      --pf: #94a3b8;
+      --pr: #a78bfa;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f7f4; --surface: #ffffff; --surface-2: #eef2ee; --border: #d9e2dc;
+    --text: #16211c; --muted: #5b6a63; --faint: #86958d; --accent: #15803d;
+    --accent-strong: #166534; --accent-soft: rgba(21,128,61,.10); --track: #e3ebe5;
+    --pa: #16a34a; --pb: #0d9488; --pc: #b45309; --pf: #475569; --pr: #7c3aed;
+    --shadow: 0 1px 2px rgba(16,32,24,.06), 0 8px 24px rgba(16,32,24,.05);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1411; --surface: #141d18; --surface-2: #1a2620; --border: #263329;
+    --text: #e7efe9; --muted: #94a59c; --faint: #6d7f76; --accent: #22c55e;
+    --accent-strong: #4ade80; --accent-soft: rgba(34,197,94,.14); --track: #223029;
+    --pa: #34d399; --pb: #2dd4bf; --pc: #d69e2e; --pf: #94a3b8; --pr: #a78bfa;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 16px 96px; }
+
+  /* ---- Sticky header ---- */
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .head-inner { max-width: 720px; margin: 0 auto; padding: 14px 16px 12px; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 3px;
+  }
+  h1 {
+    font-size: clamp(20px, 5vw, 26px); font-weight: 800; letter-spacing: -.02em;
+    margin: 0; text-wrap: balance;
+  }
+  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 12px; }
+  .progress-row { display: flex; align-items: center; gap: 12px; }
+  .bar-track {
+    flex: 1; height: 8px; border-radius: 99px; background: var(--track); overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+    width: 0%; transition: width .35s cubic-bezier(.4,0,.2,1);
+  }
+  .frac {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+    font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text);
+  }
+  .pct { color: var(--muted); font-weight: 500; }
+  .reset {
+    appearance: none; border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); font-size: 12px; font-weight: 600; padding: 6px 10px;
+    border-radius: 8px; cursor: pointer; font-family: var(--font-sans);
+  }
+  .reset:hover { color: var(--text); border-color: var(--muted); }
+  .reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- Prereqs callout ---- */
+  .callout {
+    margin-top: 20px; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    background: var(--accent-soft); border-radius: 12px; padding: 14px 16px;
+  }
+  .callout h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; margin: 0 0 8px; color: var(--accent-strong); }
+  .callout ul { margin: 0; padding-left: 18px; }
+  .callout li { font-size: 13.5px; color: var(--text); margin: 4px 0; }
+  .callout li b { font-weight: 700; }
+  code {
+    font-family: var(--font-mono); font-size: .88em; background: var(--surface-2);
+    padding: 1px 5px; border-radius: 5px; border: 1px solid var(--border);
+  }
+
+  /* ---- Section cards ---- */
+  .card {
+    margin-top: 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+  }
+  .card-head {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .badge {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 15px; color: #fff;
+    background: var(--p); box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
+  }
+  .card-titles { flex: 1; min-width: 0; }
+  .card-title { font-size: 15px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+  .card-blurb { font-size: 12.5px; color: var(--muted); margin: 1px 0 0; }
+  .sec-count {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    font-variant-numeric: tabular-nums; color: var(--muted);
+    background: var(--surface-2); padding: 3px 8px; border-radius: 7px; white-space: nowrap;
+  }
+  .sec-count.complete { color: var(--accent-strong); background: var(--accent-soft); }
+
+  /* ---- Check rows ---- */
+  .rows { display: flex; flex-direction: column; }
+  .check {
+    display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start;
+    padding: 13px 16px; cursor: pointer; border-top: 1px solid var(--border);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rows .check:first-child { border-top: none; }
+  .check:hover { background: var(--surface-2); }
+  .check:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+  .box {
+    width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--border);
+    margin-top: 1px; display: grid; place-items: center; transition: all .15s ease;
+    background: var(--surface);
+  }
+  .box::after {
+    content: ""; width: 11px; height: 6px; margin-top: -2px;
+    border-left: 2.5px solid #fff; border-bottom: 2.5px solid #fff;
+    transform: rotate(-45deg) scale(0); transition: transform .15s ease;
+  }
+  .check.done .box { background: var(--accent); border-color: var(--accent); }
+  .check.done .box::after { transform: rotate(-45deg) scale(1); }
+  .c-body { min-width: 0; }
+  .c-title { font-size: 14.5px; font-weight: 600; margin: 0; letter-spacing: -.005em; }
+  .check.done .c-title { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+  .c-exp { font-size: 13px; color: var(--muted); margin: 3px 0 0; display: flex; gap: 6px; }
+  .c-exp .arw { color: var(--accent); flex: none; font-weight: 700; }
+  .check.done .c-exp { opacity: .65; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 6px; background: var(--surface-2);
+    color: var(--muted); border: 1px solid var(--border);
+  }
+  .chip.tier { color: var(--pb); border-color: color-mix(in srgb, var(--pb) 35%, transparent); background: color-mix(in srgb, var(--pb) 10%, transparent); }
+  .chip.warn { color: var(--pc); border-color: color-mix(in srgb, var(--pc) 35%, transparent); background: color-mix(in srgb, var(--pc) 12%, transparent); }
+  .chip.key  { color: var(--accent-strong); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-soft); }
+
+  /* ---- Not-built (Type C) ---- */
+  .soon { padding: 16px; }
+  .soon p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .soon .pill {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--pc); border: 1px dashed color-mix(in srgb, var(--pc) 45%, transparent);
+    padding: 3px 9px; border-radius: 7px; margin-bottom: 8px;
+  }
+
+  footer { margin-top: 28px; text-align: center; color: var(--faint); font-size: 12px; }
+  footer code { background: transparent; border: none; padding: 0; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<header>
+  <div class="head-inner">
+    <p class="eyebrow">⛳ Golf WWG · Phase 2 QA</p>
+    <h1>Three-persona test pass</h1>
+    <p class="sub">Work top to bottom on prod. Taps save automatically on this device.</p>
+    <div class="progress-row">
+      <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+      <span class="frac"><span id="frac">0 / 0</span> <span class="pct" id="pct">0%</span></span>
+      <button class="reset" id="reset" type="button">Reset</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="callout">
+    <h2>Before you start</h2>
+    <ul>
+      <li><b>Accounts:</b> a <b>Commish</b> account plus <b>2 more</b> — including one <b>fresh</b> account on an email you can receive (for join + roster-claim).</li>
+      <li><b>Flags:</b> already on in prod — Play, Tee It Up, Game Time, Roster, Share Code.</li>
+      <li><b>Devices:</b> a second phone/browser helps for realtime + join tests.</li>
+      <li>Roster-claim needs a roster entry whose <b>email matches</b> the fresh account.</li>
+    </ul>
+  </div>
+  <div id="app"></div>
+  <footer>Local checklist · progress stored in your browser · <code>test-pass</code></footer>
+</div>
+
+<script>
+const DATA = [
+  { key:'F', persona:'f', title:'Foundation', blurb:'Auth, profile & nav — verify before the persona flows.',
+    items:[
+      {id:'f1', t:'Register a new account', x:'Name + email + password → lands in the app.', chips:['New user']},
+      {id:'f2', t:'Log out, then log back in', x:'Session restored; no re-setup prompt.'},
+      {id:'f3', t:'Forgot password → reset link', x:'Reset email flow completes (needs email delivery on).'},
+      {id:'f4', t:'Nav v2 shows the right modes', x:'Start lists Tee It Up + Game Time (live), Cup Time “Soon”; Join Game present; Roster under Manage/More.'},
+    ]},
+  { key:'A', persona:'a', title:'Tee It Up Now', blurb:'Solo score + stat tracking — the most common flow.',
+    items:[
+      {id:'a1', t:'Start → Tee It Up Now → pick a course', x:'Recent tile or dropdown; tee auto-picked from your default tee tier.'},
+      {id:'a2', t:'Round starts already in progress', x:'Lands straight on score entry, no lobby.'},
+      {id:'a3', t:'Stroke buttons roll correctly', x:'Par 4/5 default birdie·par·bogey·double; par 3 ace·birdie·par·bogey; −/+ roll the window; tap highlights.'},
+      {id:'a4', t:'Stats capture on your own card', x:'Putts row; fairway (par 4/5); green GIR + 4-way miss (GIR auto-derives); up&down when green missed; bunker/penalty under “Bunker or penalty”.'},
+      {id:'a5', t:'Reload mid-round resumes', x:'Comes back on the first unscored hole; saved scores intact.'},
+      {id:'a6', t:'Confirm my card (tier 1)', x:'Card shows LOCKED, inputs disabled; Unlock re-enables editing.', chips:['T1']},
+      {id:'a7', t:'Confirm round — final (tier 3)', x:'Shows “Final — posted to stats”; Reopen is available.', chips:['T3']},
+      {id:'a8', t:'Stats reflect the round', x:'Profile → Stats aggregates across solo + group rounds.'},
+    ]},
+  { key:'B', persona:'b', title:'Game Time · Roster & Groups', blurb:'Your personal directory of players.',
+    items:[
+      {id:'b1', t:'Add / edit / remove a roster player', x:'Name, email, phone, handicap all save; edits persist; remove works.'},
+      {id:'b2', t:'Create a Group and manage members', x:'Multi-select from roster; rename; delete; member count shows.'},
+      {id:'b3', t:'A player can be in more than one group', x:'Same roster player appears in two groups (folders, not exclusive).'},
+    ]},
+  { key:'B', persona:'b', title:'Game Time · Set up the game', blurb:'Course → players → create.',
+    items:[
+      {id:'b4', t:'Start → Game Time → choose course', x:'Recent tile or dropdown; tee auto-picked; Next.'},
+      {id:'b5', t:'Pick players (Group or Full roster)', x:'“Fill from” a Group pre-checks its members; All/None; toggle individuals; “add someone new” adds to roster + selects; counter reads “N playing (you + N)”.'},
+      {id:'b6', t:'Create game → round page', x:'Lands on /rounds/[id] with the game set up.'},
+      {id:'b7', t:'Foursomes, tees & games on the round', x:'Set tee-time groups, assign tees, add games from the round page.'},
+    ]},
+  { key:'B', persona:'b', title:'Game Time · Games & wagers', blurb:'Formats that score vs. coming soon.',
+    items:[
+      {id:'b8', t:'Coming-soon formats are gated', x:'Nassau/Skins/Wolf/Best Ball/Progressive/Match Play are selectable; Stableford & Bingo Bango Bongo show “Coming soon” and can’t be picked.', chips:['Coming soon']},
+    ]},
+  { key:'B', persona:'b', title:'Game Time · Share & join', blurb:'GameID out, players in.',
+    items:[
+      {id:'b9', t:'Share invite text is correct', x:'Dialog shows the code + “Join <owner> live leaderboard with game id = <CODE>” + join URL; Copy invite copies that line.', chips:['Copy text']},
+      {id:'b10', t:'Second account joins by code', x:'Join Game → enter code → validates.'},
+      {id:'b11', t:'Fresh account must set up a profile', x:'Required name + email; optional phone; handicap → Save & view game → appears as a player.', chips:['Profile gate']},
+      {id:'b12', t:'Completed profile skips setup', x:'An established account goes straight into the round.'},
+      {id:'b13', t:'Bad code errors cleanly', x:'Clear “that code didn’t match” message; no profile step shown.'},
+    ]},
+  { key:'B', persona:'b', title:'Game Time · Confirm scores', blurb:'Tiered sign-off with multiple players.',
+    items:[
+      {id:'b14', t:'Per-card confirm & summary', x:'Each player confirms their own; scorer/Commish can confirm others; panel reads “N/M confirmed”.', chips:['T1']},
+      {id:'b15', t:'Confirm foursome (flight scorer)', x:'Scorer sees “Confirm foursome (N)”; it locks every open card in that flight.', chips:['T2']},
+      {id:'b16', t:'Commish finalizes the round', x:'“Confirm round — final” auto-confirms stragglers → posts to stats; Reopen works.', chips:['T3']},
+      {id:'b17', t:'Locked cards can’t be edited', x:'A confirmed player’s card shows LOCKED and disables inputs in Enter.'},
+    ]},
+  { key:'B', persona:'b', title:'Game Time · Roster-claim by email', blurb:'The join↔roster loop closing.',
+    items:[
+      {id:'b18', t:'Add an unlinked roster player + put in a game', x:'Use a real email you can receive; include them in the Game Time round (creates a guest placeholder card).'},
+      {id:'b19', t:'Join from a fresh account with that email', x:'Enter the code and complete the profile setup.'},
+      {id:'b20', t:'Verify the claim + de-dup', x:'Your roster now shows that entry as linked; the round shows ONE card for them, not two.', chips:['Key check']},
+    ]},
+  { key:'C', persona:'c', title:'Cup Time', blurb:'Multi-round Ryder-Cup tournaments.', soon:true,
+    soonText:'Not built yet (Phase 3). “Cup Time” appears in Start as <b>Soon</b> and isn’t clickable — nothing to test here yet. Confirm it stays disabled.' },
+  { key:'R', persona:'r', title:'Regression & edge', blurb:'Guardrails that must hold.',
+    items:[
+      {id:'r1', t:'Non-Commish can’t finalize', x:'A regular player sees only their own card confirm — no “Confirm round — final”.'},
+      {id:'r2', t:'Realtime sync across devices', x:'A score entered on one device appears on the other’s leaderboard/scorecard.'},
+      {id:'r3', t:'Leaderboard basis (net vs gross)', x:'Reflects the games’ config — net by default, gross when every game is gross.'},
+      {id:'r4', t:'Scored guest card is NOT auto-merged', x:'If a guest placeholder already has scores and a real card exists, claim leaves both — no score loss.', chips:['Edge']},
+      {id:'r5', t:'Finalized scores are locked server-side', x:'Editing a confirmed/finalized card is rejected (RLS), not just hidden.'},
+    ]},
+];
+
+const app = document.getElementById('app');
+const PCOLOR = { a:'var(--pa)', b:'var(--pb)', c:'var(--pc)', f:'var(--pf)', r:'var(--pr)' };
+const chipClass = (c) => {
+  const s = c.toLowerCase();
+  if (/^t\d$/.test(s)) return 'chip tier';
+  if (s.includes('coming') || s.includes('edge')) return 'chip warn';
+  if (s.includes('key') || s.includes('gate') || s.includes('copy')) return 'chip key';
+  return 'chip';
+};
+
+DATA.forEach(sec => {
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.style.setProperty('--p', PCOLOR[sec.persona]);
+  if (!sec.soon) card.dataset.section = sec.key;
+
+  const head = document.createElement('div');
+  head.className = 'card-head';
+  head.innerHTML =
+    `<div class="badge">${sec.key}</div>
+     <div class="card-titles">
+       <p class="card-title">${sec.title}</p>
+       <p class="card-blurb">${sec.blurb}</p>
+     </div>` +
+    (sec.soon ? '' : `<span class="sec-count">0/${sec.items.length}</span>`);
+  card.appendChild(head);
+
+  if (sec.soon) {
+    const s = document.createElement('div');
+    s.className = 'soon';
+    s.innerHTML = `<span class="pill">Phase 3 · not built</span><p>${sec.soonText}</p>`;
+    card.appendChild(s);
+  } else {
+    const rows = document.createElement('div');
+    rows.className = 'rows';
+    sec.items.forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'check';
+      row.dataset.id = it.id;
+      row.setAttribute('role', 'checkbox');
+      row.setAttribute('aria-checked', 'false');
+      row.setAttribute('tabindex', '0');
+      const chips = (it.chips || []).map(c => `<span class="${chipClass(c)}">${c}</span>`).join('');
+      row.innerHTML =
+        `<div class="box" aria-hidden="true"></div>
+         <div class="c-body">
+           <p class="c-title">${it.t}</p>
+           <p class="c-exp"><span class="arw">→</span><span>${it.x}</span></p>
+           ${chips ? `<div class="chips">${chips}</div>` : ''}
+         </div>`;
+      rows.appendChild(row);
+    });
+    card.appendChild(rows);
+  }
+  app.appendChild(card);
+});
+
+/* ---- State ---- */
+const STORE = 'golfwwg-testpass-v1';
+let state = {};
+try { state = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch (e) { state = {}; }
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
+const rows = [...document.querySelectorAll('.check')];
+
+function render() {
+  rows.forEach(r => {
+    const on = !!state[r.dataset.id];
+    r.classList.toggle('done', on);
+    r.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('[data-section]').forEach(sec => {
+    const rs = [...sec.querySelectorAll('.check')];
+    const d = rs.filter(r => state[r.dataset.id]).length;
+    const el = sec.querySelector('.sec-count');
+    el.textContent = `${d}/${rs.length}`;
+    el.classList.toggle('complete', d === rs.length && rs.length > 0);
+  });
+  const total = rows.length;
+  const done = rows.filter(r => state[r.dataset.id]).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('bar').style.width = pct + '%';
+  document.getElementById('frac').textContent = `${done} / ${total}`;
+  document.getElementById('pct').textContent = pct + '%';
+}
+
+rows.forEach(r => {
+  const toggle = () => { state[r.dataset.id] = !state[r.dataset.id]; save(); render(); };
+  r.addEventListener('click', toggle);
+  r.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+  });
+});
+document.getElementById('reset').addEventListener('click', () => {
+  if (confirm('Clear all checks on this device?')) { state = {}; save(); render(); }
+});
+render();
+</script>
