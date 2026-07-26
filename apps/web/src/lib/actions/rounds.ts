@@ -2,7 +2,7 @@
 
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createRoundSchema, createSoloRoundSchema, createGameTimeRoundSchema } from '@golf/core';
+import { createRoundSchema, createSoloRoundSchema, createGameTimeRoundSchema, updateRoundCourseSchema } from '@golf/core';
 import { sendEmail, escapeHtml } from '@/lib/email';
 
 /**
@@ -195,6 +195,82 @@ export async function createGameTimeRound(input: {
   }
 
   return { success: true, roundId: round.id };
+}
+
+// ---- Change course / default tee (Commish, even mid-round) -----------------
+
+/**
+ * Repoint an existing round at a different course + default tee. Every player is
+ * moved to the new default tee (their old tee box belonged to the old course)
+ * and re-rated, so the round stays valid. Per-player tee tuning is then done in
+ * the Tee Assignments card. See docs/round-course-tee-editing.md.
+ */
+export async function updateRoundCourse(roundId: string, courseId: string, teeBoxId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const parsed = updateRoundCourseSchema.safeParse({ roundId, courseId, teeBoxId });
+  if (!parsed.success) return { error: 'Invalid input' };
+
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('id, group_id, status, created_by')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+  if (round.status === 'completed') {
+    return { error: 'Reopen the round before changing its course' };
+  }
+
+  // Commish (creator) or a group admin may change it.
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: member } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = member?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Only the Commish or a group admin can change the course' };
+
+  // The chosen tee must belong to the NEW course.
+  const { data: teeBox } = await supabase
+    .from('tee_boxes')
+    .select('id, slope_rating')
+    .eq('id', teeBoxId)
+    .eq('course_id', courseId)
+    .single();
+  if (!teeBox) return { error: 'Pick a tee box on the new course' };
+
+  const { error: rErr } = await supabase
+    .from('rounds')
+    .update({ course_id: courseId, tee_box_id: teeBoxId })
+    .eq('id', roundId);
+  if (rErr) {
+    console.error('Update round course error:', rErr);
+    return { error: 'Could not change the course' };
+  }
+
+  // Move every player onto the new default tee and re-rate their handicap
+  // (their old tee_box_id pointed at the old course).
+  const { data: rps } = await supabase
+    .from('round_players')
+    .select('id, handicap_index_at_round, guest_handicap_index')
+    .eq('round_id', roundId);
+  const slope = teeBox.slope_rating;
+  for (const p of rps ?? []) {
+    const idx = p.handicap_index_at_round ?? p.guest_handicap_index ?? null;
+    const ch = idx != null && slope != null ? Math.round(idx * (slope / 113)) : null;
+    await supabase
+      .from('round_players')
+      .update({ tee_box_id: teeBoxId, course_handicap: ch, playing_handicap: ch })
+      .eq('id', p.id);
+  }
+
+  return { success: true };
 }
 
 // ---- Confirmation & lock/unlock (see docs/round-confirmation-lock.md) ------

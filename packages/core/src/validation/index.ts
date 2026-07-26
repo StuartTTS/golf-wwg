@@ -131,6 +131,15 @@ export const rosterPlayerSchema = z.object({
   linkedUserId: z.string().uuid().nullable().optional(),
 });
 
+// Change an existing round's course + default tee (Commish, even mid-round).
+// Reassigns players to the new course's tees and re-rates handicaps. See
+// docs/round-course-tee-editing.md.
+export const updateRoundCourseSchema = z.object({
+  roundId: z.string().uuid(),
+  courseId: z.string().uuid(),
+  teeBoxId: z.string().uuid(),
+});
+
 // ---------- Score ----------
 export const scoreEntrySchema = z.object({
   roundId: z.string().uuid(),
@@ -214,6 +223,7 @@ export type CreateGameTimeRoundInput = z.infer<typeof createGameTimeRoundSchema>
 export type RosterPlayerInput = z.infer<typeof rosterPlayerSchema>;
 export type JoinProfileInput = z.infer<typeof joinProfileSchema>;
 export type ScoreEntryInput = z.infer<typeof scoreEntrySchema>;
+export type UpdateRoundCourseInput = z.infer<typeof updateRoundCourseSchema>;
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type SettlementInput = z.infer<typeof settlementSchema>;
 export type CloseRegistrationInput = z.infer<typeof closeRegistrationSchema>;

@@ -13,6 +13,7 @@ import { featureFlags } from '@/lib/feature-flags';
 import { AddGuestForm } from '@/components/rounds/add-guest-form';
 import { RegistrationCard } from '@/components/rounds/registration-card';
 import TeeAssignmentCard from '@/components/rounds/tee-assignment-card';
+import CourseTeeCard from '@/components/rounds/course-tee-card';
 import TeeTimeGroupManager from '@/components/rounds/tee-time-group-manager';
 import { ShareGameButton } from '@/components/rounds/share-game-button';
 
@@ -164,6 +165,13 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
     .select('id, name, color, course_rating, slope_rating, tier')
     .eq('course_id', round.course_id)
     .order('tier', { ascending: true, nullsFirst: false });
+
+  // All courses (for the change-course picker) + whether any scores exist yet.
+  const [{ data: allCourses }, { count: scoreCount }] = await Promise.all([
+    supabase.from('courses').select('id, name, city, state').is('deleted_at', null).order('name'),
+    supabase.from('scores').select('id', { count: 'exact', head: true }).eq('round_id', roundId).not('strokes', 'is', null),
+  ]);
+  const hasScores = (scoreCount ?? 0) > 0;
 
   // Build props for Registration Card
   const registeredPlayersList = (players ?? [])
@@ -474,9 +482,19 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
         </div>
       </Card>
 
-      {/* Admin Cards: Registration, Tee Assignments, Tee Time Groups */}
+      {/* Admin Cards: Course & Tees, Registration, Tee Assignments, Tee Time Groups */}
       {isGroupAdmin && (
         <div className="space-y-4">
+          <CourseTeeCard
+            roundId={round.id}
+            roundStatus={round.status}
+            currentCourseId={round.course_id}
+            currentCourseName={(round.course as any)?.name ?? 'Unknown Course'}
+            currentTeeName={(round.tee_box as any)?.name ?? null}
+            courses={(allCourses as any[]) ?? []}
+            hasScores={hasScores}
+          />
+
           <RegistrationCard
             roundId={round.id}
             registrationStatus={round.registration_status}
