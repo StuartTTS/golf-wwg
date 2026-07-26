@@ -342,6 +342,30 @@ export async function importCourse(externalId: number) {
  * most-recent first and de-duplicated. Powers the "Recently played" quick list
  * in the "Tee It Up Now" solo flow. See docs/phase1-type-a-spec.md.
  */
+export interface CourseTeeBox {
+  id: string;
+  name: string;
+  color: string | null;
+  tier: number | null;
+  course_rating: number;
+  slope_rating: number;
+}
+
+/** Tee boxes for a course — used when re-picking a course/tees on a round. */
+export async function getCourseTeeBoxes(courseId: string): Promise<CourseTeeBox[]> {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from('tee_boxes')
+    .select('id, name, color, tier, course_rating, slope_rating')
+    .eq('course_id', courseId)
+    .order('tier', { ascending: true, nullsFirst: false });
+  if (error) {
+    console.error('Course tee boxes error:', error);
+    return [];
+  }
+  return (data ?? []) as CourseTeeBox[];
+}
+
 export async function getRecentCourses(limit = 6) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
