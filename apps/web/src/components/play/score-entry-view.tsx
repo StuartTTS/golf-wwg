@@ -9,7 +9,9 @@ import {
   type GreenMiss,
   strokesReceivedOnHole,
   scoreToParClasses,
+  groupScorerId,
 } from './shared';
+import { ScorerControl } from './scorer-control';
 
 interface ScoreEntryViewProps {
   round: PlayRound;
@@ -64,20 +66,17 @@ export function ScoreEntryView({
   const layoutHoles = holesFor(currentUser?.teeBoxId ?? '') ?? round.defaultHoles;
   const hole = layoutHoles[holeIndex];
 
-  // Designated-scorer gate. A player can ALWAYS enter/track their own card — a
-  // flight scorer only owns everyone *else's* official card (see
-  // docs/round-confirmation-lock.md). So "scorer" access is per-player, not global.
-  const flightGroup = round.teeGroups.find(
-    (g) => g.id === round.currentUserGroupId
-  );
-  const designatedScorer = flightGroup?.scorerId ?? null;
-  // I'm the scorer if designated, or if no one is (shared self-scoring).
-  const isScorer = !designatedScorer || designatedScorer === round.currentUserId;
-  const someoneElseScoring =
-    !!designatedScorer && designatedScorer !== round.currentUserId;
-  const scorerName = designatedScorer
-    ? round.players.find((p) => p.id === designatedScorer)?.displayName ?? null
+  // Self-service scorer gate. Whoever's keeping the group's card owns everyone
+  // *else's* official card; a player can ALWAYS enter/track their own. The scorer
+  // is claimed/handed off in-round (not pre-assigned) — see scorer-control +
+  // migration 00030. null = the group self-scores.
+  const scorer = groupScorerId(round);
+  const isScorer = !scorer || scorer === round.currentUserId;
+  const iAmScorer = scorer === round.currentUserId;
+  const scorerName = scorer
+    ? round.players.find((p) => p.id === scorer)?.displayName ?? null
     : null;
+  const isGroupRound = round.players.length > 1;
 
   const getScore = (playerId: string, holeNumber: number): PlayScore | null =>
     scores.find(
@@ -151,11 +150,13 @@ export function ScoreEntryView({
         ))}
       </div>
 
-      {someoneElseScoring && (
-        <div className="rounded-lg bg-surface-700/60 border border-surface-600 px-4 py-3 text-sm text-surface-200">
-          {scorerName ?? 'A designated scorer'} is keeping the group&apos;s
-          official card. You can still enter and track your own card below.
-        </div>
+      {isGroupRound && (
+        <ScorerControl
+          roundId={round.id}
+          scorerId={scorer}
+          scorerName={scorerName}
+          isMe={iAmScorer}
+        />
       )}
 
       {/* Player cards */}

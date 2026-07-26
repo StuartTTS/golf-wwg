@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { joinRoundByCode } from '@/lib/actions/rounds';
+import { joinRoundByCode, claimScorer } from '@/lib/actions/rounds';
 import { saveJoinProfile } from '@/lib/actions/profile';
 import {
   Card,
@@ -29,7 +29,7 @@ export default function JoinView({
   profile: JoinProfile;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<'code' | 'profile'>('code');
+  const [step, setStep] = useState<'code' | 'profile' | 'scorer'>('code');
   const [roundId, setRoundId] = useState<string | null>(null);
 
   const [code, setCode] = useState(initialCode);
@@ -61,11 +61,8 @@ export default function JoinView({
     setRoundId(res.roundId);
     setSubmitting(false);
     // Established players skip setup; new joiners must complete their profile.
-    if (profile.completed) {
-      router.push(`/rounds/${res.roundId}`);
-    } else {
-      setStep('profile');
-    }
+    // Either way, next we ask whether they'll keep score for their group.
+    setStep(profile.completed ? 'scorer' : 'profile');
   }
 
   async function handleSaveProfile() {
@@ -91,6 +88,14 @@ export default function JoinView({
       setSubmitting(false);
       return;
     }
+    setSubmitting(false);
+    setStep('scorer');
+  }
+
+  async function chooseScorer(yes: boolean) {
+    setSubmitting(true);
+    // Best-effort — if it fails they can still claim scoring in-round.
+    if (yes) await claimScorer(roundId!);
     router.push(`/rounds/${roundId}`);
   }
 
@@ -101,7 +106,9 @@ export default function JoinView({
         <p className="mt-1 text-sm text-surface-300">
           {step === 'code'
             ? 'Enter the code the organizer shared with you.'
-            : 'Set up your profile so your scores and handicap track correctly.'}
+            : step === 'profile'
+              ? 'Set up your profile so your scores and handicap track correctly.'
+              : 'One quick thing before you tee off.'}
         </p>
       </div>
 
@@ -194,7 +201,36 @@ export default function JoinView({
               disabled={submitting || name.trim().length < 2 || !email.trim()}
               className="w-full"
             >
-              {submitting ? 'Saving…' : 'Save & view game'}
+              {submitting ? 'Saving…' : 'Save & continue'}
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {step === 'scorer' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Are you keeping score for your group?</CardTitle>
+            <CardDescription>
+              One person usually enters everyone&apos;s scores. Whoever&apos;s
+              keeping score can hand it off anytime during the round.
+            </CardDescription>
+          </CardHeader>
+          <div className="px-6 pb-6 space-y-3">
+            <Button
+              onClick={() => chooseScorer(true)}
+              disabled={submitting}
+              className="w-full"
+            >
+              {submitting ? 'Setting up…' : "Yes, I'll keep score"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => chooseScorer(false)}
+              disabled={submitting}
+              className="w-full"
+            >
+              No, just my own scores
             </Button>
           </div>
         </Card>
