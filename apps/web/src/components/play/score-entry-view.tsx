@@ -219,24 +219,39 @@ export function ScoreEntryView({
                 </span>
               </div>
 
-              {/* Strokes quick buttons */}
+              {/* Strokes quick buttons. For everyone but yourself we record the
+                  score ONLY — no stats (not even auto-GIR); shot stats belong to
+                  each player's own card. Your own card gets score + full stats. */}
               <StrokeButtons
                 par={par}
                 value={score?.strokes ?? null}
                 disabled={!canEditPlayer}
                 onSet={(strokes) =>
-                  updateScore(player.id, hole.number, {
-                    strokes,
-                    gir: autoGir(
-                      strokes,
-                      score?.putts ?? null,
-                      par,
-                      score?.greenMiss ?? null,
-                      score?.gir ?? null
-                    ),
-                  })
+                  updateScore(
+                    player.id,
+                    hole.number,
+                    isMe
+                      ? {
+                          strokes,
+                          gir: autoGir(
+                            strokes,
+                            score?.putts ?? null,
+                            par,
+                            score?.greenMiss ?? null,
+                            score?.gir ?? null
+                          ),
+                        }
+                      : { strokes }
+                  )
                 }
               />
+
+              {/* Other players: score only — makes the foursome-scoring rule explicit. */}
+              {!isMe && !locked && (
+                <p className="mt-2 text-center text-[11px] text-surface-400">
+                  Score only · stats stay on {player.displayName.split(' ')[0]}&apos;s own card
+                </p>
+              )}
 
               {isMe && score?.strokes != null && (
                 <div className="mt-3 flex items-center gap-3">
