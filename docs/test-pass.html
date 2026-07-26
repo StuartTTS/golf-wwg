@@ -260,6 +260,7 @@ const DATA = [
       {id:'b5', t:'Pick players (Group or Full roster)', x:'“Fill from” a Group pre-checks its members; All/None; toggle individuals; “add someone new” adds to roster + selects; counter reads “N playing (you + N)”.'},
       {id:'b6', t:'Create game → round page', x:'Lands on /rounds/[id] with the game set up.'},
       {id:'b7', t:'Foursomes, tees & games on the round', x:'Set tee-time groups, assign tees, add games from the round page.'},
+      {id:'b7b', t:'Change course & tees after starting', x:'Round page → Course & Tees → Change → pick a new course + tee → Save; everyone moves to the new tees and re-rates. Warns if scores already exist.', chips:['Mid-round']},
     ]},
   { key:'B', persona:'b', title:'Game Time · Games & wagers', blurb:'Formats that score vs. coming soon.',
     items:[
@@ -272,6 +273,13 @@ const DATA = [
       {id:'b11', t:'Fresh account must set up a profile', x:'Required name + email; optional phone; handicap → Save & view game → appears as a player.', chips:['Profile gate']},
       {id:'b12', t:'Completed profile skips setup', x:'An established account goes straight into the round.'},
       {id:'b13', t:'Bad code errors cleanly', x:'Clear “that code didn’t match” message; no profile step shown.'},
+    ]},
+  { key:'B', persona:'b', title:'Game Time · Scoring the group', blurb:'Self-service scorer — no Commish assignment.',
+    items:[
+      {id:'bs1', t:'Join asks "Are you keeping score?"', x:'After the code (and profile), the joiner is prompted Yes/No to keep score for their group.', chips:['Self-service']},
+      {id:'bs2', t:'Keep score / Take over / Step back', x:'Enter tab shows the scorer control; any player can claim it, take over from someone leaving, or step back — changeable anytime.', chips:['Mid-round']},
+      {id:'bs3', t:'Others record score only', x:'While you keep the group card, other players show stroke buttons + a "Score only" caption — no stats written for them.'},
+      {id:'bs4', t:'Scorer enters their own stats', x:'Your own card still shows the full stat panel (putts, fairway, GIR, up&down, bunker/penalty) with your score.'},
     ]},
   { key:'B', persona:'b', title:'Game Time · Confirm scores', blurb:'Tiered sign-off with multiple players.',
     items:[
