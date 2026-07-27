@@ -27,6 +27,20 @@ interface UserSettings {
   defaultTeeTier: number | null;
 }
 
+// Guard every network call so a stalled request surfaces an error instead of
+// leaving the page/button spinning forever.
+function withTimeout<T>(p: PromiseLike<T>, ms = 15000): Promise<T> {
+  return Promise.race([
+    Promise.resolve(p),
+    new Promise<T>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('Request timed out — check your connection and try again.')),
+        ms
+      )
+    ),
+  ]);
+}
+
 function NotificationSettings() {
   const { isSupported, isSubscribed, isLoading, subscribe, unsubscribe } = usePushNotifications();
   const [error, setError] = useState<string | null>(null);
@@ -123,11 +137,13 @@ function SettingsForm() {
       try {
         setLoading(true);
 
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('display_name, email, default_tee_tier')
-          .eq('id', user.id)
-          .single();
+        const { data: profile, error: profileError } = await withTimeout(
+          supabase
+            .from('profiles')
+            .select('display_name, email, default_tee_tier')
+            .eq('id', user.id)
+            .single()
+        );
 
         if (profileError) throw profileError;
 
@@ -154,23 +170,26 @@ function SettingsForm() {
       setError(null);
       setSaved(false);
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          display_name: settings.displayName.trim(),
-          default_tee_tier: settings.defaultTeeTier,
-          profile_completed: true,
-        })
-        .eq('id', user.id);
+      const { error: updateError } = await withTimeout(
+        supabase
+          .from('profiles')
+          .update({
+            display_name: settings.displayName.trim(),
+            default_tee_tier: settings.defaultTeeTier,
+            profile_completed: true,
+          })
+          .eq('id', user.id)
+      );
 
       if (updateError) throw updateError;
 
-      // Also update user_metadata so middleware knows immediately
-      await supabase.auth.updateUser({
-        data: { profile_completed: true },
-      });
-
       if (isSetupMode) {
+        // First-time setup: flip the auth metadata so middleware stops
+        // redirecting to setup. Established users don't need this call (it's the
+        // most common thing to hang), so skip it on a normal settings save.
+        await withTimeout(
+          supabase.auth.updateUser({ data: { profile_completed: true } })
+        );
         router.push(setupGroupId ? `/groups/${setupGroupId}` : '/home');
         router.refresh();
         return;
