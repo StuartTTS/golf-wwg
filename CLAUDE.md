@@ -42,16 +42,25 @@ When asked to "deploy", "push to Vercel", or "ship it":
 
 ## Database Schema
 
-Tables (all with RLS): `profiles`, `courses`, `tee_boxes`, `holes`, `groups`, `group_members`, `rounds`, `round_players`, `scores` (realtime enabled), `games`, `game_teams`, `game_players`, `handicap_records`, `invitations`, `settlements`
+Tables (all with RLS): `profiles`, `clubs`, `courses`, `tee_boxes`, `holes`, `groups`, `group_members`, `rounds`, `round_players`, `tee_time_groups`, `scores` (realtime enabled), `games`, `game_teams`, `game_players`, `handicap_records`, `invitations`, `settlements`, `seasons`, `push_subscriptions`, `rate_limits`, `roster_players`, `roster_groups`, `roster_group_members`
 
 Key relationships: courses -> tee_boxes -> holes, groups -> group_members, rounds -> round_players -> scores, games -> game_teams -> game_players
 
+Most round/score/game workflow logic now lives in SECURITY DEFINER Postgres RPCs (migrations), e.g. `finalize_round`, `confirm_scorecard`/`confirm_flight`, `claim_scorer`/`release_scorer`, `join_round_by_code`/`ensure_round_share_code`, `claim_roster_by_email`, `save_tee_time_groups`.
+
 ## Supabase Edge Functions
 
-- `calculate-handicap` - USGA handicap index calculation
-- `calculate-payouts` - Game payout calculations
-- `finalize-round` - Round completion workflow
-- `send-invitation` - Group/round invitation emails
+> NOTE (2026-07-30): The frontend does not currently invoke these — round
+> completion uses the `finalize_round` RPC and invitation email uses
+> `src/lib/email.ts`. `send-round-notification` and `calculate-handicap` exist
+> but are not wired to the UI. Treat this list as deployed-but-dormant; see
+> issue #39 before relying on any of them.
+
+- `calculate-handicap` - USGA handicap index calculation (dormant)
+- `calculate-payouts` - Game payout calculations (dormant)
+- `finalize-round` - Round completion workflow (superseded by `finalize_round` RPC)
+- `send-invitation` - Group/round invitation emails (superseded by `src/lib/email.ts`)
+- `send-round-notification` - Round RSVP emails (dormant)
 
 ## Frontend Structure
 

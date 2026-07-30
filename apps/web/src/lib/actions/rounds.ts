@@ -2,7 +2,7 @@
 
 import { randomBytes } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createRoundSchema, createSoloRoundSchema, createGameTimeRoundSchema, updateRoundCourseSchema } from '@golf/core';
+import { createRoundSchema, createSoloRoundSchema, createGameTimeRoundSchema, updateRoundCourseSchema, calculateCourseHandicap } from '@golf/core';
 import { sendEmail, escapeHtml } from '@/lib/email';
 
 /**
@@ -34,7 +34,7 @@ export async function createSoloRound(input: { courseId: string; teeBoxId: strin
   ]);
   const idx = profile?.current_handicap_index ?? null;
   const courseHcp =
-    idx != null && teeBox ? Math.round(idx * (teeBox.slope_rating / 113)) : null;
+    idx != null && teeBox ? calculateCourseHandicap(idx, teeBox.slope_rating) : null;
 
   // Create the round already in progress — solo has no RSVP/upcoming stage.
   const today = new Date().toISOString().slice(0, 10);
@@ -106,7 +106,7 @@ export async function createGameTimeRound(input: {
     .single();
   const slope = teeBox?.slope_rating ?? null;
   const courseHcp = (idx: number | null) =>
-    idx != null && slope != null ? Math.round(idx * (slope / 113)) : null;
+    idx != null && slope != null ? calculateCourseHandicap(idx, slope) : null;
 
   const today = new Date().toISOString().slice(0, 10);
   const { data: round, error } = await supabase
@@ -295,7 +295,7 @@ export async function updateRoundCourse(roundId: string, courseId: string, teeBo
   const slope = teeBox.slope_rating;
   for (const p of rps ?? []) {
     const idx = p.handicap_index_at_round ?? p.guest_handicap_index ?? null;
-    const ch = idx != null && slope != null ? Math.round(idx * (slope / 113)) : null;
+    const ch = idx != null && slope != null ? calculateCourseHandicap(idx, slope) : null;
     await supabase
       .from('round_players')
       .update({ tee_box_id: teeBoxId, course_handicap: ch, playing_handicap: ch })
@@ -496,7 +496,7 @@ export async function createRound(formData: FormData) {
   // Helper: compute course handicap from handicap index and slope
   const calcCourseHandicap = (handicapIndex: number | null | undefined): number | null => {
     if (handicapIndex == null || slopeRating == null) return null;
-    return Math.round(handicapIndex * (slopeRating / 113));
+    return calculateCourseHandicap(handicapIndex, slopeRating);
   };
 
   // Add creator as a player
@@ -713,8 +713,9 @@ export async function addPlayerToRound(roundId: string, userId: string, teeBoxId
 
   let courseHandicap: number | null = null;
   if (profile?.current_handicap_index && teeBox) {
-    courseHandicap = Math.round(
-      profile.current_handicap_index * (teeBox.slope_rating / 113)
+    courseHandicap = calculateCourseHandicap(
+      profile.current_handicap_index,
+      teeBox.slope_rating
     );
   }
 
@@ -950,8 +951,9 @@ export async function acceptRoundInvite(token: string) {
 
   let courseHandicap: number | null = null;
   if (profile?.current_handicap_index != null && assignedSlopeRating != null) {
-    courseHandicap = Math.round(
-      profile.current_handicap_index * (assignedSlopeRating / 113)
+    courseHandicap = calculateCourseHandicap(
+      profile.current_handicap_index,
+      assignedSlopeRating
     );
   }
 
@@ -1016,7 +1018,7 @@ export async function addGuestToRound(roundId: string, guestName: string, guestH
       .eq('id', teeBoxId)
       .single();
     if (teeBox) {
-      courseHandicap = Math.round(guestHandicap * (teeBox.slope_rating / 113));
+      courseHandicap = calculateCourseHandicap(guestHandicap, teeBox.slope_rating);
     }
   }
 
@@ -1090,7 +1092,7 @@ export async function declineRoundInvite(token: string) {
 
   const { data: invitation } = await supabase
     .from('invitations')
-    .select('id, round_id')
+    .select('id, round_id, email')
     .eq('token', token)
     .eq('type', 'round')
     .eq('status', 'pending')
@@ -1099,6 +1101,12 @@ export async function declineRoundInvite(token: string) {
 
   if (!invitation) {
     return { error: 'Invalid or expired invitation' };
+  }
+
+  // Verify the authenticated user's email matches the invitation, mirroring
+  // acceptRoundInvite — otherwise anyone holding the token could decline it.
+  if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
+    return { error: 'This invitation was sent to a different email address' };
   }
 
   await supabase

@@ -354,6 +354,9 @@ export interface CourseTeeBox {
 /** Tee boxes for a course — used when re-picking a course/tees on a round. */
 export async function getCourseTeeBoxes(courseId: string): Promise<CourseTeeBox[]> {
   const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const { data, error } = await supabase
     .from('tee_boxes')
     .select('id, name, color, tier, course_rating, slope_rating')

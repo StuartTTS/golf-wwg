@@ -10,6 +10,28 @@ export async function createSettlements(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  // Authorize: only the round creator (Commish) or a group admin may record
+  // settlements for a round. Otherwise any authenticated user could fabricate
+  // debts naming arbitrary players.
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Not authorized' };
+
   const rows = settlements.map((s) => ({
     round_id: roundId,
     payer_id: s.payerId,

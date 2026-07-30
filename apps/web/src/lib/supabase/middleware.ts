@@ -34,14 +34,22 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes - redirect to login if not authenticated
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/home') ||
-    request.nextUrl.pathname.startsWith('/groups') ||
-    request.nextUrl.pathname.startsWith('/rounds') ||
-    request.nextUrl.pathname.startsWith('/courses') ||
-    request.nextUrl.pathname.startsWith('/profile') ||
-    request.nextUrl.pathname.startsWith('/settings') ||
-    request.nextUrl.pathname.startsWith('/admin');
+  // Route protection uses a PUBLIC-route blocklist: everything is protected by
+  // default, so newly added routes (e.g. /play, /scorecard, /seasons) are gated
+  // automatically instead of silently falling through an allowlist.
+  const pathname = request.nextUrl.pathname;
+  const PUBLIC_PREFIXES = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/invite',
+    '/auth', // auth callback / confirmation routes
+  ];
+  const isPublicRoute =
+    pathname === '/' || // public landing page
+    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  const isProtectedRoute = !isPublicRoute;
 
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone();

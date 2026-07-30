@@ -45,10 +45,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verify user is a participant in this round
+    // Verify user is a participant in this round AND that the round is
+    // completed. The handicap_records row is stamped with this roundId, so an
+    // unvalidated/incomplete round would produce a mislabelled record.
     const { data: roundPlayer } = await userClient
       .from('round_players')
-      .select('id')
+      .select('id, rounds!inner(status)')
       .eq('round_id', roundId)
       .eq('user_id', userId)
       .single();
@@ -57,6 +59,13 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: 'Not a participant in this round' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if ((roundPlayer.rounds as any)?.status !== 'completed') {
+      return new Response(
+        JSON.stringify({ error: 'Round is not completed' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 

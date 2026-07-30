@@ -3,6 +3,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { scoreEntrySchema } from '@golf/core';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function upsertScore(input: {
   roundId: string;
   playerId: string;
@@ -29,6 +32,12 @@ export async function upsertScore(input: {
 
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message };
+  }
+
+  // Guard the interpolated PostgREST .or() filter below: playerId must be a
+  // plain UUID, otherwise a crafted value could inject extra filter clauses.
+  if (!UUID_RE.test(input.playerId)) {
+    return { error: 'Invalid player id' };
   }
 
   // Determine if this is a guest player (playerId is a round_players.id, not a profiles.id)

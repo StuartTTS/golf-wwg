@@ -5,7 +5,7 @@
 // recent-player suggestions. See docs/roster-design.md.
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { rosterPlayerSchema } from '@golf/core';
+import { rosterPlayerSchema, calculateCourseHandicap } from '@golf/core';
 
 export interface RosterEntry {
   id: string;
@@ -190,7 +190,7 @@ export async function addRosterPlayerToRound(roundId: string, rosterPlayerId: st
     hcpIndex = prof?.current_handicap_index ?? rp.handicap_index ?? null;
   }
   const courseHcp =
-    hcpIndex != null && slope != null ? Math.round(hcpIndex * (slope / 113)) : null;
+    hcpIndex != null && slope != null ? calculateCourseHandicap(hcpIndex, slope) : null;
 
   const row: Record<string, unknown> = {
     round_id: roundId,

@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
     const { data: round } = await supabase
       .from('rounds')
       .select(`
-        round_date, tee_time,
+        round_date, tee_time, created_by, group_id,
         courses(name),
         groups(name),
         profiles!rounds_created_by_fkey(display_name)
@@ -53,10 +53,31 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch invitations with tokens
+    // Authorize: only the round creator (Commish) or a group admin may send
+    // round notifications. Without this, any authenticated user could email
+    // RSVP links for arbitrary rounds/invitations.
+    let authorized = round.created_by === user.id;
+    if (!authorized && round.group_id) {
+      const { data: membership } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', round.group_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      authorized = membership?.role === 'admin';
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: 'Not authorized' }), {
+        status: 403, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Fetch invitations with tokens — scoped to THIS round so a caller cannot
+    // fan out emails for invitations belonging to other rounds/groups.
     const { data: invitations } = await supabase
       .from('invitations')
       .select('id, email, token')
+      .eq('round_id', roundId)
       .in('id', invitationIds);
 
     if (!invitations || invitations.length === 0) {
