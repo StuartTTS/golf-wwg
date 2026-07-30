@@ -1,11 +1,11 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { updatePlayerTeeSchema, bulkUpdatePlayerTeesSchema } from '@golf/core';
-
-function calculateCourseHandicap(handicapIndex: number, slopeRating: number): number {
-  return Math.round(handicapIndex * (slopeRating / 113));
-}
+import {
+  updatePlayerTeeSchema,
+  bulkUpdatePlayerTeesSchema,
+  calculateCourseHandicap,
+} from '@golf/core';
 
 export async function updatePlayerTee(roundId: string, playerId: string, teeBoxId: string) {
   const supabase = await createServerSupabaseClient();

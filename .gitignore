@@ -42,3 +42,21 @@ Thumbs.db
 supabase/.temp/
 
 .vercel
+
+# typescript build info
+*.tsbuildinfo
+
+# playwright
+/test-results/
+/playwright-report/
+/.playwright-mcp/
+
+# superpowers / agent scratch
+/.superpowers/
+
+# local review + debug scratch (not committed)
+/nul
+/ts-errors*.txt
+/types_err.txt
+/*.png
+/project-status.md
