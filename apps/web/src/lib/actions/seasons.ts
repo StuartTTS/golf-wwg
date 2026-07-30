@@ -52,10 +52,44 @@ export async function createSeason(formData: FormData) {
   return { success: true, seasonId: season.id };
 }
 
+/**
+ * Ensure the caller is an admin of the group that owns `seasonId`.
+ * Returns the season's group_id on success, or an error string.
+ */
+async function requireSeasonAdmin(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  seasonId: string,
+  userId: string
+): Promise<{ groupId: string } | { error: string }> {
+  const { data: season } = await supabase
+    .from('seasons')
+    .select('group_id')
+    .eq('id', seasonId)
+    .single();
+
+  if (!season) return { error: 'Season not found' };
+
+  const { data: membership } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', season.group_id)
+    .eq('user_id', userId)
+    .single();
+
+  if (membership?.role !== 'admin') {
+    return { error: 'Only group admins can manage seasons' };
+  }
+
+  return { groupId: season.group_id };
+}
+
 export async function updateSeason(seasonId: string, formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const auth = await requireSeasonAdmin(supabase, seasonId, user.id);
+  if ('error' in auth) return { error: auth.error };
 
   const name = (formData.get('name') as string)?.trim();
   const startDate = formData.get('startDate') as string;
@@ -88,6 +122,9 @@ export async function deleteSeason(seasonId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const auth = await requireSeasonAdmin(supabase, seasonId, user.id);
+  if ('error' in auth) return { error: auth.error };
 
   const { error } = await supabase
     .from('seasons')

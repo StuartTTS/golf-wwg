@@ -1090,7 +1090,7 @@ export async function declineRoundInvite(token: string) {
 
   const { data: invitation } = await supabase
     .from('invitations')
-    .select('id, round_id')
+    .select('id, round_id, email')
     .eq('token', token)
     .eq('type', 'round')
     .eq('status', 'pending')
@@ -1099,6 +1099,12 @@ export async function declineRoundInvite(token: string) {
 
   if (!invitation) {
     return { error: 'Invalid or expired invitation' };
+  }
+
+  // Verify the authenticated user's email matches the invitation, mirroring
+  // acceptRoundInvite — otherwise anyone holding the token could decline it.
+  if (invitation.email.toLowerCase() !== user.email?.toLowerCase()) {
+    return { error: 'This invitation was sent to a different email address' };
   }
 
   await supabase

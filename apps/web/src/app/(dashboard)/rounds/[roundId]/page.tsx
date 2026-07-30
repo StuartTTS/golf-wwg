@@ -276,11 +276,14 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       }
 
       leaderboard = players
-        .filter((p) => p.user_id && playerScores.has(p.user_id))
-        .map((p) => {
-          const stats = playerScores.get(p.user_id!)!;
+        // Key players the same way scores are keyed (user_id for members, id
+        // for guests) so guest scores are not silently dropped.
+        .map((p) => ({ p, pid: p.user_id ?? p.id }))
+        .filter(({ pid }) => playerScores.has(pid))
+        .map(({ p, pid }) => {
+          const stats = playerScores.get(pid)!;
           return {
-            userId: p.user_id!,
+            userId: pid,
             name: (p.profile as any)?.display_name ?? p.guest_name ?? 'Unknown',
             totalStrokes: stats.strokes,
             holesPlayed: stats.holesPlayed,

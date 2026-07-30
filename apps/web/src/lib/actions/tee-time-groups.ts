@@ -18,71 +18,23 @@ export async function saveTeeTimeGroups(
   } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  // Fetch round to get group_id
-  const { data: round } = await supabase
-    .from('rounds')
-    .select('id, group_id')
-    .eq('id', roundId)
-    .single();
-  if (!round) return { error: 'Round not found' };
+  // Delegates to the save_tee_time_groups RPC, which authorizes (group admin),
+  // clears, and rebuilds atomically in one transaction — a mid-save failure can
+  // no longer leave the round with its foursomes wiped. The RPC also resolves
+  // player ids safely (no interpolated PostgREST filter).
+  // Cast: the RPC is defined in migration 00031 and not yet in the generated
+  // database types. Regenerate types (npx supabase gen types) to remove this.
+  const { error } = await (supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ error: { message: string } | null }>)('save_tee_time_groups', {
+    p_round_id: roundId,
+    p_groups: groups,
+  });
 
-  // Verify caller is group admin
-  const { data: membership } = await supabase
-    .from('group_members')
-    .select('role')
-    .eq('group_id', round.group_id)
-    .eq('user_id', user.id)
-    .single();
-  if (!membership || membership.role !== 'admin') {
-    return { error: 'Not authorized' };
-  }
-
-  // Delete existing tee time groups for this round (cascade clears FK on round_players)
-  // First clear all round_players references
-  await supabase
-    .from('round_players')
-    .update({ tee_time_group_id: null })
-    .eq('round_id', roundId);
-
-  // Delete old groups
-  await supabase
-    .from('tee_time_groups')
-    .delete()
-    .eq('round_id', roundId);
-
-  // Create new groups and assign players
-  for (let i = 0; i < groups.length; i++) {
-    const group = groups[i];
-    if (group.playerIds.length === 0) continue;
-
-    const { data: newGroup, error: groupError } = await supabase
-      .from('tee_time_groups')
-      .insert({
-        round_id: roundId,
-        name: group.name,
-        tee_time: group.teeTime || null,
-        sort_order: i,
-      })
-      .select('id')
-      .single();
-
-    if (groupError || !newGroup) {
-      return { error: groupError?.message ?? 'Failed to create group' };
-    }
-
-    // Assign players to this group
-    for (const playerId of group.playerIds) {
-      // playerId could be a user_id or a round_player id (for guests)
-      const { error: updateError } = await supabase
-        .from('round_players')
-        .update({ tee_time_group_id: newGroup.id })
-        .eq('round_id', roundId)
-        .or(`user_id.eq.${playerId},id.eq.${playerId}`);
-
-      if (updateError) {
-        return { error: updateError.message };
-      }
-    }
+  if (error) {
+    console.error('Save tee time groups error:', error);
+    return { error: error.message };
   }
 
   return { success: true };

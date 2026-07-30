@@ -19,9 +19,18 @@ interface PushPayload {
   url?: string;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Send push notifications to specific users.
  * Silently skips users without push subscriptions.
+ *
+ * TRUST BOUNDARY: this reads other users' push-subscription secrets via the
+ * service-role client (RLS-bypassing), which is required to notify recipients
+ * other than the caller. Callers MUST pass server-derived user IDs only — never
+ * values taken directly from client input. The UUID filter below is a
+ * defence-in-depth guard, not a substitute for that rule.
  */
 export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
   if (!vapidPublicKey || !vapidPrivateKey) {
@@ -29,13 +38,16 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
     return;
   }
 
+  const validUserIds = [...new Set(userIds)].filter((id) => UUID_RE.test(id));
+  if (validUserIds.length === 0) return;
+
   const supabase = createServiceRoleClient();
 
   // Fetch all subscriptions for these users
   const { data: subscriptions } = await supabase
     .from('push_subscriptions')
     .select('id, user_id, endpoint, p256dh, auth')
-    .in('user_id', userIds);
+    .in('user_id', validUserIds);
 
   if (!subscriptions || subscriptions.length === 0) return;
 
