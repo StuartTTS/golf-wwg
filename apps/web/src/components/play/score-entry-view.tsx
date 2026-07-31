@@ -66,12 +66,11 @@ export function ScoreEntryView({
   const layoutHoles = holesFor(currentUser?.teeBoxId ?? '') ?? round.defaultHoles;
   const hole = layoutHoles[holeIndex];
 
-  // Self-service scorer gate. Whoever's keeping the group's card owns everyone
-  // *else's* official card; a player can ALWAYS enter/track their own. The scorer
-  // is claimed/handed off in-round (not pre-assigned) — see scorer-control +
-  // migration 00030. null = the group self-scores.
+  // Anyone in the foursome can enter anyone's score (same-foursome scoring is
+  // RLS-allowed), so there's no "take over" step — whoever has the phone just
+  // scores. `scorer` is only the soft "who's keeping the card" marker for the
+  // control below and the group-confirm. null = nobody has claimed it.
   const scorer = groupScorerId(round);
-  const isScorer = !scorer || scorer === round.currentUserId;
   const iAmScorer = scorer === round.currentUserId;
   const scorerName = scorer
     ? round.players.find((p) => p.id === scorer)?.displayName ?? null
@@ -166,10 +165,10 @@ export function ScoreEntryView({
           const par = parFor(player);
           const isMe = player.id === round.currentUserId;
           const locked = lockedPlayerIds.has(player.id);
-          // Scorer edits everyone; anyone can always edit their own card —
-          // unless the card is confirmed (locked), which no one may edit until
-          // it's unlocked from the Confirm panel.
-          const canEditPlayer = (isScorer || isMe) && !locked;
+          // Open to the whole foursome: any member can enter any member's score
+          // (RLS permits same-foursome scoring). Only a confirmed/locked card is
+          // off-limits until it's unlocked from the Confirm panel.
+          const canEditPlayer = !locked;
           const received = strokesReceivedOnHole(
             player.playingHandicap,
             strokeIndexFor(player)

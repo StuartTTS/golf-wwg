@@ -296,7 +296,7 @@ export default function SetupView({
                   </div>
                   {f.members.length === 0 ? (
                     <p className="text-xs text-surface-400">
-                      No registered members in this flight (guests can&apos;t
+                      No registered members in this group (guests can&apos;t
                       score).
                     </p>
                   ) : (

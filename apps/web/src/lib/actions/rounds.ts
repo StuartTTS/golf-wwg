@@ -365,7 +365,7 @@ export async function confirmFlight(teeTimeGroupId: string) {
     console.error('Confirm flight error:', error);
     return {
       error: String(error.message ?? '').includes('flight scorer or Commish')
-        ? 'Only the flight scorer or Commish can confirm this foursome'
+        ? "Only the group's scorer or Commish can confirm this foursome"
         : 'Could not confirm foursome',
     };
   }
