@@ -165,10 +165,17 @@ export function ScoreEntryView({
           const par = parFor(player);
           const isMe = player.id === round.currentUserId;
           const locked = lockedPlayerIds.has(player.id);
-          // Open to the whole foursome: any member can enter any member's score
-          // (RLS permits same-foursome scoring). Only a confirmed/locked card is
-          // off-limits until it's unlocked from the Confirm panel.
-          const canEditPlayer = !locked;
+          // Mirror the scores RLS so the UI never offers an edit that will
+          // silently fail: you can enter a card if it's your own, you're the
+          // group's scorer, the round is shared (casual), or you're both in the
+          // same foursome. Any foursome member can score any member — no
+          // designated-scorer step. A confirmed/locked card is off-limits.
+          const inMyFoursome =
+            player.teeTimeGroupId != null &&
+            player.teeTimeGroupId === round.currentUserGroupId;
+          const canEditPlayer =
+            !locked &&
+            (isMe || iAmScorer || round.scoringMode === 'shared' || inMyFoursome);
           const received = strokesReceivedOnHole(
             player.playingHandicap,
             strokeIndexFor(player)
