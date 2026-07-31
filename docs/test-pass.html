@@ -270,7 +270,7 @@ const DATA = [
     items:[
       {id:'b9', t:'Share invite text is correct', x:'Dialog shows the code + “Join <owner> live leaderboard with game id = <CODE>” + join URL; Copy invite copies that line.', chips:['Copy text']},
       {id:'b10', t:'Second account joins by code', x:'Join Game → enter code → validates.'},
-      {id:'b11', t:'Fresh account must set up a profile', x:'Required name + email; optional phone; handicap → Save & view game → appears as a player.', chips:['Profile gate']},
+      {id:'b11', t:'Fresh account must set up a profile', x:'Required name + email; optional phone; handicap → Save & view game → appears as a player. Regression-fixed in #52 — re-test on a brand-new account (was bounced to Settings).', chips:['Profile gate','Re-test #52']},
       {id:'b12', t:'Completed profile skips setup', x:'An established account goes straight into the round.'},
       {id:'b13', t:'Bad code errors cleanly', x:'Clear “that code didn’t match” message; no profile step shown.'},
     ]},
@@ -292,8 +292,8 @@ const DATA = [
   { key:'B', persona:'b', title:'Game Time · Roster-claim by email', blurb:'The join↔roster loop closing.',
     items:[
       {id:'b18', t:'Add an unlinked roster player + put in a game', x:'Use a real email you can receive; include them in the Game Time round (creates a guest placeholder card).'},
-      {id:'b19', t:'Join from a fresh account with that email', x:'Enter the code and complete the profile setup.'},
-      {id:'b20', t:'Verify the claim + de-dup', x:'Your roster now shows that entry as linked; the round shows ONE card for them, not two.', chips:['Key check']},
+      {id:'b19', t:'Join from a fresh account with that email', x:'Enter the code and complete the profile setup. Depends on the #52 join fix — use a brand-new account.', chips:['Re-test #52']},
+      {id:'b20', t:'Verify the claim + de-dup', x:'Your roster now shows that entry as linked; the round shows ONE card for them, not two.', chips:['Key check','Re-test #52']},
     ]},
   { key:'C', persona:'c', title:'Cup Time', blurb:'Multi-round Ryder-Cup tournaments.', soon:true,
     soonText:'Not built yet (Phase 3). “Cup Time” appears in Start as <b>Soon</b> and isn’t clickable — nothing to test here yet. Confirm it stays disabled.' },
@@ -312,7 +312,7 @@ const PCOLOR = { a:'var(--pa)', b:'var(--pb)', c:'var(--pc)', f:'var(--pf)', r:'
 const chipClass = (c) => {
   const s = c.toLowerCase();
   if (/^t\d$/.test(s)) return 'chip tier';
-  if (s.includes('coming') || s.includes('edge')) return 'chip warn';
+  if (s.includes('coming') || s.includes('edge') || s.includes('re-test')) return 'chip warn';
   if (s.includes('key') || s.includes('gate') || s.includes('copy')) return 'chip key';
   return 'chip';
 };
