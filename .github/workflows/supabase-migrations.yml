@@ -11,7 +11,10 @@ name: Supabase Migrations (UAT)
 #
 # Required repo secrets:
 #   SUPABASE_ACCESS_TOKEN - personal access token (supabase.com/dashboard/account/tokens)
-#   SUPABASE_DB_PASSWORD  - the project's database password
+# Optional:
+#   SUPABASE_DB_PASSWORD  - not needed; the CLI authenticates to the database via a
+#                           temporary login role using the access token (verified by
+#                           run 30593330842). Set only if that mechanism ever breaks.
 
 on:
   pull_request:
