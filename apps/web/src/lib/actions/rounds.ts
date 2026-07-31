@@ -128,6 +128,16 @@ export async function createGameTimeRound(input: {
     return { error: 'Could not start game' };
   }
 
+  // Seat everyone in one foursome so any player can keep score / take it over
+  // (same-foursome scoring is RLS-allowed; the scorer is self-claimable). The
+  // Commish can split into multiple foursomes later. Non-fatal if it fails.
+  const { data: foursome } = await supabase
+    .from('tee_time_groups')
+    .insert({ round_id: round.id, name: 'Group 1', sort_order: 0 })
+    .select('id')
+    .single();
+  const foursomeId = foursome?.id ?? null;
+
   // Creator plays too.
   const { data: me } = await supabase
     .from('profiles')
@@ -140,6 +150,7 @@ export async function createGameTimeRound(input: {
       round_id: round.id,
       user_id: user.id,
       tee_box_id: parsed.data.teeBoxId,
+      tee_time_group_id: foursomeId,
       handicap_index_at_round: meHcp,
       course_handicap: courseHcp(meHcp),
       playing_handicap: courseHcp(meHcp),
@@ -177,6 +188,7 @@ export async function createGameTimeRound(input: {
       rows.push({
         round_id: round.id,
         tee_box_id: parsed.data.teeBoxId,
+        tee_time_group_id: foursomeId,
         handicap_index_at_round: hcp,
         course_handicap: ch,
         playing_handicap: ch,
@@ -204,6 +216,10 @@ export async function claimScorer(roundId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+  // Make sure the caller is seated in the round's foursome first, so claiming
+  // uses the flight-scoped path (open to any player) rather than the Commish-only
+  // whole-round path. No-op if already seated or if there isn't a single foursome.
+  await supabase.rpc('seat_in_round_foursome', { p_round_id: roundId });
   const { error } = await supabase.rpc('claim_scorer', { p_round_id: roundId });
   if (error) {
     console.error('Claim scorer error:', error);
@@ -425,6 +441,9 @@ export async function joinRoundByCode(code: string) {
           : 'Could not join the game',
     };
   }
+  // Seat the joiner in the round's foursome (if it has exactly one) so the
+  // group's scorer can score them and they can keep score too. Best-effort.
+  await supabase.rpc('seat_in_round_foursome', { p_round_id: data as string });
   return { success: true, roundId: data as string };
 }
 
