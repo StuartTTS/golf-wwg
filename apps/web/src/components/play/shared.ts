@@ -92,7 +92,7 @@ export function canManageCard(round: PlayRound, player: PlayPlayer): boolean {
 
 /**
  * The player keeping the official card for the current user's group: their
- * flight's scorer if they're in one, otherwise the whole-round scorekeeper.
+ * foursome's scorer if they're in one, otherwise the whole-round scorekeeper.
  * null = no one has claimed it, so the group self-scores. Anyone can claim or
  * hand this off mid-round (see claim_scorer / release_scorer).
  */
