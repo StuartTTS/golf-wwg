@@ -1,0 +1,71 @@
+name: Supabase Migrations (UAT)
+
+# Keeps the Supabase database in sync with the migrations on main.
+# - PRs touching migrations get a dry-run preview as a required-check candidate.
+# - Merges to main apply all pending migrations automatically.
+# - A weekly run catches any drift (migrations merged while secrets/CI were broken).
+#
+# Environments: main currently deploys to the UAT project (the app is pre-production).
+# When a PROD Supabase project exists, add a second deploy job gated on a
+# `production` GitHub environment with its own SUPABASE_PROJECT_REF/secrets.
+#
+# Required repo secrets:
+#   SUPABASE_ACCESS_TOKEN - personal access token (supabase.com/dashboard/account/tokens)
+#   SUPABASE_DB_PASSWORD  - the project's database password
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  schedule:
+    - cron: '0 12 * * 1' # weekly drift check, Mondays
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  SUPABASE_PROJECT_REF: objuclcltujazyggbqfx # UAT
+
+jobs:
+  preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Dry-run pending migrations
+        run: supabase db push --include-all --dry-run
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: UAT
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Apply pending migrations
+        run: supabase db push --include-all
+      - name: Verify remote is in sync
+        run: |
+          supabase db push --include-all --dry-run 2>&1 | tee verify.log
+          if grep -Eqi "would push|applying migration" verify.log; then
+            echo "::error::Remote database is still missing migrations after push"
+            exit 1
+          fi
