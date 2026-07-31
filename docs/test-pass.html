@@ -274,12 +274,13 @@ const DATA = [
       {id:'b12', t:'Completed profile skips setup', x:'An established account goes straight into the round.'},
       {id:'b13', t:'Bad code errors cleanly', x:'Clear “that code didn’t match” message; no profile step shown.'},
     ]},
-  { key:'B', persona:'b', title:'Game Time · Scoring the group', blurb:'Self-service scorer — no Commish assignment.',
+  { key:'B', persona:'b', title:'Game Time · Scoring the group', blurb:'Open foursome scoring — anyone scores anyone, no Commish.',
     items:[
-      {id:'bs1', t:'Join asks "Are you keeping score?"', x:'After the code (and profile), the joiner is prompted Yes/No to keep score for their group.', chips:['Self-service']},
-      {id:'bs2', t:'Keep score / Take over / Step back', x:'Enter tab shows the scorer control; any player can claim it, take over from someone leaving, or step back — changeable anytime.', chips:['Mid-round']},
-      {id:'bs3', t:'Others record score only', x:'While you keep the group card, other players show stroke buttons + a "Score only" caption — no stats written for them.'},
-      {id:'bs4', t:'Scorer enters their own stats', x:'Your own card still shows the full stat panel (putts, fairway, GIR, up&down, bunker/penalty) with your score.'},
+      {id:'bs1', t:'Everyone is seated in a foursome', x:'A Game Time round auto-creates one group and seats all players; GameID joiners are auto-seated into it too.', chips:['Auto-seat']},
+      {id:'bs2', t:'Any member can score any member', x:'The Enter tab shows every foursome card; any player can enter anyone’s strokes — no designated-scorer gate, no “take over” button.', chips:['Open scoring']},
+      {id:'bs3', t:'No handoff step when someone leaves', x:'Scorer leaves after 9 (or just hands off) → the next person keeps scoring; nothing to tap.'},
+      {id:'bs4', t:'Others score-only, your own card gets stats', x:'Entering someone else’s card records the stroke only; your own card still shows the full stat panel (putts, fairway, GIR, up&down, bunker/penalty).'},
+      {id:'bs5', t:'Join prompt + “keeping score” marker', x:'On join you’re asked “Are you keeping score?”; in-round, Keep score / Step back sets the soft “who’s on point” marker (and “someone else is keeping score” shows as info only).', chips:['Self-service']},
     ]},
   { key:'B', persona:'b', title:'Game Time · Confirm scores', blurb:'Tiered sign-off with multiple players.',
     items:[
