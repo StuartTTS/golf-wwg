@@ -67,7 +67,10 @@ export async function updateSession(request: NextRequest) {
     if (
       profileCompleted === false &&
       !pathname.startsWith('/settings') &&
-      !pathname.startsWith('/invite')
+      !pathname.startsWith('/invite') &&
+      // /join completes the profile inline (saveJoinProfile) after the code, so
+      // don't bounce new users to /settings before they can join a game.
+      !pathname.startsWith('/join')
     ) {
       const url = request.nextUrl.clone();
       url.pathname = '/settings';
