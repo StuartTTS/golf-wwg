@@ -193,6 +193,44 @@ export default function RoundLineupCard({
               </div>
             </div>
 
+            {/* Groups: add + live count. Sits above the player rows so the
+                "+ Add group" action and the running total are the first thing
+                you see — adding one immediately shows a new chip + bumps the
+                badge, which is the confirmation the tap worked. */}
+            <div className="rounded-lg border border-surface-600 bg-surface-800/50 p-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold uppercase tracking-wide text-surface-400">
+                  Groups
+                </span>
+                <span
+                  className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-golf-600 text-white text-xs font-semibold tabular-nums"
+                  aria-label={`${groups.length} group${groups.length === 1 ? '' : 's'} created`}
+                >
+                  {groups.length}
+                </span>
+                <Button variant="outline" size="sm" onClick={addGroup} className="ml-auto">
+                  + Add group
+                </Button>
+              </div>
+              {groups.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {groups.map((g) => (
+                    <span
+                      key={g.key}
+                      className="inline-flex items-center gap-1 rounded-full bg-surface-700 px-2.5 py-1 text-xs text-surface-100"
+                    >
+                      {g.name}
+                      <span className="text-surface-400 tabular-nums">({counts[g.key] ?? 0})</span>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-surface-500 italic mt-2">
+                  None yet — add a group or use Auto-split, then assign players below.
+                </p>
+              )}
+            </div>
+
             {/* Player rows */}
             <ul className="divide-y divide-surface-700/60">
               {players.map((p) => (
@@ -235,10 +273,7 @@ export default function RoundLineupCard({
               ))}
             </ul>
 
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={addGroup} className="text-surface-300 hover:text-surface-100">
-                + Add group
-              </Button>
+            <div className="flex items-center">
               <Button className="ml-auto" size="sm" onClick={save} loading={saving} disabled={saving}>
                 Save lineup
               </Button>
