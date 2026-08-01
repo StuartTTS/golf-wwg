@@ -68,7 +68,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       course_handicap,
       guest_name,
       guest_handicap_index,
-      profile:profiles (id, display_name, current_handicap_index),
+      profile:profiles!round_players_user_id_fkey (id, display_name, current_handicap_index),
       tee_box:tee_boxes (id, name, color)
     `)
     .eq('round_id', roundId)
