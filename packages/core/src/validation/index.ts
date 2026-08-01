@@ -146,6 +146,7 @@ export const scoreEntrySchema = z.object({
   playerId: z.string().uuid(),
   holeNumber: z.number().int().min(1).max(36),
   strokes: z.number().int().min(1).max(20).nullable(),
+  pickup: z.boolean().optional(),
   putts: z.number().int().min(0).max(10).nullable().optional(),
   fairwayHit: z.boolean().nullable().optional(),
   fairwayMiss: z.enum(['left', 'right']).nullable().optional(),

@@ -40,6 +40,8 @@ export interface PlayScore {
   playerId: string;
   holeNumber: number;
   strokes: number | null;
+  /** Player picked up ("X") — the hole is recorded but carries no stroke value. */
+  pickup: boolean;
   putts: number | null;
   fairwayHit: boolean | null;
   fairwayMiss: FairwayMiss | null;
@@ -118,6 +120,7 @@ export function blankScore(playerId: string, holeNumber: number): PlayScore {
     playerId,
     holeNumber,
     strokes: null,
+    pickup: false,
     putts: null,
     fairwayHit: null,
     fairwayMiss: null,
@@ -128,6 +131,35 @@ export function blankScore(playerId: string, holeNumber: number): PlayScore {
     penalties: null,
     upAndDown: null,
   };
+}
+
+/**
+ * A hole counts as "recorded" once it has a stroke value OR is marked as a
+ * pickup ("X"). Used for the best-ball generate gate.
+ */
+export function isRecorded(score: PlayScore | undefined): boolean {
+  return !!score && (score.strokes !== null || score.pickup);
+}
+
+/**
+ * True once EVERY player has a recorded value (strokes or pickup) on EVERY hole
+ * of their tee box. Client mirror of the server-side round_scores_complete gate
+ * that unlocks the Commish "Generate teams" action.
+ */
+export function allScoresRecorded(round: PlayRound, scores: PlayScore[]): boolean {
+  if (round.players.length === 0) return false;
+  const recorded = new Set<string>();
+  for (const s of scores) {
+    if (s.strokes !== null || s.pickup) recorded.add(`${s.playerId}:${s.holeNumber}`);
+  }
+  for (const p of round.players) {
+    const holes = round.holesByTeeBox[p.teeBoxId] ?? round.defaultHoles ?? [];
+    if (holes.length === 0) return false;
+    for (const h of holes) {
+      if (!recorded.has(`${p.id}:${h.number}`)) return false;
+    }
+  }
+  return true;
 }
 
 /** Strokes a player receives on a given hole from their playing handicap. */

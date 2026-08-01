@@ -217,12 +217,13 @@ export function ScoreEntryView({
                   )}
                 </div>
                 <span
-                  className={`text-2xl font-bold tabular-nums px-2 rounded ${scoreToParClasses(
-                    score?.strokes ?? null,
-                    par
-                  )}`}
+                  className={`text-2xl font-bold tabular-nums px-2 rounded ${
+                    score?.pickup
+                      ? 'text-surface-300'
+                      : scoreToParClasses(score?.strokes ?? null, par)
+                  }`}
                 >
-                  {score?.strokes ?? '-'}
+                  {score?.pickup ? 'X' : (score?.strokes ?? '-')}
                 </span>
               </div>
 
@@ -240,6 +241,7 @@ export function ScoreEntryView({
                     isMe
                       ? {
                           strokes,
+                          pickup: false,
                           gir: autoGir(
                             strokes,
                             score?.putts ?? null,
@@ -248,10 +250,31 @@ export function ScoreEntryView({
                             score?.gir ?? null
                           ),
                         }
-                      : { strokes }
+                      : { strokes, pickup: false }
                   )
                 }
               />
+
+              {/* Pick up ("X"): out of the hole, no stroke value — still counts as
+                  recorded for the round-complete gate (best ball). */}
+              {canEditPlayer && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateScore(player.id, hole.number, {
+                      strokes: null,
+                      pickup: !score?.pickup,
+                    })
+                  }
+                  className={`mt-2 w-full py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    score?.pickup
+                      ? 'bg-surface-500 text-white'
+                      : 'bg-surface-700 text-surface-300 hover:bg-surface-600'
+                  }`}
+                >
+                  {score?.pickup ? 'Picked up (X) — tap to undo' : 'Pick up (X)'}
+                </button>
+              )}
 
               {/* Other players: score only — makes the foursome-scoring rule explicit. */}
               {!isMe && !locked && (

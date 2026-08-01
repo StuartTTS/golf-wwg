@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import type { HoleScore } from '@golf/core';
-import { useRealtimeScores } from '@/hooks/use-realtime-scores';
+import { useRealtimeScores, type LiveScore } from '@/hooks/use-realtime-scores';
 import { upsertScore } from '@/lib/actions/scores';
 import {
   confirmScorecard,
@@ -160,8 +159,8 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
     scoresRef.current = scores;
   }, [scores]);
 
-  // Merge live remote strokes (leaves locally-entered detailed stats intact).
-  const applyRemote = useCallback((remote: HoleScore[]) => {
+  // Merge live remote strokes + pickup (leaves locally-entered stats intact).
+  const applyRemote = useCallback((remote: LiveScore[]) => {
     setScores((prev) => {
       let next = prev;
       for (const r of remote) {
@@ -171,12 +170,13 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
         );
         if (idx >= 0) {
           if (next === prev) next = [...prev];
-          next[idx] = { ...next[idx], strokes: r.strokes };
+          next[idx] = { ...next[idx], strokes: r.strokes, pickup: r.pickup };
         } else {
           if (next === prev) next = [...prev];
           next.push({
             ...blankScore(r.playerId, r.holeNumber),
             strokes: r.strokes,
+            pickup: r.pickup,
           });
         }
       }
@@ -213,6 +213,7 @@ export default function PlayView({ round, initialScores }: PlayViewProps) {
         playerId,
         holeNumber,
         strokes: merged.strokes,
+        pickup: merged.pickup,
         putts: merged.putts,
         fairwayHit: merged.fairwayHit,
         fairwayMiss: merged.fairwayMiss,

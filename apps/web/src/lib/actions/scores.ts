@@ -11,6 +11,7 @@ export async function upsertScore(input: {
   playerId: string;
   holeNumber: number;
   strokes: number | null;
+  pickup?: boolean;
   putts?: number | null;
   fairwayHit?: boolean | null;
   fairwayMiss?: 'left' | 'right' | null;
@@ -59,7 +60,8 @@ export async function upsertScore(input: {
         player_id: isGuest ? null : input.playerId,
         round_player_id: rp?.id ?? null,
         hole_number: input.holeNumber,
-        strokes: input.strokes,
+        strokes: input.pickup ? null : input.strokes,
+        pickup: input.pickup ?? false,
         putts: input.putts ?? null,
         fairway_hit: input.fairwayHit ?? null,
         fairway_miss: input.fairwayMiss ?? null,
@@ -89,6 +91,7 @@ export async function batchUpsertScores(
     playerId: string;
     holeNumber: number;
     strokes: number | null;
+    pickup?: boolean;
     putts?: number | null;
     fairwayHit?: boolean | null;
     fairwayMiss?: 'left' | 'right' | null;
@@ -170,7 +173,8 @@ export async function batchUpsertScores(
       player_id: isGuest ? null : s.playerId,
       round_player_id: rp?.id ?? null,
       hole_number: s.holeNumber,
-      strokes: s.strokes,
+      strokes: s.pickup ? null : s.strokes,
+      pickup: s.pickup ?? false,
       putts: s.putts ?? null,
       fairway_hit: s.fairwayHit ?? null,
       fairway_miss: s.fairwayMiss ?? null,

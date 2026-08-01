@@ -121,7 +121,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
   const { data: scoresData } = await supabase
     .from('scores')
     .select(
-      'player_id, round_player_id, hole_number, strokes, putts, fairway_hit, fairway_miss, gir, green_miss, fairway_bunker, greenside_bunker, penalties, up_and_down'
+      'player_id, round_player_id, hole_number, strokes, pickup, putts, fairway_hit, fairway_miss, gir, green_miss, fairway_bunker, greenside_bunker, penalties, up_and_down'
     )
     .eq('round_id', roundId);
 
@@ -135,6 +135,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
       s.player_id ?? rpIdToPlayerId.get(s.round_player_id) ?? s.round_player_id,
     holeNumber: s.hole_number,
     strokes: s.strokes,
+    pickup: s.pickup ?? false,
     putts: s.putts ?? null,
     fairwayHit: s.fairway_hit ?? null,
     fairwayMiss: s.fairway_miss ?? null,

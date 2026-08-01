@@ -900,6 +900,7 @@ export type Database = {
           hole_number: number
           id: string
           penalties: number | null
+          pickup: boolean
           player_id: string | null
           putts: number | null
           round_id: string
@@ -919,6 +920,7 @@ export type Database = {
           hole_number: number
           id?: string
           penalties?: number | null
+          pickup?: boolean
           player_id?: string | null
           putts?: number | null
           round_id: string
@@ -938,6 +940,7 @@ export type Database = {
           hole_number?: number
           id?: string
           penalties?: number | null
+          pickup?: boolean
           player_id?: string | null
           putts?: number | null
           round_id?: string

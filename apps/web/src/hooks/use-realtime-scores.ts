@@ -2,11 +2,18 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useSupabase } from '@/providers/supabase-provider';
-import type { HoleScore } from '@golf/core';
+
+/** Live score update pushed over realtime — the engine's HoleScore plus pickup. */
+export interface LiveScore {
+  playerId: string;
+  holeNumber: number;
+  strokes: number | null;
+  pickup: boolean;
+}
 
 interface UseRealtimeScoresOptions {
   roundId: string;
-  onScoreChange: (scores: HoleScore[]) => void;
+  onScoreChange: (scores: LiveScore[]) => void;
   onPresenceChange?: (users: { userId: string; displayName: string }[]) => void;
   userId?: string;
   displayName?: string;
@@ -44,12 +51,14 @@ export function useRealtimeScores({
             player_id: string;
             hole_number: number;
             strokes: number | null;
+            pickup: boolean | null;
           };
           onScoreChange([
             {
               playerId: row.player_id,
               holeNumber: row.hole_number,
               strokes: row.strokes,
+              pickup: row.pickup ?? false,
             },
           ]);
         }
