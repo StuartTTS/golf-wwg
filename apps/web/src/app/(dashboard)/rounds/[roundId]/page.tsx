@@ -16,6 +16,7 @@ import TeeAssignmentCard from '@/components/rounds/tee-assignment-card';
 import CourseTeeCard from '@/components/rounds/course-tee-card';
 import TeeTimeGroupManager from '@/components/rounds/tee-time-group-manager';
 import { ShareGameButton } from '@/components/rounds/share-game-button';
+import { DeleteRoundButton } from '@/components/rounds/delete-round-button';
 
 interface RoundPageProps {
   params: Promise<{ roundId: string }>;
@@ -438,6 +439,13 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
         )}
         {featureFlags.shareCode && isCommish && (
           <ShareGameButton roundId={roundId} ownerName={ownerName} />
+        )}
+        {isCommish && (
+          <DeleteRoundButton
+            roundId={roundId}
+            courseName={(round.course as any)?.name}
+            redirectTo="/rounds"
+          />
         )}
       </div>
 
