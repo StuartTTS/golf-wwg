@@ -176,6 +176,60 @@ export const createGameSchema = z.object({
     .optional(),
 });
 
+// ---------- Payout ----------
+export const payoutConfigSchema = z
+  .object({
+    buyIn: z.number().min(0),
+    places: z.number().int().min(1).max(20),
+    splitMode: z.enum(['percent', 'amount']),
+    split: z.array(z.number().min(0)).min(1),
+  })
+  .refine((c) => c.split.length === c.places, {
+    message: 'The split needs one entry per paid place',
+    path: ['split'],
+  })
+  .refine(
+    (c) =>
+      c.splitMode !== 'percent' ||
+      Math.abs(c.split.reduce((a, b) => a + b, 0) - 100) < 0.01,
+    { message: 'Percent split must add up to 100%', path: ['split'] }
+  );
+
+/**
+ * Validate a payout config against the actual field size. Returns an error
+ * message or null. Layered on payoutConfigSchema (which covers shape/percent);
+ * this adds the pot-dependent rule that a dollar split can't exceed the pot.
+ */
+export function validatePayout(
+  cfg: {
+    buyIn: number;
+    places: number;
+    splitMode: 'percent' | 'amount';
+    split: number[];
+  },
+  playerCount: number
+): string | null {
+  if (cfg.places < 1) return 'Pay at least one place';
+  if (cfg.split.length !== cfg.places) {
+    return 'The split needs one entry per paid place';
+  }
+  if (cfg.split.some((n) => n < 0 || Number.isNaN(n))) {
+    return 'Split values must be zero or more';
+  }
+  const sum = cfg.split.reduce((a, b) => a + b, 0);
+  if (cfg.splitMode === 'percent') {
+    if (Math.abs(sum - 100) > 0.01) {
+      return `Percent split must add up to 100% (currently ${sum}%)`;
+    }
+  } else {
+    const pot = cfg.buyIn * playerCount;
+    if (sum > pot + 0.01) {
+      return `Payouts ($${sum}) exceed the pot ($${pot})`;
+    }
+  }
+  return null;
+}
+
 // ---------- Registration ----------
 export const closeRegistrationSchema = z.object({
   roundId: z.string().uuid(),

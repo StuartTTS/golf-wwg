@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createGame } from '@/lib/actions/games';
+import { validatePayout, type PayoutConfig } from '@golf/core';
+import { PayoutFields, defaultPayout } from '@/components/games/payout-fields';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -440,7 +442,7 @@ function AddGameModal({
 }) {
   const [step, setStep] = useState<'type' | 'config'>('type');
   const [gameType, setGameType] = useState('');
-  const [buyIn, setBuyIn] = useState('5');
+  const [payout, setPayout] = useState<PayoutConfig>(defaultPayout());
   const [config, setConfig] = useState<Record<string, unknown>>({});
   const [holes, setHoles] = useState('all');
   const [creating, setCreating] = useState(false);
@@ -455,6 +457,12 @@ function AddGameModal({
   const handleCreate = async () => {
     if (!gameType) return;
 
+    const payoutError = validatePayout(payout, roundPlayers.length);
+    if (payoutError) {
+      setError(payoutError);
+      return;
+    }
+
     try {
       setCreating(true);
       setError(null);
@@ -463,8 +471,8 @@ function AddGameModal({
         roundId,
         format: gameType,
         name: GAME_TYPE_LABELS[gameType] ?? gameType,
-        config,
-        moneyPerUnit: parseFloat(buyIn) || 0,
+        config: { ...config, payout },
+        moneyPerUnit: payout.buyIn,
         holes,
         playerIds: roundPlayers.map((p) => p.userId),
       });
@@ -543,19 +551,11 @@ function AddGameModal({
                 setConfig={setConfig}
               />
 
-              <div>
-                <label className="block text-sm font-medium text-surface-100 mb-1">
-                  Wager per unit ($)
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={buyIn}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBuyIn(e.target.value)}
-                  placeholder="0"
-                />
-              </div>
+              <PayoutFields
+                value={payout}
+                onChange={setPayout}
+                playerCount={roundPlayers.length}
+              />
 
               <div>
                 <label className="block text-sm font-medium text-surface-100 mb-1">
