@@ -45,6 +45,7 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   skins: 'Skins',
   wolf: 'Wolf',
   best_ball: 'Best Ball',
+  best_ball_2_random: '2-Man Best Ball (Random Teams)',
   progressive_best_ball: 'Progressive Best Ball',
   stableford: 'Stableford',
   match_play: 'Match Play',
@@ -57,6 +58,7 @@ const GAME_TYPES = [
   { value: 'skins', label: 'Skins', description: 'Win the hole outright to collect a skin' },
   { value: 'wolf', label: 'Wolf', description: 'Choose partners or go lone wolf' },
   { value: 'best_ball', label: 'Best Ball', description: 'Team best score on each hole' },
+  { value: 'best_ball_2_random', label: '2-Man Best Ball (Random Teams)', description: 'Random 2-man teams drawn after the round; best net ball counts' },
   { value: 'progressive_best_ball', label: 'Progressive Best Ball', description: 'Best ball with increasing balls counting per segment' },
   { value: 'stableford', label: 'Stableford', description: 'Points-based scoring system', comingSoon: true },
   { value: 'match_play', label: 'Match Play', description: 'Win individual holes' },
@@ -463,15 +465,23 @@ function AddGameModal({
       return;
     }
 
+    // 2-Man Best Ball (Random Teams): stored as a best_ball_2 game with no teams
+    // yet — the Commish draws them after the round from the Leaderboard.
+    const isRandomBB = gameType === 'best_ball_2_random';
+    const format = isRandomBB ? 'best_ball_2' : gameType;
+    const gameConfig = isRandomBB
+      ? { ...config, payout, randomTeams: true, useNet: true, countBest: 1, handicapAllowance: 0.9 }
+      : { ...config, payout };
+
     try {
       setCreating(true);
       setError(null);
 
       const result = await createGame({
         roundId,
-        format: gameType,
+        format,
         name: GAME_TYPE_LABELS[gameType] ?? gameType,
-        config: { ...config, payout },
+        config: gameConfig,
         moneyPerUnit: payout.buyIn,
         holes,
         playerIds: roundPlayers.map((p) => p.userId),
@@ -586,6 +596,13 @@ function AddGameModal({
               <p className="text-xs text-surface-400">
                 All {roundPlayers.length} round players will be added to this game.
               </p>
+
+              {gameType === 'best_ball_2_random' && (
+                <p className="rounded-md bg-golf-900/20 border border-golf-600/30 p-2.5 text-xs text-surface-300">
+                  Teams aren&apos;t set now. Once everyone has finished, draw random
+                  2-man teams from the <span className="font-medium">Leaderboard</span>.
+                </p>
+              )}
 
               {error && (
                 <div className="rounded-md bg-red-900/30 p-3 text-sm text-red-400">

@@ -8,6 +8,7 @@ import {
   computeStanding,
   formatToPar,
 } from './shared';
+import { BestBallSection } from './best-ball-section';
 
 interface LeaderboardViewProps {
   round: PlayRound;
@@ -145,6 +146,8 @@ export function LeaderboardView({ round, scores }: LeaderboardViewProps) {
           })}
         </div>
       )}
+
+      {round.bestBall && <BestBallSection round={round} scores={scores} />}
 
       <p className="px-1 text-[11px] text-surface-500">
         {basis === 'net'

@@ -8,6 +8,8 @@ import type {
   PlayHole,
   PlayPlayer,
   PlayTeeGroup,
+  BestBallGame,
+  BestBallTeam,
 } from '@/components/play/shared';
 
 interface PlayPageProps {
@@ -30,6 +32,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
       `
       id,
       course_id,
+      group_id,
       status,
       round_date,
       created_by,
@@ -109,7 +112,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
   // default to net (amateur play) unless every game is explicitly gross.
   const { data: gamesData } = await supabase
     .from('games')
-    .select('config')
+    .select('id, format, config, status')
     .eq('round_id', roundId);
   const anyNet = (gamesData ?? []).some(
     (g: any) => (g?.config?.useNet ?? true) !== false
@@ -170,6 +173,56 @@ export default async function PlayPage({ params }: PlayPageProps) {
     };
   });
 
+  // The "2-Man Best Ball — Random Teams" game (if the Commish added one), with
+  // its drawn teams. Members map back into the PlayPlayer.id space.
+  const bbGameRow = (gamesData ?? []).find(
+    (g: any) => g.format === 'best_ball_2' && g?.config?.randomTeams === true
+  );
+  let bestBall: BestBallGame | null = null;
+  if (bbGameRow) {
+    const { data: teamRows } = await supabase
+      .from('game_teams')
+      .select('id, team_name, team_order, game_players ( player_id, round_player_id )')
+      .eq('game_id', (bbGameRow as any).id)
+      .order('team_order');
+    const teams: BestBallTeam[] = (teamRows ?? []).map((t: any) => ({
+      teamId: t.id,
+      teamName: t.team_name,
+      teamOrder: t.team_order ?? 0,
+      playerIds: (t.game_players ?? []).map(
+        (gp: any) =>
+          gp.player_id ?? rpIdToPlayerId.get(gp.round_player_id) ?? gp.round_player_id
+      ),
+    }));
+    const cfg = ((bbGameRow as any).config ?? {}) as Record<string, any>;
+    bestBall = {
+      gameId: (bbGameRow as any).id,
+      status: (bbGameRow as any).status,
+      payout: (cfg.payout as BestBallGame['payout']) ?? null,
+      handicapAllowance:
+        typeof cfg.handicapAllowance === 'number' ? cfg.handicapAllowance : 0.9,
+      teams,
+    };
+  }
+
+  // Who may draw/redraw teams — mirror can_finalize_round (creator, scorekeeper,
+  // or group admin). The RPC is authoritative; this just gates button visibility.
+  let isGroupAdmin = false;
+  if (user && (roundData as any).group_id) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', (roundData as any).group_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    isGroupAdmin = membership?.role === 'admin';
+  }
+  const canGenerateTeams =
+    !!user &&
+    ((roundData as any).created_by === user.id ||
+      (roundData as any).scorekeeper_id === user.id ||
+      isGroupAdmin);
+
   const round: PlayRound = {
     id: roundData.id,
     courseName: (roundData.courses as any)?.name ?? 'Unknown Course',
@@ -186,6 +239,8 @@ export default async function PlayPage({ params }: PlayPageProps) {
     confirmed: !!(roundData as any).confirmed_at,
     scoringMode: (roundData as any).scoring_mode ?? null,
     scorekeeperId: (roundData as any).scorekeeper_id ?? null,
+    bestBall,
+    canGenerateTeams,
   };
 
   return <PlayView round={round} initialScores={initialScores} />;

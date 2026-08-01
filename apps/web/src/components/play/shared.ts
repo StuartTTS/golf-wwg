@@ -2,6 +2,8 @@
 // (Leaderboard / Group Scorecard / Score Entry). Kept separate from the
 // legacy scorecard-view so nothing existing breaks.
 
+import type { PayoutConfig } from '@golf/core';
+
 export type FairwayMiss = 'left' | 'right';
 export type GreenMiss = 'short' | 'long' | 'left' | 'right';
 
@@ -53,6 +55,22 @@ export interface PlayScore {
   upAndDown: boolean | null;
 }
 
+export interface BestBallTeam {
+  teamId: string;
+  teamName: string;
+  teamOrder: number;
+  /** Member ids in the PlayPlayer.id space (user_id for members, rp.id for guests). */
+  playerIds: string[];
+}
+
+export interface BestBallGame {
+  gameId: string;
+  status: 'pending' | 'active' | 'finalized';
+  payout: PayoutConfig | null;
+  handicapAllowance: number;
+  teams: BestBallTeam[];
+}
+
 export interface PlayRound {
   id: string;
   courseName: string;
@@ -74,6 +92,10 @@ export interface PlayRound {
   scoringMode: string | null;
   /** The designated whole-round scorekeeper (profile id), when scoringMode is 'scorekeeper'. */
   scorekeeperId: string | null;
+  /** The 2-man best-ball "random teams" game on this round, if one was added. */
+  bestBall: BestBallGame | null;
+  /** Current user may draw/redraw teams (creator, scorekeeper, or group admin). */
+  canGenerateTeams: boolean;
 }
 
 /**
