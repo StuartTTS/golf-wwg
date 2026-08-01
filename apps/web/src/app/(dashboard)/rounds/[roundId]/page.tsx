@@ -12,9 +12,8 @@ import {
 import { featureFlags } from '@/lib/feature-flags';
 import { AddGuestForm } from '@/components/rounds/add-guest-form';
 import { RegistrationCard } from '@/components/rounds/registration-card';
-import TeeAssignmentCard from '@/components/rounds/tee-assignment-card';
 import CourseTeeCard from '@/components/rounds/course-tee-card';
-import TeeTimeGroupManager from '@/components/rounds/tee-time-group-manager';
+import RoundLineupCard from '@/components/rounds/round-lineup-card';
 import { ShareGameButton } from '@/components/rounds/share-game-button';
 import { DeleteRoundButton } from '@/components/rounds/delete-round-button';
 
@@ -94,15 +93,6 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
     .select('id, name, tee_time, sort_order')
     .eq('round_id', roundId)
     .order('sort_order');
-
-  // Build player-to-group map from round_players
-  const playerGroupMap: Record<string, string> = {};
-  players?.forEach((p) => {
-    const pid = p.user_id || p.id; // user_id for members, id for guests
-    if (p.tee_time_group_id) {
-      playerGroupMap[pid] = p.tee_time_group_id;
-    }
-  });
 
   // Check if current user is group admin
   let isGroupAdmin = false;
@@ -200,34 +190,20 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       };
     });
 
-  // Build props for Tee Assignment Card
-  const playerTeesData = (players ?? [])
-    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
-    .map(rp => {
-      const memberData = (allGroupMembers ?? []).find(gm => gm.user_id === rp.user_id);
-      const memberProfile = memberData?.profiles as any;
-      return {
-        roundPlayerId: rp.id,
-        displayName: rp.user_id
-          ? (rp as any).profile?.display_name ?? 'Unknown'
-          : rp.guest_name ?? 'Guest',
-        teeBoxId: rp.tee_box_id,
-        isGuest: !rp.user_id,
-        defaultTeeTier: memberProfile?.default_tee_tier ?? null,
-      };
-    });
-
-  // Build props for TeeTimeGroupManager
-  const groupManagerPlayers = (players ?? [])
+  // Unified lineup: each player once, with their tee + current group. Feeds the
+  // combined RoundLineupCard (replaces the separate tee + tee-time-group cards).
+  const lineupPlayers = (players ?? [])
     .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
     .map(rp => ({
-      id: rp.user_id ?? rp.id,
+      roundPlayerId: rp.id,
+      playerId: rp.user_id ?? rp.id,
       displayName: rp.user_id
         ? (rp as any).profile?.display_name ?? 'Unknown'
         : rp.guest_name ?? 'Guest',
       isGuest: !rp.user_id,
+      teeBoxId: rp.tee_box_id,
+      groupId: rp.tee_time_group_id ?? null,
       courseHandicap: rp.course_handicap ?? null,
-      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
     }));
 
   // Fetch scores for leaderboard (only if round has started)
@@ -517,22 +493,14 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             courseTeeBoxes={(courseTeeBoxes ?? []).map(tb => ({ id: tb.id, tier: tb.tier }))}
           />
 
-          <TeeAssignmentCard
+          <RoundLineupCard
             roundId={round.id}
             roundStatus={round.status}
-            defaultTeeBoxId={round.tee_box_id}
             teeBoxes={courseTeeBoxes ?? []}
-            players={playerTeesData}
+            defaultTeeBoxId={round.tee_box_id}
+            players={lineupPlayers}
+            existingGroups={teeTimeGroups ?? []}
           />
-
-          {round.status !== 'completed' && (
-            <TeeTimeGroupManager
-              roundId={round.id}
-              players={groupManagerPlayers}
-              existingGroups={teeTimeGroups ?? []}
-              playerGroupMap={playerGroupMap}
-            />
-          )}
         </div>
       )}
 
