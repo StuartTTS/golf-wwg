@@ -128,15 +128,21 @@ export async function createGameTimeRound(input: {
     return { error: 'Could not start game' };
   }
 
-  // Seat everyone in one foursome so any player can keep score / take it over
-  // (same-foursome scoring is RLS-allowed; the scorer is self-claimable). The
-  // Commish can split into multiple foursomes later. Non-fatal if it fails.
-  const { data: foursome } = await supabase
-    .from('tee_time_groups')
-    .insert({ round_id: round.id, name: 'Group 1', sort_order: 0 })
-    .select('id')
-    .single();
-  const foursomeId = foursome?.id ?? null;
+  // A single foursome (≤5 total) is auto-created and seated so any of those
+  // players can keep score without the Commish first setting up groups. LARGER
+  // games are left ungrouped so the Commish can split them into foursomes on the
+  // round page — otherwise everyone gets lumped into one group and there's
+  // nothing left in the "Ungrouped" pool to place. Non-fatal if it fails.
+  const selectedCount = parsed.data.rosterPlayerIds.filter(Boolean).length;
+  let foursomeId: string | null = null;
+  if (selectedCount + 1 <= 5) {
+    const { data: foursome } = await supabase
+      .from('tee_time_groups')
+      .insert({ round_id: round.id, name: 'Group 1', sort_order: 0 })
+      .select('id')
+      .single();
+    foursomeId = foursome?.id ?? null;
+  }
 
   // Creator plays too.
   const { data: me } = await supabase
