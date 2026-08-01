@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { updatePlayerTee, bulkUpdatePlayerTees } from '@/lib/actions/tee-assignments';
 import { saveTeeTimeGroups } from '@/lib/actions/tee-time-groups';
+import { orderTeesByGender } from '@/lib/tees';
 
 interface TeeBox {
   id: string;
@@ -75,6 +76,9 @@ export default function RoundLineupCard({
   const [tempSeq, setTempSeq] = useState(1);
   const [defaultTee, setDefaultTee] = useState(defaultTeeBoxId);
   const [error, setError] = useState<string | null>(null);
+
+  // Men's tees first, then women's, for courses that mark them "(M)"/"(W)".
+  const orderedTees = useMemo(() => orderTeesByGender(teeBoxes), [teeBoxes]);
 
   const teeLabel = (t: TeeBox) => `${t.name} (${t.course_rating}/${t.slope_rating})`;
 
@@ -171,7 +175,7 @@ export default function RoundLineupCard({
                   onChange={(e) => setDefaultTee(e.target.value)}
                   className="flex-1 min-w-0 bg-surface-700 text-sm text-surface-100 rounded-md border border-surface-600 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-golf-500"
                 >
-                  {teeBoxes.map((t) => (
+                  {orderedTees.map((t) => (
                     <option key={t.id} value={t.id}>{teeLabel(t)}</option>
                   ))}
                 </select>
@@ -251,7 +255,7 @@ export default function RoundLineupCard({
                       onChange={(e) => setTees((t) => ({ ...t, [p.roundPlayerId]: e.target.value }))}
                       className="min-w-0 bg-surface-700 text-sm text-surface-100 rounded-md border border-surface-600 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-golf-500"
                     >
-                      {teeBoxes.map((t) => (
+                      {orderedTees.map((t) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>

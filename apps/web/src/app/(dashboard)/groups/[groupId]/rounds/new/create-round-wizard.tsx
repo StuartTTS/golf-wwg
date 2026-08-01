@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createRound } from '@/lib/actions/rounds';
+import { orderTeesByGender } from '@/lib/tees';
 import {
   Card,
   CardHeader,
@@ -85,7 +86,9 @@ export default function CreateRoundWizard({
       setDefaultTeeBoxId('');
       return;
     }
-    const filtered = allTeeBoxes.filter((t) => t.course_id === selectedCourseId);
+    const filtered = orderTeesByGender(
+      allTeeBoxes.filter((t) => t.course_id === selectedCourseId)
+    );
     setTeeBoxes(filtered);
     if (filtered.length > 0) {
       setDefaultTeeBoxId(filtered[0].id);
