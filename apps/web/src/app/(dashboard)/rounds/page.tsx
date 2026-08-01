@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { Card, CardHeader, CardTitle, CardDescription, Badge } from '@/components/ui';
+import { DeleteRoundButton } from '@/components/rounds/delete-round-button';
 
 export const metadata = { title: 'Rounds | Golf App' };
 
@@ -10,49 +11,59 @@ interface RoundRow {
   round_date: string;
   tee_time: string | null;
   status: 'upcoming' | 'in_progress' | 'completed';
+  created_by: string;
   course: { name: string } | null;
   group: { name: string } | null;
 }
 
-function RoundCard({ round }: { round: RoundRow }) {
+function RoundCard({ round, canDelete }: { round: RoundRow; canDelete: boolean }) {
   return (
-    <Link href={`/rounds/${round.id}`} className="block">
-      <Card className="transition-shadow hover:shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between py-4">
-          <div>
-            <CardTitle className="text-base">
-              {(round.course as any)?.name ?? 'Unknown Course'}
-            </CardTitle>
-            <CardDescription>
-              {(round.group as any)?.name ? `${(round.group as any).name} · ` : ''}
-              {new Date(round.round_date).toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-              {round.tee_time && ` at ${round.tee_time}`}
-            </CardDescription>
-          </div>
-          <Badge
-            variant={
-              round.status === 'in_progress'
-                ? 'secondary'
-                : round.status === 'completed'
-                  ? 'default'
-                  : 'outline'
-            }
-            className="capitalize whitespace-nowrap"
-          >
-            {round.status?.replace('_', ' ')}
-          </Badge>
-        </CardHeader>
-      </Card>
-    </Link>
+    <div className="flex items-center gap-2">
+      <Link href={`/rounds/${round.id}`} className="block flex-1 min-w-0">
+        <Card className="transition-shadow hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between py-4">
+            <div className="min-w-0">
+              <CardTitle className="text-base truncate">
+                {(round.course as any)?.name ?? 'Unknown Course'}
+              </CardTitle>
+              <CardDescription>
+                {(round.group as any)?.name ? `${(round.group as any).name} · ` : ''}
+                {new Date(round.round_date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+                {round.tee_time && ` at ${round.tee_time}`}
+              </CardDescription>
+            </div>
+            <Badge
+              variant={
+                round.status === 'in_progress'
+                  ? 'secondary'
+                  : round.status === 'completed'
+                    ? 'default'
+                    : 'outline'
+              }
+              className="capitalize whitespace-nowrap"
+            >
+              {round.status?.replace('_', ' ')}
+            </Badge>
+          </CardHeader>
+        </Card>
+      </Link>
+      {canDelete && (
+        <DeleteRoundButton
+          roundId={round.id}
+          courseName={(round.course as any)?.name}
+          variant="link"
+        />
+      )}
+    </div>
   );
 }
 
-function Section({ title, rounds }: { title: string; rounds: RoundRow[] }) {
+function Section({ title, rounds, userId }: { title: string; rounds: RoundRow[]; userId: string }) {
   if (rounds.length === 0) return null;
   return (
     <section>
@@ -61,7 +72,7 @@ function Section({ title, rounds }: { title: string; rounds: RoundRow[] }) {
       </h2>
       <div className="space-y-3">
         {rounds.map((r) => (
-          <RoundCard key={r.id} round={r} />
+          <RoundCard key={r.id} round={r} canDelete={r.created_by === userId} />
         ))}
       </div>
     </section>
@@ -79,7 +90,7 @@ export default async function RoundsPage() {
   const { data } = await supabase
     .from('rounds')
     .select(
-      'id, round_date, tee_time, status, course:courses(name), group:groups(name), round_players!inner(user_id)'
+      'id, round_date, tee_time, status, created_by, course:courses(name), group:groups(name), round_players!inner(user_id)'
     )
     .eq('round_players.user_id', user.id)
     .order('round_date', { ascending: false })
@@ -109,9 +120,9 @@ export default async function RoundsPage() {
         </Card>
       ) : (
         <>
-          <Section title="In progress" rounds={inProgress} />
-          <Section title="Upcoming" rounds={upcoming} />
-          <Section title="Completed" rounds={completed} />
+          <Section title="In progress" rounds={inProgress} userId={user.id} />
+          <Section title="Upcoming" rounds={upcoming} userId={user.id} />
+          <Section title="Completed" rounds={completed} userId={user.id} />
         </>
       )}
     </div>

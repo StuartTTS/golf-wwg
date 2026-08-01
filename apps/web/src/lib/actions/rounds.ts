@@ -327,6 +327,49 @@ export async function updateRoundCourse(roundId: string, courseId: string, teeBo
   return { success: true };
 }
 
+// ---- Delete round (Commish / group admin) ---------------------------------
+
+/**
+ * Permanently delete a round and everything hanging off it (players, scores,
+ * games, tee-time groups — all cascade). Authorized for the round creator or a
+ * group admin; the rounds DELETE RLS policy (00003) is the backstop.
+ */
+export async function deleteRound(roundId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('id, created_by, group_id')
+    .eq('id', roundId)
+    .single();
+  if (!round) return { error: 'Round not found' };
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: member } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = member?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Only the Commish or a group admin can delete this round' };
+
+  const { error, count } = await supabase
+    .from('rounds')
+    .delete({ count: 'exact' })
+    .eq('id', roundId);
+  if (error) {
+    console.error('Delete round error:', error);
+    return { error: 'Could not delete the round' };
+  }
+  if (!count) return { error: 'Could not delete the round' };
+  return { success: true };
+}
+
 // ---- Confirmation & lock/unlock (see docs/round-confirmation-lock.md) ------
 
 /** Tier 1: confirm a single scorecard (self / flight scorer / scorekeeper / Commish). */
