@@ -1200,6 +1200,10 @@ export type Database = {
       is_group_admin: { Args: { check_group_id: string }; Returns: boolean }
       is_group_member: { Args: { check_group_id: string }; Returns: boolean }
       join_round_by_code: { Args: { p_code: string }; Returns: string }
+      preview_join_claim: {
+        Args: { p_round_id: string; p_email: string }
+        Returns: string | null
+      }
       score_target_locked: {
         Args: {
           p_player_id: string

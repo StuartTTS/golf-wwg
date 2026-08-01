@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { joinRoundByCode, claimScorer } from '@/lib/actions/rounds';
-import { saveJoinProfile } from '@/lib/actions/profile';
+import { saveJoinProfile, previewJoinClaim } from '@/lib/actions/profile';
 import {
   Card,
   CardHeader,
@@ -43,6 +43,31 @@ export default function JoinView({
   const [hcp, setHcp] = useState(
     profile.handicapIndex != null ? String(profile.handicapIndex) : ''
   );
+
+  // When setting up the profile, confirm (debounced) whether the typed email
+  // matches a spot the organizer already saved for the joiner — so they know
+  // their scores will link up rather than creating a duplicate card.
+  const [matchName, setMatchName] = useState<string | null>(null);
+  useEffect(() => {
+    if (step !== 'profile' || !roundId) {
+      setMatchName(null);
+      return;
+    }
+    const candidate = email.trim();
+    if (candidate.length < 3) {
+      setMatchName(null);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const res = await previewJoinClaim(roundId, candidate);
+      if (!cancelled) setMatchName(res.matchName);
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [email, step, roundId]);
 
   async function handleJoin() {
     const c = code.trim().toUpperCase();
@@ -170,6 +195,15 @@ export default function JoinView({
                 onChange={(e: any) => setEmail(e.target.value)}
                 placeholder="you@example.com"
               />
+              {matchName ? (
+                <p className="mt-1.5 flex items-start gap-1.5 text-xs text-golf-400">
+                  <span aria-hidden="true">✓</span>
+                  <span>
+                    We found {matchName}&apos;s spot — your scores will link to
+                    it. Use a different email and you&apos;ll show up separately.
+                  </span>
+                </p>
+              ) : null}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

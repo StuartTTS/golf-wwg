@@ -50,3 +50,30 @@ export async function saveJoinProfile(input: JoinProfileInput) {
 
   return { success: true };
 }
+
+/**
+ * Join UX hint: given a round the caller just joined and a candidate email,
+ * return the name of the unlinked guest spot in that round that this email would
+ * link to (via claim_roster_by_email), or null. Lets the join screen reassure
+ * the player that their scores will merge before they save. Best-effort.
+ */
+export async function previewJoinClaim(roundId: string, email: string) {
+  const trimmed = email.trim();
+  if (!roundId || trimmed.length < 3) return { matchName: null };
+
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { matchName: null };
+
+  const { data, error } = await supabase.rpc('preview_join_claim', {
+    p_round_id: roundId,
+    p_email: trimmed,
+  });
+  if (error) {
+    console.error('Preview join claim error:', error);
+    return { matchName: null };
+  }
+  return { matchName: (data as string | null) ?? null };
+}
