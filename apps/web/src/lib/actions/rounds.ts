@@ -358,15 +358,21 @@ export async function deleteRound(roundId: string) {
   }
   if (!authorized) return { error: 'Only the Commish or a group admin can delete this round' };
 
-  const { error, count } = await supabase
+  // .select() returns the deleted row(s): reliable success signal under RLS
+  // (empty if a policy blocked it). Counting via { count } can come back null
+  // on a successful delete and falsely report failure.
+  const { data: deleted, error } = await supabase
     .from('rounds')
-    .delete({ count: 'exact' })
-    .eq('id', roundId);
+    .delete()
+    .eq('id', roundId)
+    .select('id');
   if (error) {
     console.error('Delete round error:', error);
     return { error: 'Could not delete the round' };
   }
-  if (!count) return { error: 'Could not delete the round' };
+  if (!deleted || deleted.length === 0) {
+    return { error: 'Could not delete the round' };
+  }
   return { success: true };
 }
 
