@@ -339,40 +339,19 @@ export async function deleteRound(roundId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  const { data: round } = await supabase
-    .from('rounds')
-    .select('id, created_by, group_id')
-    .eq('id', roundId)
-    .single();
-  if (!round) return { error: 'Round not found' };
-
-  let authorized = round.created_by === user.id;
-  if (!authorized) {
-    const { data: member } = await supabase
-      .from('group_members')
-      .select('role')
-      .eq('group_id', round.group_id)
-      .eq('user_id', user.id)
-      .single();
-    authorized = member?.role === 'admin';
-  }
-  if (!authorized) return { error: 'Only the Commish or a group admin can delete this round' };
-
-  // .select() returns the deleted row(s): reliable success signal under RLS
-  // (empty if a policy blocked it). Counting via { count } can come back null
-  // on a successful delete and falsely report failure.
-  const { data: deleted, error } = await supabase
-    .from('rounds')
-    .delete()
-    .eq('id', roundId)
-    .select('id');
+  // delete_round RPC authorizes (creator/admin) and deletes with definer rights,
+  // so the result doesn't depend on RLS RETURNING/count quirks. Returns true when
+  // a row was deleted, false if the round was already gone.
+  const { data, error } = await supabase.rpc('delete_round', { p_round_id: roundId });
   if (error) {
     console.error('Delete round error:', error);
-    return { error: 'Could not delete the round' };
+    return {
+      error: String(error.message ?? '').includes('Only the Commish')
+        ? 'Only the Commish or a group admin can delete this round'
+        : 'Could not delete the round',
+    };
   }
-  if (!deleted || deleted.length === 0) {
-    return { error: 'Could not delete the round' };
-  }
+  if (data === false) return { error: 'That round no longer exists.' };
   return { success: true };
 }
 
