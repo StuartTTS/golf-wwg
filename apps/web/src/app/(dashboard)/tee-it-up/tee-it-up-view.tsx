@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSoloRound } from '@/lib/actions/rounds';
+import { orderTeesByGender } from '@/lib/tees';
 import { useSupabase } from '@/providers/supabase-provider';
 import {
   Card,
@@ -75,7 +76,7 @@ export default function TeeItUpView({
   const [error, setError] = useState<string | null>(null);
 
   const courseTees = useMemo(
-    () => teeBoxes.filter((t) => t.course_id === courseId),
+    () => orderTeesByGender(teeBoxes.filter((t) => t.course_id === courseId)),
     [teeBoxes, courseId]
   );
   const selectedCourse = useMemo(

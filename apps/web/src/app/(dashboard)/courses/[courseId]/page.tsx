@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { orderTeesByGender } from '@/lib/tees';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -90,6 +91,9 @@ export default async function CourseDetailPage({
   typedCourse.tee_boxes.forEach((tb) => {
     tb.holes.sort((a, b) => a.hole_number - b.hole_number);
   });
+
+  // Group men's tees before women's for courses that mark them "(M)"/"(W)".
+  typedCourse.tee_boxes = orderTeesByGender(typedCourse.tee_boxes);
 
   const primaryTee = typedCourse.tee_boxes[0];
   const totalPar = primaryTee
