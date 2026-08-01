@@ -104,6 +104,31 @@ export async function createGame(input: {
   return { success: true, gameId: game.id };
 }
 
+/**
+ * Commish (round creator / scorekeeper / group admin) randomly draws 2-man
+ * best-ball teams into an existing "random teams" game. Authorization and the
+ * all-scores-recorded gate are enforced inside the generate_best_ball_teams RPC.
+ * Re-draw is allowed until the game is finalized.
+ */
+export async function generateBestBallTeams(input: {
+  gameId: string;
+  oddMode: 'leave_out' | 'team_of_3';
+}) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data, error } = await supabase.rpc('generate_best_ball_teams', {
+    p_game_id: input.gameId,
+    p_odd_mode: input.oddMode,
+  });
+  if (error) {
+    console.error('Generate best ball teams error:', error);
+    return { error: error.message };
+  }
+  return { success: true, teamCount: data as number };
+}
+
 export async function finalizeGame(gameId: string, results: Record<string, unknown>) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();

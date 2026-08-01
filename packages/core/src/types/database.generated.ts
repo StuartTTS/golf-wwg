@@ -900,6 +900,7 @@ export type Database = {
           hole_number: number
           id: string
           penalties: number | null
+          pickup: boolean
           player_id: string | null
           putts: number | null
           round_id: string
@@ -919,6 +920,7 @@ export type Database = {
           hole_number: number
           id?: string
           penalties?: number | null
+          pickup?: boolean
           player_id?: string | null
           putts?: number | null
           round_id: string
@@ -938,6 +940,7 @@ export type Database = {
           hole_number?: number
           id?: string
           penalties?: number | null
+          pickup?: boolean
           player_id?: string | null
           putts?: number | null
           round_id?: string
@@ -1196,6 +1199,15 @@ export type Database = {
       ensure_round_share_code: { Args: { p_round_id: string }; Returns: string }
       finalize_round: { Args: { p_round_id: string }; Returns: undefined }
       gen_share_code: { Args: never; Returns: string }
+      generate_best_ball_teams: {
+        Args: { p_game_id: string; p_odd_mode: string }
+        Returns: number
+      }
+      round_scores_complete: { Args: { p_round_id: string }; Returns: boolean }
+      insert_game_player: {
+        Args: { p_game: string; p_team: string; p_rp_id: string }
+        Returns: undefined
+      }
       get_or_create_personal_group: { Args: never; Returns: string }
       is_group_admin: { Args: { check_group_id: string }; Returns: boolean }
       is_group_member: { Args: { check_group_id: string }; Returns: boolean }
