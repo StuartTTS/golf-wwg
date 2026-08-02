@@ -24,6 +24,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         tee_box_id,
         guest_name,
         guest_handicap_index,
+        course_handicap,
         profiles:profiles!round_players_user_id_fkey ( id, display_name, current_handicap_index )
       )
     `)
@@ -69,7 +70,11 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       const grossTotal = playerScores.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
       const frontNine = frontScores.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
       const backNine = backScores.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
+      // Displayed HCP is the player's index; NET uses their COURSE handicap
+      // (index × slope ÷ 113) — the same number the games use — so net is
+      // consistent everywhere.
       const handicap = prof?.current_handicap_index ?? rp.guest_handicap_index ?? null;
+      const courseHandicap = rp.course_handicap ?? null;
 
       return {
         playerId: prof?.id ?? rp.id,
@@ -78,7 +83,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         holesPlayed,
         grossTotal,
         // Blank net / to-par until they've actually posted scores.
-        netTotal: holesPlayed > 0 ? grossTotal - (handicap ?? 0) : null,
+        netTotal: holesPlayed > 0 ? grossTotal - (courseHandicap ?? 0) : null,
         frontNine,
         backNine,
         toPar: holesPlayed > 0 ? grossTotal - totalPar : null,
