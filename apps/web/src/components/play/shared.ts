@@ -96,6 +96,8 @@ export interface PlayRound {
   bestBall: BestBallGame | null;
   /** Current user may draw/redraw teams (creator, scorekeeper, or group admin). */
   canGenerateTeams: boolean;
+  /** An individual Low Net game on this round, if one was added. */
+  lowNet: { gameId: string; payout: PayoutConfig | null } | null;
 }
 
 /**

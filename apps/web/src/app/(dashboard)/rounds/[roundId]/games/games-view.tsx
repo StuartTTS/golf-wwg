@@ -46,6 +46,7 @@ const GAME_TYPE_LABELS: Record<string, string> = {
   wolf: 'Wolf',
   best_ball: 'Best Ball',
   best_ball_2_random: '2-Man Best Ball (Random Teams)',
+  low_net: 'Low Net',
   progressive_best_ball: 'Progressive Best Ball',
   stableford: 'Stableford',
   match_play: 'Match Play',
@@ -59,6 +60,7 @@ const GAME_TYPES = [
   { value: 'wolf', label: 'Wolf', description: 'Choose partners or go lone wolf' },
   { value: 'best_ball', label: 'Best Ball', description: 'Team best score on each hole' },
   { value: 'best_ball_2_random', label: '2-Man Best Ball (Random Teams)', description: 'Random 2-man teams drawn after the round; best net ball counts' },
+  { value: 'low_net', label: 'Low Net', description: 'Lowest net score wins; pays the top finishers' },
   { value: 'progressive_best_ball', label: 'Progressive Best Ball', description: 'Best ball with increasing balls counting per segment' },
   { value: 'stableford', label: 'Stableford', description: 'Points-based scoring system', comingSoon: true },
   { value: 'match_play', label: 'Match Play', description: 'Win individual holes' },
@@ -471,7 +473,9 @@ function AddGameModal({
     const format = isRandomBB ? 'best_ball_2' : gameType;
     const gameConfig = isRandomBB
       ? { ...config, payout, randomTeams: true, useNet: true, countBest: 1, handicapAllowance: 0.9 }
-      : { ...config, payout };
+      : gameType === 'low_net'
+        ? { ...config, payout, useNet: true }
+        : { ...config, payout };
 
     try {
       setCreating(true);
