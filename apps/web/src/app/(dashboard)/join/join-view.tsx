@@ -8,6 +8,7 @@ import {
   previewJoinClaim,
   claimGuestSpot,
   getUnclaimedSpots,
+  autoMatchRoster,
 } from '@/lib/actions/profile';
 import {
   Card,
@@ -118,11 +119,13 @@ export default function JoinView({
         return;
       }
       setRoundId(res.roundId);
-      // New joiners complete their profile first; established players may claim a
-      // pre-added spot, then the scorer question.
+      // New joiners complete their profile first (saveJoinProfile auto-matches).
+      // Established accounts skip that, so run the phone-or-email auto-match here
+      // before falling back to the manual "claim your spot" step.
       if (!profile.completed) {
         setStep('profile');
       } else {
+        await autoMatchRoster();
         await goAfter(res.roundId);
       }
     } catch (e) {
