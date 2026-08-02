@@ -84,55 +84,47 @@ export default function ResultsView({ results }: ResultsViewProps) {
           <CardTitle className="text-lg">Final Scores</CardTitle>
         </CardHeader>
         <div className="px-4 pb-4">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 text-xs font-semibold text-surface-300 uppercase tracking-wide pb-2 border-b border-surface-500">
-            <span>Player</span>
-            <span className="w-12 text-center">OUT</span>
-            <span className="w-12 text-center">IN</span>
-            <span className="w-14 text-center">Gross</span>
-            <span className="w-14 text-center">Net</span>
+          {/* Table header — a fixed spacer over the rank badge keeps the number
+              columns aligned with the rows below. */}
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-surface-300 uppercase tracking-wide pb-2 border-b border-surface-500">
+            <span className="w-6 shrink-0" aria-hidden="true" />
+            <span className="flex-1 min-w-0">Player</span>
+            <span className="w-9 text-right shrink-0">Out</span>
+            <span className="w-9 text-right shrink-0">In</span>
+            <span className="w-11 text-right shrink-0">Gross</span>
+            <span className="w-11 text-right shrink-0">Net</span>
           </div>
 
           <div className="divide-y divide-surface-600">
             {results.players.map((player) => (
-              <div
-                key={player.playerId}
-                className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 items-center py-3"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`
-                      w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                      ${
-                        player.position === 1
-                          ? 'bg-gold-500/20 text-gold-500'
-                          : 'bg-surface-700 text-surface-300'
-                      }
-                    `}
-                  >
-                    {player.position}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-surface-50">
-                      {player.displayName}
-                    </p>
-                    {player.handicap !== null && (
-                      <p className="text-xs text-surface-400">
-                        HCP {player.handicap}
-                      </p>
-                    )}
-                  </div>
+              <div key={player.playerId} className="flex items-center gap-1 py-3">
+                <span
+                  className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
+                    player.position === 1
+                      ? 'bg-gold-500/20 text-gold-500'
+                      : 'bg-surface-700 text-surface-300'
+                  }`}
+                >
+                  {player.position}
+                </span>
+                <div className="flex-1 min-w-0 pr-1">
+                  <p className="text-sm font-medium text-surface-50 truncate">
+                    {player.displayName}
+                  </p>
+                  {player.handicap !== null && (
+                    <p className="text-xs text-surface-400">HCP {player.handicap}</p>
+                  )}
                 </div>
-                <span className="w-12 text-center text-sm tabular-nums text-surface-100">
+                <span className="w-9 text-right text-sm tabular-nums text-surface-100 shrink-0">
                   {player.frontNine || '-'}
                 </span>
-                <span className="w-12 text-center text-sm tabular-nums text-surface-100">
+                <span className="w-9 text-right text-sm tabular-nums text-surface-100 shrink-0">
                   {player.backNine || '-'}
                 </span>
-                <span className="w-14 text-center text-sm font-bold tabular-nums text-surface-50">
+                <span className="w-11 text-right text-sm font-bold tabular-nums text-surface-50 shrink-0">
                   {player.grossTotal || '-'}
                 </span>
-                <span className="w-14 text-center text-sm tabular-nums text-surface-200">
+                <span className="w-11 text-right text-sm tabular-nums text-surface-200 shrink-0">
                   {player.netTotal ?? '-'}
                 </span>
               </div>
