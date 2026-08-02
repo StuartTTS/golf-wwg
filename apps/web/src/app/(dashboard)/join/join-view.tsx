@@ -38,14 +38,26 @@ export default function JoinView({
   const router = useRouter();
   const [step, setStep] = useState<'code' | 'profile' | 'claim' | 'scorer'>('code');
   const [roundId, setRoundId] = useState<string | null>(null);
-  const [spots, setSpots] = useState<{ id: string; guest_name: string }[]>([]);
+  const [spots, setSpots] = useState<
+    { id: string; guest_name: string; handicap: number | null }[]
+  >([]);
   // The spot the joiner tapped, awaiting an explicit "yes, that's me" — claiming
   // merges accounts, so we confirm to avoid grabbing the wrong person's spot.
   const [pendingClaim, setPendingClaim] = useState<{
     id: string;
     name: string;
     matched?: boolean;
+    handicap?: number | null;
   } | null>(null);
+  // Handicap on the confirm step, prefilled with the organizer's assigned value.
+  const [claimHcp, setClaimHcp] = useState('');
+  useEffect(() => {
+    if (pendingClaim) {
+      setClaimHcp(
+        pendingClaim.handicap != null ? String(pendingClaim.handicap) : ''
+      );
+    }
+  }, [pendingClaim]);
 
   const [code, setCode] = useState(initialCode);
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +100,9 @@ export default function JoinView({
   // the joiner is a group member, which join_round_by_code makes them). This is
   // a best-effort convenience — it must NEVER block or hang the join, so it's
   // wrapped in a timeout + try/catch and any failure just falls through.
-  async function fetchSpots(rId: string): Promise<{ id: string; guest_name: string }[]> {
+  async function fetchSpots(
+    rId: string
+  ): Promise<{ id: string; guest_name: string; handicap: number | null }[]> {
     try {
       const timeout = new Promise<{ spots: [] }>((resolve) =>
         setTimeout(() => resolve({ spots: [] }), 8000)
@@ -107,10 +121,11 @@ export default function JoinView({
   //  2. Otherwise, if there are still unclaimed spots, show the pick-a-name list.
   //  3. Otherwise, straight to the scorer question.
   async function goAfter(rId: string) {
-    const matchTimeout = new Promise<{ spot: null }>((resolve) =>
+    type MatchedSpot = { id: string; name: string; handicap: number | null };
+    const matchTimeout = new Promise<{ spot: MatchedSpot | null }>((resolve) =>
       setTimeout(() => resolve({ spot: null }), 8000)
     );
-    let matched: { id: string; name: string } | null = null;
+    let matched: MatchedSpot | null = null;
     try {
       const res = await Promise.race([getMatchedSpot(rId), matchTimeout]);
       matched = res.spot;
@@ -118,7 +133,12 @@ export default function JoinView({
       console.error('Match lookup failed:', e);
     }
     if (matched) {
-      setPendingClaim({ id: matched.id, name: matched.name, matched: true });
+      setPendingClaim({
+        id: matched.id,
+        name: matched.name,
+        matched: true,
+        handicap: matched.handicap,
+      });
       setStep('claim');
       return;
     }
@@ -209,8 +229,10 @@ export default function JoinView({
   async function claimSpot(id: string) {
     setError(null);
     setSubmitting(true);
+    const parsed = claimHcp.trim() === '' ? null : Number(claimHcp);
+    const hcp = Number.isNaN(parsed as number) ? null : parsed;
     try {
-      const res = await claimGuestSpot(id);
+      const res = await claimGuestSpot(id, hcp);
       if (res?.error) {
         setError(res.error);
         return;
@@ -387,7 +409,9 @@ export default function JoinView({
                 key={s.id}
                 variant="outline"
                 className="w-full flex items-center justify-between"
-                onClick={() => setPendingClaim({ id: s.id, name: s.guest_name })}
+                onClick={() =>
+                  setPendingClaim({ id: s.id, name: s.guest_name, handicap: s.handicap })
+                }
                 disabled={submitting}
               >
                 <span>{s.guest_name}</span>
@@ -431,6 +455,22 @@ export default function JoinView({
             </CardDescription>
           </CardHeader>
           <div className="px-6 pb-6 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-surface-100 mb-1">
+                Your handicap index
+              </label>
+              <Input
+                inputMode="decimal"
+                value={claimHcp}
+                onChange={(e: any) => setClaimHcp(e.target.value)}
+                placeholder="e.g. 12.4"
+              />
+              <p className="mt-1 text-xs text-surface-400">
+                {pendingClaim.handicap != null
+                  ? 'The organizer set this — change it if it’s not right.'
+                  : 'Set your handicap so your net scores are correct.'}
+              </p>
+            </div>
             <Button
               onClick={() => claimSpot(pendingClaim.id)}
               disabled={submitting}
