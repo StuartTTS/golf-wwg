@@ -505,6 +505,17 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             players={lineupPlayers}
             existingGroups={teeTimeGroups ?? []}
           />
+
+          {isCreator && round.status !== 'completed' && (
+            <Card>
+              <div className="px-6 py-4">
+                <AddGuestForm
+                  roundId={round.id}
+                  defaultTeeBoxId={round.tee_box_id ?? ''}
+                />
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
@@ -566,7 +577,9 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
         </Card>
       )}
 
-      {/* Players */}
+      {/* Players — hidden for group admins, who get the richer Lineup card above
+          (tees, foursomes, remove). Regular players still see the roster here. */}
+      {!isGroupAdmin && (
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
@@ -654,6 +667,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
           )}
         </div>
       </Card>
+      )}
 
       {/* Games */}
       {games && games.length > 0 && (
