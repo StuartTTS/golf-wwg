@@ -19,8 +19,11 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       round_date,
       courses ( name ),
       round_players (
+        id,
         user_id,
         tee_box_id,
+        guest_name,
+        guest_handicap_index,
         profiles:profiles!round_players_user_id_fkey ( id, display_name, current_handicap_index )
       )
     `)
@@ -34,7 +37,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   // Fetch all scores for this round
   const { data: scoresData } = await supabase
     .from('scores')
-    .select('player_id, hole_number, strokes')
+    .select('player_id, round_player_id, hole_number, strokes')
     .eq('round_id', roundId);
 
   // Fetch holes info
@@ -50,11 +53,13 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   const holes = holesData ?? [];
   const totalPar = holes.reduce((sum, h) => sum + h.par, 0);
 
-  // Build player results
+  // Build player results. Guests have no linked profile — fall back to their
+  // guest_name/handicap, and key scores by round_player_id (present on every row).
   const playerResults = roundData.round_players
     .map((rp: any) => {
+      const prof = rp.profiles;
       const playerScores = (scoresData ?? []).filter(
-        (s) => s.player_id === rp.profiles.id
+        (s) => s.round_player_id === rp.id
       );
       const frontScores = playerScores.filter((s) => s.hole_number <= 9);
       const backScores = playerScores.filter((s) => s.hole_number > 9);
@@ -70,13 +75,13 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         (sum, s) => sum + (s.strokes ?? 0),
         0
       );
-      const handicap = rp.profiles.current_handicap_index ?? 0;
+      const handicap = prof?.current_handicap_index ?? rp.guest_handicap_index ?? 0;
       const netTotal = grossTotal - handicap;
 
       return {
-        playerId: rp.profiles.id,
-        displayName: rp.profiles.display_name,
-        handicap: rp.profiles.current_handicap_index,
+        playerId: prof?.id ?? rp.id,
+        displayName: prof?.display_name ?? rp.guest_name ?? 'Guest',
+        handicap: prof?.current_handicap_index ?? rp.guest_handicap_index ?? null,
         grossTotal,
         netTotal,
         frontNine,
@@ -88,36 +93,25 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     .sort((a: any, b: any) => a.grossTotal - b.grossTotal)
     .map((p: any, idx: number) => ({ ...p, position: idx + 1 }));
 
-  // Fetch game results
+  // Game standings + payouts aren't persisted yet (per-game results are Phase 5),
+  // so list the games without standings for now — the gross/net leaderboard above
+  // is the live result. Selecting only real columns keeps this from erroring.
   const { data: gamesData } = await supabase
     .from('games')
-    .select(`
-      id,
-      name,
-      type,
-      game_players (
-        player_id,
-        position,
-        score,
-        payout,
-        profiles ( id, display_name )
-      )
-    `)
+    .select('id, name, format')
     .eq('round_id', roundId);
 
   const gameResults = (gamesData ?? []).map((g: any) => ({
     gameId: g.id,
     gameName: g.name,
-    gameType: g.type,
-    standings: (g.game_players ?? [])
-      .sort((a: any, b: any) => a.position - b.position)
-      .map((gp: any) => ({
-        playerId: gp.profiles?.id ?? gp.player_id,
-        displayName: gp.profiles?.display_name ?? 'Unknown',
-        position: gp.position,
-        score: gp.score,
-        payout: gp.payout ?? 0,
-      })),
+    gameType: g.format,
+    standings: [] as {
+      playerId: string;
+      displayName: string;
+      position: number;
+      score: string;
+      payout: number;
+    }[],
   }));
 
   // Calculate settlements
