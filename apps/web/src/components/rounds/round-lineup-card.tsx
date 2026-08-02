@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { updatePlayerTee, bulkUpdatePlayerTees } from '@/lib/actions/tee-assignments';
 import { saveTeeTimeGroups } from '@/lib/actions/tee-time-groups';
+import { removeRoundPlayer } from '@/lib/actions/rounds';
 import { orderTeesByGender } from '@/lib/tees';
 
 interface TeeBox {
@@ -29,6 +30,7 @@ export interface LineupPlayer {
   teeBoxId: string;
   groupId: string | null;
   courseHandicap: number | null;
+  hasScores: boolean;
 }
 interface ExistingGroup {
   id: string;
@@ -108,6 +110,19 @@ export default function RoundLineupCard({
     setGroups((g) => [...g, { key, name: `Group ${g.length + 1}` }]);
   }
 
+  function removePlayer(p: LineupPlayer) {
+    const msg = p.hasScores
+      ? `Remove ${p.displayName}? They've entered scores — those scores and their spot in any games will be permanently deleted.`
+      : `Remove ${p.displayName} from this round? They'll also be removed from any games.`;
+    if (!window.confirm(msg)) return;
+    setError(null);
+    startSave(async () => {
+      const res = await removeRoundPlayer(p.roundPlayerId);
+      if (res.error) return setError(res.error);
+      router.refresh();
+    });
+  }
+
   const counts = useMemo(() => {
     const m: Record<string, number> = {};
     for (const p of players) {
@@ -155,7 +170,7 @@ export default function RoundLineupCard({
       <CardHeader className="px-4 pt-4 pb-0 mb-0">
         <CardTitle className="text-lg">Lineup</CardTitle>
         <p className="text-xs text-surface-400 mt-0.5">
-          Set each player&apos;s tee and foursome, or auto-split.
+          Set each player&apos;s tee and foursome, or auto-split. Tap ✕ to remove a player.
         </p>
       </CardHeader>
 
@@ -244,9 +259,23 @@ export default function RoundLineupCard({
                       {p.displayName}
                       {p.isGuest && <span className="ml-1 text-xs text-surface-400">(G)</span>}
                     </span>
-                    <span className="text-xs text-surface-400 shrink-0">
-                      CH {p.courseHandicap ?? '—'}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-surface-400">
+                        CH {p.courseHandicap ?? '—'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removePlayer(p)}
+                        disabled={saving}
+                        title={`Remove ${p.displayName}`}
+                        aria-label={`Remove ${p.displayName}`}
+                        className="text-surface-500 hover:text-red-400 disabled:opacity-40 p-0.5"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-1.5">
                     <select

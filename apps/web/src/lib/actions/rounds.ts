@@ -1095,6 +1095,28 @@ export async function addGuestToRound(roundId: string, guestName: string, guestH
   return { success: true, roundPlayerId: roundPlayer.id };
 }
 
+/**
+ * Remove any player (registered or guest) from a round by their round_player id.
+ * Delegates to the remove_round_player RPC, which authorizes (creator/admin) and
+ * cascades the player's scores + game memberships. Use for roster fixes such as
+ * clearing a duplicate.
+ */
+export async function removeRoundPlayer(roundPlayerId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data, error } = await supabase.rpc('remove_round_player', {
+    p_round_player_id: roundPlayerId,
+  });
+  if (error) {
+    console.error('Remove round player error:', error);
+    return { error: error.message };
+  }
+  if (!data) return { error: 'Player not found' };
+  return { success: true };
+}
+
 export async function removeGuestFromRound(roundId: string, roundPlayerId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
