@@ -10,7 +10,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { updatePlayerTee, bulkUpdatePlayerTees } from '@/lib/actions/tee-assignments';
+import { updatePlayerTee, bulkUpdatePlayerTees, setRoundPlayerHandicap } from '@/lib/actions/tee-assignments';
 import { saveTeeTimeGroups } from '@/lib/actions/tee-time-groups';
 import { removeRoundPlayer } from '@/lib/actions/rounds';
 import { orderTeesByGender } from '@/lib/tees';
@@ -29,6 +29,7 @@ export interface LineupPlayer {
   isGuest: boolean;
   teeBoxId: string;
   groupId: string | null;
+  handicapIndex: number | null;
   courseHandicap: number | null;
   hasScores: boolean;
 }
@@ -78,6 +79,30 @@ export default function RoundLineupCard({
   const [tempSeq, setTempSeq] = useState(1);
   const [defaultTee, setDefaultTee] = useState(defaultTeeBoxId);
   const [error, setError] = useState<string | null>(null);
+
+  // Editable handicap index per player (roundPlayerId → text). Saved on blur;
+  // the action recomputes course handicap from the player's tee.
+  const [hcps, setHcps] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      players.map((p) => [
+        p.roundPlayerId,
+        p.handicapIndex != null ? String(p.handicapIndex) : '',
+      ])
+    )
+  );
+
+  function saveHcp(p: LineupPlayer) {
+    const raw = (hcps[p.roundPlayerId] ?? '').trim();
+    const value = raw === '' ? null : Number(raw);
+    if (value !== null && Number.isNaN(value)) return;
+    if ((p.handicapIndex ?? null) === (value ?? null)) return; // unchanged
+    setError(null);
+    startSave(async () => {
+      const res = await setRoundPlayerHandicap(roundId, p.roundPlayerId, value);
+      if (res.error) return setError(res.error);
+      router.refresh();
+    });
+  }
 
   // Men's tees first, then women's, for courses that mark them "(M)"/"(W)".
   const orderedTees = useMemo(() => orderTeesByGender(teeBoxes), [teeBoxes]);
@@ -259,8 +284,23 @@ export default function RoundLineupCard({
                       {p.displayName}
                       {p.isGuest && <span className="ml-1 text-xs text-surface-400">(G)</span>}
                     </span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-surface-400">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <label className="flex items-center gap-1 text-xs text-surface-400">
+                        <span>Idx</span>
+                        <input
+                          aria-label={`Handicap index for ${p.displayName}`}
+                          inputMode="decimal"
+                          value={hcps[p.roundPlayerId] ?? ''}
+                          onChange={(e) =>
+                            setHcps((h) => ({ ...h, [p.roundPlayerId]: e.target.value }))
+                          }
+                          onBlur={() => saveHcp(p)}
+                          disabled={saving}
+                          placeholder="—"
+                          className="w-12 bg-surface-700 text-surface-100 text-center rounded-md border border-surface-600 px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-golf-500"
+                        />
+                      </label>
+                      <span className="text-xs text-surface-400 whitespace-nowrap">
                         CH {p.courseHandicap ?? '—'}
                       </span>
                       <button

@@ -243,6 +243,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       isGuest: !rp.user_id,
       teeBoxId: rp.tee_box_id,
       groupId: rp.tee_time_group_id ?? null,
+      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
       courseHandicap: rp.course_handicap ?? null,
       hasScores: scoredRpIds.has(rp.id),
     }));
