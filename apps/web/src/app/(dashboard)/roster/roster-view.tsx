@@ -26,6 +26,12 @@ import {
   Button,
   Input,
 } from '@/components/ui';
+import {
+  RosterPlayerFields,
+  emptyRosterForm,
+  rosterFormFrom,
+  type RosterFormValue,
+} from '@/components/roster/roster-player-fields';
 
 interface Suggestion {
   userId: string;
@@ -115,25 +121,24 @@ export default function RosterView({
   }
 
   // Add form
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [hcp, setHcp] = useState('');
+  const [addForm, setAddForm] = useState<RosterFormValue>(emptyRosterForm());
   const [adding, setAdding] = useState(false);
 
   async function handleAdd() {
-    const displayName = name.trim();
+    const displayName = addForm.name.trim();
     if (displayName.length < 2) {
       setError('Enter a name (at least 2 characters).');
       return;
     }
     setError(null);
     setAdding(true);
-    const handicapIndex = parseHcp(hcp);
+    const handicapIndex = parseHcp(addForm.hcp);
+    const email = addForm.email.trim();
+    const phone = addForm.phone.trim();
     const res = (await addRosterPlayer({
       displayName,
-      email: email.trim() || undefined,
-      phone: phone.trim() || undefined,
+      email: email || undefined,
+      phone: phone || undefined,
       handicapIndex,
     })) as any;
     setAdding(false);
@@ -147,18 +152,15 @@ export default function RosterView({
         {
           id: res.rosterPlayerId,
           displayName,
-          email: email.trim() || null,
-          phone: phone.trim() || null,
+          email: email || null,
+          phone: phone || null,
           linkedUserId: null,
           handicapIndex,
           notes: null,
         },
       ].sort(byName)
     );
-    setName('');
-    setEmail('');
-    setPhone('');
-    setHcp('');
+    setAddForm(emptyRosterForm());
   }
 
   async function handleRemove(id: string) {
@@ -231,32 +233,17 @@ export default function RosterView({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Add a player</CardTitle>
-          <CardDescription>Name is required; email helps them claim their spot later.</CardDescription>
+          <CardDescription>
+            Just a name works. Add a phone or email so they auto-link when they join.
+          </CardDescription>
         </CardHeader>
         <div className="px-6 pb-6 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input placeholder="Name" value={name} onChange={(e: any) => setName(e.target.value)} />
-            <Input
-              placeholder="Handicap (optional)"
-              inputMode="decimal"
-              value={hcp}
-              onChange={(e: any) => setHcp(e.target.value)}
-            />
-            <Input
-              placeholder="Email (optional)"
-              type="email"
-              value={email}
-              onChange={(e: any) => setEmail(e.target.value)}
-            />
-            <Input
-              placeholder="Phone (optional)"
-              type="tel"
-              value={phone}
-              onChange={(e: any) => setPhone(e.target.value)}
-            />
-          </div>
+          <RosterPlayerFields
+            value={addForm}
+            onChange={(patch) => setAddForm((f) => ({ ...f, ...patch }))}
+          />
           <div className="flex justify-end">
-            <Button onClick={handleAdd} disabled={adding || name.trim().length < 2}>
+            <Button onClick={handleAdd} disabled={adding || addForm.name.trim().length < 2}>
               {adding ? 'Adding…' : 'Add to roster'}
             </Button>
           </div>
@@ -376,47 +363,39 @@ function RosterRow({
   onRemove: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(entry.displayName);
-  const [email, setEmail] = useState(entry.email ?? '');
-  const [phone, setPhone] = useState(entry.phone ?? '');
-  const [hcp, setHcp] = useState(entry.handicapIndex?.toString() ?? '');
+  const [form, setForm] = useState<RosterFormValue>(rosterFormFrom(entry));
   const [busy, setBusy] = useState(false);
 
   async function save() {
-    if (name.trim().length < 2) return;
+    if (form.name.trim().length < 2) return;
     setBusy(true);
     const ok = await onSave(entry.id, {
-      displayName: name.trim(),
-      email: email.trim() || null,
-      phone: phone.trim() || null,
-      handicapIndex: parseHcp(hcp),
+      displayName: form.name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      handicapIndex: parseHcp(form.hcp),
     });
     setBusy(false);
     if (ok) setEditing(false);
   }
 
   function cancel() {
-    setName(entry.displayName);
-    setEmail(entry.email ?? '');
-    setPhone(entry.phone ?? '');
-    setHcp(entry.handicapIndex?.toString() ?? '');
+    setForm(rosterFormFrom(entry));
     setEditing(false);
   }
 
   if (editing) {
     return (
       <li className="rounded-xl border border-golf-500/40 bg-surface-800 p-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input placeholder="Name" value={name} onChange={(e: any) => setName(e.target.value)} />
-          <Input placeholder="Handicap" inputMode="decimal" value={hcp} onChange={(e: any) => setHcp(e.target.value)} />
-          <Input placeholder="Email" type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} />
-          <Input placeholder="Phone" type="tel" value={phone} onChange={(e: any) => setPhone(e.target.value)} />
-        </div>
+        <RosterPlayerFields
+          value={form}
+          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+        />
         <div className="flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={cancel} disabled={busy}>
             Cancel
           </Button>
-          <Button size="sm" onClick={save} disabled={busy || name.trim().length < 2}>
+          <Button size="sm" onClick={save} disabled={busy || form.name.trim().length < 2}>
             {busy ? 'Saving…' : 'Save'}
           </Button>
         </div>
