@@ -9,6 +9,7 @@ import {
   formatToPar,
 } from './shared';
 import { BestBallSection } from './best-ball-section';
+import { LowNetSection } from './low-net-section';
 
 interface LeaderboardViewProps {
   round: PlayRound;
@@ -147,6 +148,7 @@ export function LeaderboardView({ round, scores }: LeaderboardViewProps) {
         </div>
       )}
 
+      {round.lowNet && <LowNetSection round={round} scores={scores} />}
       {round.bestBall && <BestBallSection round={round} scores={scores} />}
 
       <p className="px-1 text-[11px] text-surface-500">

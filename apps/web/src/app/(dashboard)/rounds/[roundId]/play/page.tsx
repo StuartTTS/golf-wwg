@@ -205,6 +205,16 @@ export default async function PlayPage({ params }: PlayPageProps) {
     };
   }
 
+  // An individual Low Net game, if one was added (payouts computed from the net
+  // leaderboard on the client).
+  const lnGameRow = (gamesData ?? []).find((g: any) => g.format === 'low_net');
+  const lowNet: PlayRound['lowNet'] = lnGameRow
+    ? {
+        gameId: (lnGameRow as any).id,
+        payout: (((lnGameRow as any).config ?? {}).payout ?? null),
+      }
+    : null;
+
   // Who may draw/redraw teams — mirror can_finalize_round (creator, scorekeeper,
   // or group admin). The RPC is authoritative; this just gates button visibility.
   let isGroupAdmin = false;
@@ -241,6 +251,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
     scorekeeperId: (roundData as any).scorekeeper_id ?? null,
     bestBall,
     canGenerateTeams,
+    lowNet,
   };
 
   return <PlayView round={round} initialScores={initialScores} />;
