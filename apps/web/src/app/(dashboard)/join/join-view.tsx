@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { joinRoundByCode, claimScorer } from '@/lib/actions/rounds';
-import { saveJoinProfile, previewJoinClaim } from '@/lib/actions/profile';
+import { saveJoinProfile, previewJoinClaim, claimGuestSpot } from '@/lib/actions/profile';
+import { useSupabase } from '@/providers/supabase-provider';
 import {
   Card,
   CardHeader,
@@ -29,8 +30,10 @@ export default function JoinView({
   profile: JoinProfile;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<'code' | 'profile' | 'scorer'>('code');
+  const { supabase } = useSupabase();
+  const [step, setStep] = useState<'code' | 'profile' | 'claim' | 'scorer'>('code');
   const [roundId, setRoundId] = useState<string | null>(null);
+  const [spots, setSpots] = useState<{ id: string; guest_name: string }[]>([]);
 
   const [code, setCode] = useState(initialCode);
   const [submitting, setSubmitting] = useState(false);
@@ -69,6 +72,28 @@ export default function JoinView({
     };
   }, [email, step, roundId]);
 
+  // Unclaimed guest spots the organizer pre-added to this round (readable once
+  // the joiner is a group member, which join_round_by_code makes them).
+  async function fetchSpots(rId: string) {
+    if (!supabase) return [];
+    const { data } = await supabase
+      .from('round_players')
+      .select('id, guest_name')
+      .eq('round_id', rId)
+      .is('user_id', null)
+      .not('guest_name', 'is', null);
+    return ((data ?? []) as { id: string; guest_name: string | null }[])
+      .filter((r): r is { id: string; guest_name: string } => !!r.guest_name);
+  }
+
+  // Offer the claim step if the round still has unclaimed guest spots (the email
+  // auto-claim may already have consumed the matching one); else go to scorer.
+  async function goAfter(rId: string) {
+    const s = await fetchSpots(rId);
+    setSpots(s);
+    setStep(s.length > 0 ? 'claim' : 'scorer');
+  }
+
   async function handleJoin() {
     const c = code.trim().toUpperCase();
     if (!c) {
@@ -84,10 +109,14 @@ export default function JoinView({
       return;
     }
     setRoundId(res.roundId);
+    // New joiners complete their profile first; established players may claim a
+    // pre-added spot, then the scorer question.
+    if (!profile.completed) {
+      setStep('profile');
+    } else {
+      await goAfter(res.roundId);
+    }
     setSubmitting(false);
-    // Established players skip setup; new joiners must complete their profile.
-    // Either way, next we ask whether they'll keep score for their group.
-    setStep(profile.completed ? 'scorer' : 'profile');
   }
 
   async function handleSaveProfile() {
@@ -113,7 +142,20 @@ export default function JoinView({
       setSubmitting(false);
       return;
     }
+    if (roundId) await goAfter(roundId);
+    else setStep('scorer');
     setSubmitting(false);
+  }
+
+  async function claimSpot(id: string) {
+    setError(null);
+    setSubmitting(true);
+    const res = await claimGuestSpot(id);
+    setSubmitting(false);
+    if (res?.error) {
+      setError(res.error);
+      return;
+    }
     setStep('scorer');
   }
 
@@ -133,7 +175,9 @@ export default function JoinView({
             ? 'Enter the code the organizer shared with you.'
             : step === 'profile'
               ? 'Set up your profile so your scores and handicap track correctly.'
-              : 'One quick thing before you tee off.'}
+              : step === 'claim'
+                ? 'Link up with the spot the organizer saved for you.'
+                : 'One quick thing before you tee off.'}
         </p>
       </div>
 
@@ -237,6 +281,40 @@ export default function JoinView({
             >
               {submitting ? 'Saving…' : 'Save & continue'}
             </Button>
+          </div>
+        </Card>
+      )}
+
+      {step === 'claim' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Are you one of these players?</CardTitle>
+            <CardDescription>
+              The organizer already added these players to the game. Tap your name
+              so your scores and games link to that spot.
+            </CardDescription>
+          </CardHeader>
+          <div className="px-6 pb-6 space-y-2">
+            {spots.map((s) => (
+              <Button
+                key={s.id}
+                variant="outline"
+                className="w-full flex items-center justify-between"
+                onClick={() => claimSpot(s.id)}
+                disabled={submitting}
+              >
+                <span>{s.guest_name}</span>
+                <span className="text-xs text-surface-400">That&apos;s me</span>
+              </Button>
+            ))}
+            <button
+              type="button"
+              className="w-full pt-2 text-sm text-surface-400 hover:text-surface-200"
+              onClick={() => setStep('scorer')}
+              disabled={submitting}
+            >
+              I&apos;m not on this list
+            </button>
           </div>
         </Card>
       )}

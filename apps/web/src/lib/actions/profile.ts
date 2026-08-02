@@ -57,6 +57,29 @@ export async function saveJoinProfile(input: JoinProfileInput) {
  * link to (via claim_roster_by_email), or null. Lets the join screen reassure
  * the player that their scores will merge before they save. Best-effort.
  */
+/**
+ * Tie the current user to an existing unclaimed guest spot in a round they've
+ * joined — merges that spot's game memberships + scores onto the user's real
+ * card and links the roster entry. The email-independent way to claim your spot
+ * when auto-matching didn't catch it. Auth + merge happen in claim_guest_spot.
+ */
+export async function claimGuestSpot(roundPlayerId: string) {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { error } = await supabase.rpc('claim_guest_spot', {
+    p_round_player_id: roundPlayerId,
+  });
+  if (error) {
+    console.error('Claim guest spot error:', error);
+    return { error: error.message };
+  }
+  return { success: true };
+}
+
 export async function previewJoinClaim(roundId: string, email: string) {
   const trimmed = email.trim();
   if (!roundId || trimmed.length < 3) return { matchName: null };

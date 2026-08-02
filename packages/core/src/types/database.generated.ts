@@ -1183,6 +1183,7 @@ export type Database = {
         Returns: boolean
       }
       claim_roster_by_email: { Args: never; Returns: number }
+      claim_guest_spot: { Args: { p_round_player_id: string }; Returns: undefined }
       claim_scorer: { Args: { p_round_id: string }; Returns: undefined }
       delete_round: { Args: { p_round_id: string }; Returns: boolean }
       release_scorer: { Args: { p_round_id: string }; Returns: undefined }
