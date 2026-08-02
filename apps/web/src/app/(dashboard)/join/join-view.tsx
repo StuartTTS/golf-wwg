@@ -73,17 +73,31 @@ export default function JoinView({
   }, [email, step, roundId]);
 
   // Unclaimed guest spots the organizer pre-added to this round (readable once
-  // the joiner is a group member, which join_round_by_code makes them).
-  async function fetchSpots(rId: string) {
+  // the joiner is a group member, which join_round_by_code makes them). This is
+  // a best-effort convenience — it must NEVER block or hang the join, so it's
+  // wrapped in a timeout + try/catch and any failure just falls through.
+  async function fetchSpots(rId: string): Promise<{ id: string; guest_name: string }[]> {
     if (!supabase) return [];
-    const { data } = await supabase
-      .from('round_players')
-      .select('id, guest_name')
-      .eq('round_id', rId)
-      .is('user_id', null)
-      .not('guest_name', 'is', null);
-    return ((data ?? []) as { id: string; guest_name: string | null }[])
-      .filter((r): r is { id: string; guest_name: string } => !!r.guest_name);
+    try {
+      const query = supabase
+        .from('round_players')
+        .select('id, guest_name')
+        .eq('round_id', rId)
+        .is('user_id', null)
+        .not('guest_name', 'is', null);
+      const timeout = new Promise<{ data: null }>((resolve) =>
+        setTimeout(() => resolve({ data: null }), 4000)
+      );
+      const { data } = (await Promise.race([query, timeout])) as {
+        data: { id: string; guest_name: string | null }[] | null;
+      };
+      return (data ?? [])
+        .filter((r): r is { id: string; guest_name: string } => !!r.guest_name)
+        .map((r) => ({ id: r.id, guest_name: r.guest_name }));
+    } catch (e) {
+      console.error('Fetch spots failed:', e);
+      return [];
+    }
   }
 
   // Offer the claim step if the round still has unclaimed guest spots (the email
@@ -102,21 +116,26 @@ export default function JoinView({
     }
     setError(null);
     setSubmitting(true);
-    const res = (await joinRoundByCode(c)) as any;
-    if (res?.error) {
-      setError(res.error);
+    try {
+      const res = (await joinRoundByCode(c)) as any;
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      setRoundId(res.roundId);
+      // New joiners complete their profile first; established players may claim a
+      // pre-added spot, then the scorer question.
+      if (!profile.completed) {
+        setStep('profile');
+      } else {
+        await goAfter(res.roundId);
+      }
+    } catch (e) {
+      console.error('Join failed:', e);
+      setError('Something went wrong joining. Please try again.');
+    } finally {
       setSubmitting(false);
-      return;
     }
-    setRoundId(res.roundId);
-    // New joiners complete their profile first; established players may claim a
-    // pre-added spot, then the scorer question.
-    if (!profile.completed) {
-      setStep('profile');
-    } else {
-      await goAfter(res.roundId);
-    }
-    setSubmitting(false);
   }
 
   async function handleSaveProfile() {
@@ -131,38 +150,58 @@ export default function JoinView({
     setError(null);
     setSubmitting(true);
     const parsedHcp = hcp.trim() === '' ? null : Number(hcp);
-    const res = (await saveJoinProfile({
-      displayName: name.trim(),
-      email: email.trim(),
-      phone: phone.trim() || null,
-      handicapIndex: Number.isNaN(parsedHcp as number) ? null : parsedHcp,
-    })) as any;
-    if (res?.error) {
-      setError(res.error);
+    try {
+      const res = (await saveJoinProfile({
+        displayName: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+        handicapIndex: Number.isNaN(parsedHcp as number) ? null : parsedHcp,
+      })) as any;
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      if (roundId) await goAfter(roundId);
+      else setStep('scorer');
+    } catch (e) {
+      console.error('Save profile failed:', e);
+      setError('Something went wrong. Please try again.');
+    } finally {
       setSubmitting(false);
-      return;
     }
-    if (roundId) await goAfter(roundId);
-    else setStep('scorer');
-    setSubmitting(false);
   }
 
   async function claimSpot(id: string) {
     setError(null);
     setSubmitting(true);
-    const res = await claimGuestSpot(id);
-    setSubmitting(false);
-    if (res?.error) {
-      setError(res.error);
-      return;
+    try {
+      const res = await claimGuestSpot(id);
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      setStep('scorer');
+    } catch (e) {
+      console.error('Claim spot failed:', e);
+      setError('Could not claim that spot. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
+  }
+
+  function skipClaim() {
+    setError(null);
     setStep('scorer');
   }
 
   async function chooseScorer(yes: boolean) {
     setSubmitting(true);
-    // Best-effort — if it fails they can still claim scoring in-round.
-    if (yes) await claimScorer(roundId!);
+    try {
+      // Best-effort — if it fails they can still claim scoring in-round.
+      if (yes) await claimScorer(roundId!);
+    } catch (e) {
+      console.error('Claim scorer failed:', e);
+    }
     router.push(`/rounds/${roundId}`);
   }
 
@@ -310,7 +349,7 @@ export default function JoinView({
             <button
               type="button"
               className="w-full pt-2 text-sm text-surface-400 hover:text-surface-200"
-              onClick={() => setStep('scorer')}
+              onClick={skipClaim}
               disabled={submitting}
             >
               I&apos;m not on this list
