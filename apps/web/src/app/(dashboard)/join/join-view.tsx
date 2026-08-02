@@ -37,6 +37,9 @@ export default function JoinView({
   const [step, setStep] = useState<'code' | 'profile' | 'claim' | 'scorer'>('code');
   const [roundId, setRoundId] = useState<string | null>(null);
   const [spots, setSpots] = useState<{ id: string; guest_name: string }[]>([]);
+  // The spot the joiner tapped, awaiting an explicit "yes, that's me" — claiming
+  // merges accounts, so we confirm to avoid grabbing the wrong person's spot.
+  const [pendingClaim, setPendingClaim] = useState<{ id: string; name: string } | null>(null);
 
   const [code, setCode] = useState(initialCode);
   const [submitting, setSubmitting] = useState(false);
@@ -316,7 +319,7 @@ export default function JoinView({
         </Card>
       )}
 
-      {step === 'claim' && (
+      {step === 'claim' && !pendingClaim && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Are you one of these players?</CardTitle>
@@ -331,7 +334,7 @@ export default function JoinView({
                 key={s.id}
                 variant="outline"
                 className="w-full flex items-center justify-between"
-                onClick={() => claimSpot(s.id)}
+                onClick={() => setPendingClaim({ id: s.id, name: s.guest_name })}
                 disabled={submitting}
               >
                 <span>{s.guest_name}</span>
@@ -346,6 +349,37 @@ export default function JoinView({
             >
               I&apos;m not on this list
             </button>
+          </div>
+        </Card>
+      )}
+
+      {step === 'claim' && pendingClaim && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Confirm it&apos;s you</CardTitle>
+            <CardDescription>
+              You&apos;re about to take over{' '}
+              <span className="font-semibold text-surface-100">{pendingClaim.name}</span>
+              &apos;s spot. Their games and any scores will move to your account —
+              only do this if that&apos;s you.
+            </CardDescription>
+          </CardHeader>
+          <div className="px-6 pb-6 space-y-3">
+            <Button
+              onClick={() => claimSpot(pendingClaim.id)}
+              disabled={submitting}
+              className="w-full"
+            >
+              {submitting ? 'Linking…' : `Yes, I'm ${pendingClaim.name}`}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setPendingClaim(null)}
+              disabled={submitting}
+              className="w-full"
+            >
+              No, go back
+            </Button>
           </div>
         </Card>
       )}
