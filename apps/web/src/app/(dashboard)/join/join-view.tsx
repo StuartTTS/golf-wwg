@@ -8,6 +8,7 @@ import {
   previewJoinClaim,
   claimGuestSpot,
   getUnclaimedSpots,
+  getMatchedSpot,
   autoMatchRoster,
 } from '@/lib/actions/profile';
 import {
@@ -40,7 +41,11 @@ export default function JoinView({
   const [spots, setSpots] = useState<{ id: string; guest_name: string }[]>([]);
   // The spot the joiner tapped, awaiting an explicit "yes, that's me" — claiming
   // merges accounts, so we confirm to avoid grabbing the wrong person's spot.
-  const [pendingClaim, setPendingClaim] = useState<{ id: string; name: string } | null>(null);
+  const [pendingClaim, setPendingClaim] = useState<{
+    id: string;
+    name: string;
+    matched?: boolean;
+  } | null>(null);
 
   const [code, setCode] = useState(initialCode);
   const [submitting, setSubmitting] = useState(false);
@@ -96,9 +101,27 @@ export default function JoinView({
     }
   }
 
-  // Offer the claim step if the round still has unclaimed guest spots (the email
-  // auto-claim may already have consumed the matching one); else go to scorer.
+  // Decide what comes after join/profile:
+  //  1. If email/phone matches ONE specific pre-added spot, skip the list and go
+  //     straight to confirming that name (the systematic match).
+  //  2. Otherwise, if there are still unclaimed spots, show the pick-a-name list.
+  //  3. Otherwise, straight to the scorer question.
   async function goAfter(rId: string) {
+    const matchTimeout = new Promise<{ spot: null }>((resolve) =>
+      setTimeout(() => resolve({ spot: null }), 8000)
+    );
+    let matched: { id: string; name: string } | null = null;
+    try {
+      const res = await Promise.race([getMatchedSpot(rId), matchTimeout]);
+      matched = res.spot;
+    } catch (e) {
+      console.error('Match lookup failed:', e);
+    }
+    if (matched) {
+      setPendingClaim({ id: matched.id, name: matched.name, matched: true });
+      setStep('claim');
+      return;
+    }
     const s = await fetchSpots(rId);
     setSpots(s);
     setStep(s.length > 0 ? 'claim' : 'scorer');
@@ -204,6 +227,19 @@ export default function JoinView({
   function skipClaim() {
     setError(null);
     setStep('scorer');
+  }
+
+  // "That's not me" / "go back" from the confirm screen. If we jumped straight to
+  // a matched confirm, fall back to the full pick-a-name list (or scorer if none).
+  async function cancelPendingClaim() {
+    const wasMatched = pendingClaim?.matched;
+    setError(null);
+    setPendingClaim(null);
+    if (wasMatched && roundId) {
+      const s = await fetchSpots(roundId);
+      setSpots(s);
+      if (s.length === 0) setStep('scorer');
+    }
   }
 
   async function chooseScorer(yes: boolean) {
@@ -373,12 +409,25 @@ export default function JoinView({
       {step === 'claim' && pendingClaim && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Confirm it&apos;s you</CardTitle>
+            <CardTitle className="text-lg">
+              {pendingClaim.matched ? "You're all set" : "Confirm it's you"}
+            </CardTitle>
             <CardDescription>
-              You&apos;re about to take over{' '}
-              <span className="font-semibold text-surface-100">{pendingClaim.name}</span>
-              &apos;s spot. Their games and any scores will move to your account —
-              only do this if that&apos;s you.
+              {pendingClaim.matched ? (
+                <>
+                  We matched you to{' '}
+                  <span className="font-semibold text-surface-100">{pendingClaim.name}</span>{' '}
+                  by your email or phone. Confirm to join as them and pull in any
+                  scores already entered.
+                </>
+              ) : (
+                <>
+                  You&apos;re about to take over{' '}
+                  <span className="font-semibold text-surface-100">{pendingClaim.name}</span>
+                  &apos;s spot. Their games and any scores will move to your account
+                  — only do this if that&apos;s you.
+                </>
+              )}
             </CardDescription>
           </CardHeader>
           <div className="px-6 pb-6 space-y-3">
@@ -391,11 +440,11 @@ export default function JoinView({
             </Button>
             <Button
               variant="outline"
-              onClick={() => setPendingClaim(null)}
+              onClick={cancelPendingClaim}
               disabled={submitting}
               className="w-full"
             >
-              No, go back
+              {pendingClaim.matched ? "That's not me" : 'No, go back'}
             </Button>
           </div>
         </Card>
