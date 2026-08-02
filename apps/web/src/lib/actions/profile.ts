@@ -81,6 +81,25 @@ export async function claimGuestSpot(roundPlayerId: string) {
 }
 
 /**
+ * Run the phone-or-email auto-match against the caller's already-saved profile.
+ * New joiners get this inside saveJoinProfile; established accounts (which skip
+ * the profile step) call this on join so they auto-link too. Best-effort.
+ */
+export async function autoMatchRoster() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { matched: 0 };
+  const { data, error } = await supabase.rpc('claim_roster_by_email');
+  if (error) {
+    console.error('Auto-match roster error:', error);
+    return { matched: 0 };
+  }
+  return { matched: (data as number) ?? 0 };
+}
+
+/**
  * Unclaimed guest spots in a round (pre-added players with no account yet), for
  * the join "claim your spot" step. Runs server-side so it uses the caller's real
  * session under RLS (a group member — which join_round_by_code makes the joiner)
