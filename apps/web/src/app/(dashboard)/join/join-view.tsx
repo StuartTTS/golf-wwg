@@ -3,8 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { joinRoundByCode, claimScorer } from '@/lib/actions/rounds';
-import { saveJoinProfile, previewJoinClaim, claimGuestSpot } from '@/lib/actions/profile';
-import { useSupabase } from '@/providers/supabase-provider';
+import {
+  saveJoinProfile,
+  previewJoinClaim,
+  claimGuestSpot,
+  getUnclaimedSpots,
+} from '@/lib/actions/profile';
 import {
   Card,
   CardHeader,
@@ -30,7 +34,6 @@ export default function JoinView({
   profile: JoinProfile;
 }) {
   const router = useRouter();
-  const { supabase } = useSupabase();
   const [step, setStep] = useState<'code' | 'profile' | 'claim' | 'scorer'>('code');
   const [roundId, setRoundId] = useState<string | null>(null);
   const [spots, setSpots] = useState<{ id: string; guest_name: string }[]>([]);
@@ -77,23 +80,12 @@ export default function JoinView({
   // a best-effort convenience — it must NEVER block or hang the join, so it's
   // wrapped in a timeout + try/catch and any failure just falls through.
   async function fetchSpots(rId: string): Promise<{ id: string; guest_name: string }[]> {
-    if (!supabase) return [];
     try {
-      const query = supabase
-        .from('round_players')
-        .select('id, guest_name')
-        .eq('round_id', rId)
-        .is('user_id', null)
-        .not('guest_name', 'is', null);
-      const timeout = new Promise<{ data: null }>((resolve) =>
-        setTimeout(() => resolve({ data: null }), 4000)
+      const timeout = new Promise<{ spots: [] }>((resolve) =>
+        setTimeout(() => resolve({ spots: [] }), 8000)
       );
-      const { data } = (await Promise.race([query, timeout])) as {
-        data: { id: string; guest_name: string | null }[] | null;
-      };
-      return (data ?? [])
-        .filter((r): r is { id: string; guest_name: string } => !!r.guest_name)
-        .map((r) => ({ id: r.id, guest_name: r.guest_name }));
+      const res = await Promise.race([getUnclaimedSpots(rId), timeout]);
+      return res.spots;
     } catch (e) {
       console.error('Fetch spots failed:', e);
       return [];
