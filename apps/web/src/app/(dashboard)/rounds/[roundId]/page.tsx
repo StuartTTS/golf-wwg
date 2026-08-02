@@ -135,6 +135,14 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       }));
   }
 
+  // Account players already in the round — link targets for "Already here?".
+  const inRoundAccounts = (players ?? [])
+    .filter((p: any) => p.user_id)
+    .map((p: any) => ({
+      userId: p.user_id as string,
+      displayName: (p as any).profile?.display_name ?? 'Player',
+    }));
+
   // Fetch round invitations
   const { data: roundInvitations } = await supabase
     .from('invitations')
@@ -536,7 +544,11 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
           />
 
           {round.status !== 'completed' && availableRoster.length > 0 && (
-            <AddFromRosterCard roundId={round.id} roster={availableRoster} />
+            <AddFromRosterCard
+              roundId={round.id}
+              roster={availableRoster}
+              inRoundAccounts={inRoundAccounts}
+            />
           )}
 
           {isCreator && round.status !== 'completed' && (
