@@ -120,6 +120,46 @@ export async function updateRosterPlayer(
   return { success: true };
 }
 
+/**
+ * Link an unlinked roster entry to an existing account — the systematic "these
+ * are the same person" match. Once linked, the entry is recognized as that
+ * account (so it stops showing as a duplicate to add, and future rounds create a
+ * real card on their login). Caller must own the roster entry.
+ */
+export async function linkRosterPlayer(rosterId: string, userId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: entry } = await supabase
+    .from('roster_players')
+    .select('id, owner_id')
+    .eq('id', rosterId)
+    .single();
+  if (!entry || entry.owner_id !== user.id) return { error: 'Not authorized' };
+
+  // One roster entry per person: don't collide with an existing link.
+  const { data: existing } = await supabase
+    .from('roster_players')
+    .select('id')
+    .eq('owner_id', user.id)
+    .eq('linked_user_id', userId)
+    .maybeSingle();
+  if (existing && existing.id !== rosterId) {
+    return { error: 'You already have a roster entry linked to that player' };
+  }
+
+  const { error } = await supabase
+    .from('roster_players')
+    .update({ linked_user_id: userId })
+    .eq('id', rosterId);
+  if (error) {
+    console.error('Link roster player error:', error);
+    return { error: 'Could not link this player' };
+  }
+  return { success: true };
+}
+
 export async function removeRosterPlayer(id: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
