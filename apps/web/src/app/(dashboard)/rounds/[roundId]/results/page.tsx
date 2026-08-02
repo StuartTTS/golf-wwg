@@ -55,42 +55,44 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
 
   // Build player results. Guests have no linked profile — fall back to their
   // guest_name/handicap, and key scores by round_player_id (present on every row).
+  // Players with NO scores must not show a bogus "net" (= −handicap) or rank as
+  // if leading — they sink to the bottom with blank net/to-par.
   const playerResults = roundData.round_players
     .map((rp: any) => {
       const prof = rp.profiles;
       const playerScores = (scoresData ?? []).filter(
-        (s) => s.round_player_id === rp.id
+        (s) => s.round_player_id === rp.id && s.strokes != null
       );
+      const holesPlayed = playerScores.length;
       const frontScores = playerScores.filter((s) => s.hole_number <= 9);
       const backScores = playerScores.filter((s) => s.hole_number > 9);
-      const grossTotal = playerScores.reduce(
-        (sum, s) => sum + (s.strokes ?? 0),
-        0
-      );
-      const frontNine = frontScores.reduce(
-        (sum, s) => sum + (s.strokes ?? 0),
-        0
-      );
-      const backNine = backScores.reduce(
-        (sum, s) => sum + (s.strokes ?? 0),
-        0
-      );
-      const handicap = prof?.current_handicap_index ?? rp.guest_handicap_index ?? 0;
-      const netTotal = grossTotal - handicap;
+      const grossTotal = playerScores.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
+      const frontNine = frontScores.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
+      const backNine = backScores.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
+      const handicap = prof?.current_handicap_index ?? rp.guest_handicap_index ?? null;
 
       return {
         playerId: prof?.id ?? rp.id,
         displayName: prof?.display_name ?? rp.guest_name ?? 'Guest',
-        handicap: prof?.current_handicap_index ?? rp.guest_handicap_index ?? null,
+        handicap,
+        holesPlayed,
         grossTotal,
-        netTotal,
+        // Blank net / to-par until they've actually posted scores.
+        netTotal: holesPlayed > 0 ? grossTotal - (handicap ?? 0) : null,
         frontNine,
         backNine,
-        toPar: grossTotal - totalPar,
+        toPar: holesPlayed > 0 ? grossTotal - totalPar : null,
         position: 0,
       };
     })
-    .sort((a: any, b: any) => a.grossTotal - b.grossTotal)
+    .sort((a: any, b: any) => {
+      // Players who've started rank above those who haven't.
+      const aStarted = a.holesPlayed > 0 ? 0 : 1;
+      const bStarted = b.holesPlayed > 0 ? 0 : 1;
+      if (aStarted !== bStarted) return aStarted - bStarted;
+      if (aStarted === 0) return (a.netTotal ?? 0) - (b.netTotal ?? 0); // by net
+      return a.displayName.localeCompare(b.displayName); // not started: by name
+    })
     .map((p: any, idx: number) => ({ ...p, position: idx + 1 }));
 
   // Game standings + payouts aren't persisted yet (per-game results are Phase 5),
