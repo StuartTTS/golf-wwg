@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { joinRoundByCode, claimScorer } from '@/lib/actions/rounds';
 import {
@@ -103,6 +103,20 @@ export default function JoinView({
     setSpots(s);
     setStep(s.length > 0 ? 'claim' : 'scorer');
   }
+
+  // Arriving with a code in the URL (the shared link, or after registering) should
+  // just join — don't leave a joiner staring at a "Join Game" button they don't
+  // realize they still need to tap. A common drop-off: they create the account and
+  // think they're done. Fires once.
+  const autoJoined = useRef(false);
+  useEffect(() => {
+    if (autoJoined.current) return;
+    if (step === 'code' && initialCode.trim().length > 0 && !submitting) {
+      autoJoined.current = true;
+      void handleJoin();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode, step]);
 
   async function handleJoin() {
     const c = code.trim().toUpperCase();
