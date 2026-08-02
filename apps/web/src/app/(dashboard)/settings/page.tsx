@@ -114,6 +114,8 @@ function SettingsForm() {
     email: '',
     defaultTeeTier: null,
   });
+  // Handicap index kept as raw text so decimals type cleanly; parsed on save.
+  const [hcpText, setHcpText] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -140,7 +142,7 @@ function SettingsForm() {
         const { data: profile, error: profileError } = await withTimeout(
           supabase
             .from('profiles')
-            .select('display_name, email, default_tee_tier')
+            .select('display_name, email, default_tee_tier, current_handicap_index')
             .eq('id', user.id)
             .single()
         );
@@ -152,6 +154,11 @@ function SettingsForm() {
           email: profile.email ?? user.email ?? '',
           defaultTeeTier: profile.default_tee_tier ?? null,
         });
+        setHcpText(
+          profile.current_handicap_index != null
+            ? String(profile.current_handicap_index)
+            : ''
+        );
       } catch (err: any) {
         setError(err.message ?? 'Failed to load settings');
       } finally {
@@ -165,6 +172,17 @@ function SettingsForm() {
   const handleSaveProfile = async () => {
     if (!supabase || !user) return;
 
+    // Parse + validate handicap index (blank clears it).
+    let handicapIndex: number | null = null;
+    if (hcpText.trim() !== '') {
+      const n = Number(hcpText);
+      if (!Number.isFinite(n) || n < -10 || n > 54) {
+        setError('Enter a valid handicap index (between -10 and 54)');
+        return;
+      }
+      handicapIndex = Math.round(n * 10) / 10; // one decimal
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -176,6 +194,7 @@ function SettingsForm() {
           .update({
             display_name: settings.displayName.trim(),
             default_tee_tier: settings.defaultTeeTier,
+            current_handicap_index: handicapIndex,
             profile_completed: true,
           })
           .eq('id', user.id)
@@ -324,6 +343,22 @@ function SettingsForm() {
             </Select>
             <p className="text-xs text-surface-400 mt-1">
               Your preferred tee position (1 = front tees, 5 = tips). Auto-assigned when joining rounds.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-surface-100 mb-1">
+              Handicap Index
+            </label>
+            <Input
+              inputMode="decimal"
+              value={hcpText}
+              onChange={(e) => setHcpText(e.target.value)}
+              placeholder="e.g. 12.4"
+            />
+            <p className="text-xs text-surface-400 mt-1">
+              Used to compute your course handicap in new rounds. Editing this
+              won&apos;t change rounds already set up.
             </p>
           </div>
 
