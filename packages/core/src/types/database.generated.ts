@@ -1207,6 +1207,10 @@ export type Database = {
       }
       ensure_round_share_code: { Args: { p_round_id: string }; Returns: string }
       finalize_round: { Args: { p_round_id: string }; Returns: undefined }
+      find_matched_guest_spot: {
+        Args: { p_round_id: string }
+        Returns: { round_player_id: string; guest_name: string }[]
+      }
       gen_share_code: { Args: never; Returns: string }
       generate_best_ball_teams: {
         Args: { p_game_id: string; p_odd_mode: string }

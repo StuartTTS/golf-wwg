@@ -100,6 +100,33 @@ export async function autoMatchRoster() {
 }
 
 /**
+ * The single guest spot in a round whose email/phone matches the caller, if any
+ * — so the join flow can skip the pick-a-name list and go straight to a name
+ * confirmation. Returns null when nothing matches (fall back to the list).
+ */
+export async function getMatchedSpot(roundId: string) {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { spot: null as { id: string; name: string } | null };
+
+  const { data, error } = await supabase.rpc('find_matched_guest_spot', {
+    p_round_id: roundId,
+  });
+  if (error) {
+    console.error('Find matched spot error:', error);
+    return { spot: null as { id: string; name: string } | null };
+  }
+  const row = Array.isArray(data) ? data[0] : null;
+  return {
+    spot: row
+      ? { id: row.round_player_id as string, name: row.guest_name as string }
+      : null,
+  };
+}
+
+/**
  * Unclaimed guest spots in a round (pre-added players with no account yet), for
  * the join "claim your spot" step. Runs server-side so it uses the caller's real
  * session under RLS (a group member — which join_round_by_code makes the joiner)
