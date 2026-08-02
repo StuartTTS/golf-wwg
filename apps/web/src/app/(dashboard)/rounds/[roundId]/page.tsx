@@ -157,12 +157,15 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
     .eq('course_id', round.course_id)
     .order('tier', { ascending: true, nullsFirst: false });
 
-  // All courses (for the change-course picker) + whether any scores exist yet.
-  const [{ data: allCourses }, { count: scoreCount }] = await Promise.all([
+  // All courses (for the change-course picker) + which cards have scores yet.
+  const [{ data: allCourses }, { data: scoredRows }] = await Promise.all([
     supabase.from('courses').select('id, name, city, state').is('deleted_at', null).order('name'),
-    supabase.from('scores').select('id', { count: 'exact', head: true }).eq('round_id', roundId).not('strokes', 'is', null),
+    supabase.from('scores').select('round_player_id').eq('round_id', roundId).not('strokes', 'is', null),
   ]);
-  const hasScores = (scoreCount ?? 0) > 0;
+  const scoredRpIds = new Set(
+    (scoredRows ?? []).map((s: any) => s.round_player_id).filter(Boolean)
+  );
+  const hasScores = scoredRpIds.size > 0;
 
   // Build props for Registration Card
   const registeredPlayersList = (players ?? [])
@@ -204,6 +207,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       teeBoxId: rp.tee_box_id,
       groupId: rp.tee_time_group_id ?? null,
       courseHandicap: rp.course_handicap ?? null,
+      hasScores: scoredRpIds.has(rp.id),
     }));
 
   // Fetch scores for leaderboard (only if round has started)
