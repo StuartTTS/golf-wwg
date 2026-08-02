@@ -11,6 +11,7 @@ import {
 } from '@/components/ui';
 import { featureFlags } from '@/lib/feature-flags';
 import { AddGuestForm } from '@/components/rounds/add-guest-form';
+import { AddFromRosterCard } from '@/components/rounds/add-from-roster-card';
 import { RegistrationCard } from '@/components/rounds/registration-card';
 import CourseTeeCard from '@/components/rounds/course-tee-card';
 import RoundLineupCard from '@/components/rounds/round-lineup-card';
@@ -67,6 +68,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       course_handicap,
       guest_name,
       guest_handicap_index,
+      roster_player_id,
       profile:profiles!round_players_user_id_fkey (id, display_name, current_handicap_index),
       tee_box:tee_boxes (id, name, color)
     `)
@@ -104,6 +106,33 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       .eq('user_id', user.id)
       .single();
     isGroupAdmin = adminCheck?.role === 'admin';
+  }
+
+  // Roster entries the viewer can add that aren't already in the round.
+  let availableRoster: { id: string; display_name: string; handicap_index: number | null }[] = [];
+  if (user && (isGroupAdmin || round.created_by === user.id)) {
+    const { data: roster } = await supabase
+      .from('roster_players')
+      .select('id, display_name, handicap_index, linked_user_id')
+      .eq('owner_id', user.id)
+      .order('display_name');
+    const inRoundRosterIds = new Set(
+      (players ?? []).map((p: any) => p.roster_player_id).filter(Boolean)
+    );
+    const inRoundUserIds = new Set(
+      (players ?? []).map((p: any) => p.user_id).filter(Boolean)
+    );
+    availableRoster = (roster ?? [])
+      .filter(
+        (r: any) =>
+          !inRoundRosterIds.has(r.id) &&
+          !(r.linked_user_id && inRoundUserIds.has(r.linked_user_id))
+      )
+      .map((r: any) => ({
+        id: r.id,
+        display_name: r.display_name,
+        handicap_index: r.handicap_index,
+      }));
   }
 
   // Fetch round invitations
@@ -505,6 +534,10 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             players={lineupPlayers}
             existingGroups={teeTimeGroups ?? []}
           />
+
+          {round.status !== 'completed' && availableRoster.length > 0 && (
+            <AddFromRosterCard roundId={round.id} roster={availableRoster} />
+          )}
 
           {isCreator && round.status !== 'completed' && (
             <Card>
