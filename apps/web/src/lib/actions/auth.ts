@@ -107,7 +107,27 @@ export async function register(formData: FormData): Promise<AuthActionResult> {
   });
 
   if (signUpError) {
-    return { error: 'Unable to create account. Please try again.' };
+    console.error('Sign up error:', signUpError);
+    const msg = String(signUpError.message ?? '').toLowerCase();
+    const status = (signUpError as { status?: number }).status;
+    if (
+      msg.includes('already registered') ||
+      msg.includes('already been registered') ||
+      (signUpError as { code?: string }).code === 'user_already_exists'
+    ) {
+      return { error: 'An account with that email already exists — try logging in instead.' };
+    }
+    if (status === 429 || msg.includes('rate limit') || msg.includes('too many')) {
+      return { error: 'Too many attempts right now. Wait a minute and try again.' };
+    }
+    if (msg.includes('password')) {
+      return { error: signUpError.message };
+    }
+    if (msg.includes('email') && (msg.includes('invalid') || msg.includes('valid'))) {
+      return { error: 'That email address was rejected. Double-check it and try again.' };
+    }
+    // Surface the real reason instead of a dead-end generic message.
+    return { error: signUpError.message || 'Unable to create account. Please try again.' };
   }
 
   // If email confirmation is enabled, signUp creates the user but no session.
