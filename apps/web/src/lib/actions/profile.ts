@@ -63,7 +63,10 @@ export async function saveJoinProfile(input: JoinProfileInput) {
  * card and links the roster entry. The email-independent way to claim your spot
  * when auto-matching didn't catch it. Auth + merge happen in claim_guest_spot.
  */
-export async function claimGuestSpot(roundPlayerId: string) {
+export async function claimGuestSpot(
+  roundPlayerId: string,
+  handicap?: number | null
+) {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -72,6 +75,7 @@ export async function claimGuestSpot(roundPlayerId: string) {
 
   const { error } = await supabase.rpc('claim_guest_spot', {
     p_round_player_id: roundPlayerId,
+    p_handicap: handicap ?? null,
   });
   if (error) {
     console.error('Claim guest spot error:', error);
@@ -109,19 +113,24 @@ export async function getMatchedSpot(roundId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { spot: null as { id: string; name: string } | null };
+  type Spot = { id: string; name: string; handicap: number | null };
+  if (!user) return { spot: null as Spot | null };
 
   const { data, error } = await supabase.rpc('find_matched_guest_spot', {
     p_round_id: roundId,
   });
   if (error) {
     console.error('Find matched spot error:', error);
-    return { spot: null as { id: string; name: string } | null };
+    return { spot: null as Spot | null };
   }
   const row = Array.isArray(data) ? data[0] : null;
   return {
     spot: row
-      ? { id: row.round_player_id as string, name: row.guest_name as string }
+      ? {
+          id: row.round_player_id as string,
+          name: row.guest_name as string,
+          handicap: (row.assigned_handicap as number | null) ?? null,
+        }
       : null,
   };
 }
@@ -137,21 +146,26 @@ export async function getUnclaimedSpots(roundId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { spots: [] as { id: string; guest_name: string }[] };
+  type Spot = { id: string; guest_name: string; handicap: number | null };
+  if (!user) return { spots: [] as Spot[] };
 
   const { data, error } = await supabase
     .from('round_players')
-    .select('id, guest_name')
+    .select('id, guest_name, guest_handicap_index')
     .eq('round_id', roundId)
     .is('user_id', null)
     .not('guest_name', 'is', null);
   if (error) {
     console.error('Get unclaimed spots error:', error);
-    return { spots: [] as { id: string; guest_name: string }[] };
+    return { spots: [] as Spot[] };
   }
-  const spots = (data ?? [])
-    .filter((r): r is { id: string; guest_name: string } => !!r.guest_name)
-    .map((r) => ({ id: r.id, guest_name: r.guest_name }));
+  const spots: Spot[] = (data ?? [])
+    .filter((r: any) => !!r.guest_name)
+    .map((r: any) => ({
+      id: r.id,
+      guest_name: r.guest_name,
+      handicap: r.guest_handicap_index ?? null,
+    }));
   return { spots };
 }
 

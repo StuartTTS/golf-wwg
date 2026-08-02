@@ -1187,7 +1187,10 @@ export type Database = {
         Returns: number
       }
       claim_roster_by_email: { Args: never; Returns: number }
-      claim_guest_spot: { Args: { p_round_player_id: string }; Returns: undefined }
+      claim_guest_spot: {
+        Args: { p_round_player_id: string; p_handicap?: number | null }
+        Returns: undefined
+      }
       claim_scorer: { Args: { p_round_id: string }; Returns: undefined }
       delete_round: { Args: { p_round_id: string }; Returns: boolean }
       release_scorer: { Args: { p_round_id: string }; Returns: undefined }
@@ -1209,7 +1212,11 @@ export type Database = {
       finalize_round: { Args: { p_round_id: string }; Returns: undefined }
       find_matched_guest_spot: {
         Args: { p_round_id: string }
-        Returns: { round_player_id: string; guest_name: string }[]
+        Returns: {
+          round_player_id: string
+          guest_name: string
+          assigned_handicap: number | null
+        }[]
       }
       gen_share_code: { Args: never; Returns: string }
       generate_best_ball_teams: {
