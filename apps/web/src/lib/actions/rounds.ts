@@ -1096,6 +1096,28 @@ export async function addGuestToRound(roundId: string, guestName: string, guestH
 }
 
 /**
+ * Add players from the caller's roster to a round and every active game on it.
+ * Delegates to the add_roster_players_to_round RPC (authorizes, creates the
+ * right card per entry, skips those already in). Returns how many were added.
+ */
+export async function addRosterPlayersToRound(roundId: string, rosterIds: string[]) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  if (!rosterIds.length) return { error: 'Pick at least one player' };
+
+  const { data, error } = await supabase.rpc('add_roster_players_to_round', {
+    p_round_id: roundId,
+    p_roster_ids: rosterIds,
+  });
+  if (error) {
+    console.error('Add roster players error:', error);
+    return { error: error.message };
+  }
+  return { success: true, added: (data as number) ?? 0 };
+}
+
+/**
  * Remove any player (registered or guest) from a round by their round_player id.
  * Delegates to the remove_round_player RPC, which authorizes (creator/admin) and
  * cascades the player's scores + game memberships. Use for roster fixes such as

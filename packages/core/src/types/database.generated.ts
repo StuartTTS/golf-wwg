@@ -1182,6 +1182,10 @@ export type Database = {
         Args: { p_round_player_id: string; p_user: string }
         Returns: boolean
       }
+      add_roster_players_to_round: {
+        Args: { p_round_id: string; p_roster_ids: string[] }
+        Returns: number
+      }
       claim_roster_by_email: { Args: never; Returns: number }
       claim_guest_spot: { Args: { p_round_player_id: string }; Returns: undefined }
       claim_scorer: { Args: { p_round_id: string }; Returns: undefined }
