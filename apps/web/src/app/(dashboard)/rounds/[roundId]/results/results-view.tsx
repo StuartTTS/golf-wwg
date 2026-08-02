@@ -14,11 +14,12 @@ interface PlayerResult {
   playerId: string;
   displayName: string;
   handicap: number | null;
+  holesPlayed: number;
   grossTotal: number;
-  netTotal: number;
+  netTotal: number | null;
   frontNine: number;
   backNine: number;
-  toPar: number;
+  toPar: number | null;
   position: number;
 }
 
@@ -132,39 +133,42 @@ export default function ResultsView({ results }: ResultsViewProps) {
                   {player.grossTotal || '-'}
                 </span>
                 <span className="w-14 text-center text-sm tabular-nums text-surface-200">
-                  {player.netTotal || '-'}
+                  {player.netTotal ?? '-'}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* To par display */}
-          <div className="mt-3 pt-3 border-t border-surface-500">
-            <div className="flex flex-wrap gap-3">
-              {results.players.map((player) => (
-                <div key={player.playerId} className="flex items-center gap-1">
-                  <span className="text-xs text-surface-300">
-                    {player.displayName}:
-                  </span>
-                  <span
-                    className={`text-xs font-bold ${
-                      player.toPar < 0
-                        ? 'text-red-400'
-                        : player.toPar > 0
-                        ? 'text-blue-600'
-                        : 'text-surface-200'
-                    }`}
-                  >
-                    {player.toPar === 0
-                      ? 'E'
-                      : player.toPar > 0
-                      ? `+${player.toPar}`
-                      : player.toPar}
-                  </span>
-                </div>
-              ))}
+          {/* To par display — only players who've posted scores. */}
+          {results.players.some((p) => p.toPar !== null) && (
+            <div className="mt-3 pt-3 border-t border-surface-500">
+              <div className="flex flex-wrap gap-3">
+                {results.players
+                  .filter((player) => player.toPar !== null)
+                  .map((player) => {
+                    const toPar = player.toPar as number;
+                    return (
+                      <div key={player.playerId} className="flex items-center gap-1">
+                        <span className="text-xs text-surface-300">
+                          {player.displayName}:
+                        </span>
+                        <span
+                          className={`text-xs font-bold ${
+                            toPar < 0
+                              ? 'text-red-400'
+                              : toPar > 0
+                                ? 'text-blue-600'
+                                : 'text-surface-200'
+                          }`}
+                        >
+                          {toPar === 0 ? 'E' : toPar > 0 ? `+${toPar}` : toPar}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </Card>
 
