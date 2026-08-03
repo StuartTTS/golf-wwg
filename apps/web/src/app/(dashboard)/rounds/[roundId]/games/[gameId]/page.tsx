@@ -112,6 +112,7 @@ export default async function GameResultsPage({ params }: GamePageProps) {
   // (so we show the draw control, not an individual leaderboard).
   const hasTeams = (teamRows ?? []).length > 0;
   const isTeam = game.format === 'best_ball_2' && (hasTeams || isRandomTeams);
+  const isSkins = game.format === 'skins';
 
   const buyIn = payout?.buyIn ?? game.money_per_unit ?? 0;
 
@@ -135,6 +136,17 @@ export default async function GameResultsPage({ params }: GamePageProps) {
     position: number;
     payoutAmt: number;
   }[] = [];
+
+  // ---- Skins standings (pot split by skins won) -----------------------
+  let skinsStandings: {
+    key: string;
+    name: string;
+    skins: number;
+    payoutAmt: number;
+    position: number;
+  }[] = [];
+  let skinsPerSkin = 0;
+  let skinsTotal = 0;
 
   let pot = 0;
 
@@ -212,6 +224,73 @@ export default async function GameResultsPage({ params }: GamePageProps) {
       payoutAmt: payByTeam.get(t.teamId) ?? 0,
       position: t.position,
     }));
+  } else if (isSkins) {
+    // Skins: run the engine to get skins won per player (with carryover), then
+    // split the pot by the TOTAL skins won — value/skin = pot ÷ total skins,
+    // each player gets (their skins × value/skin). NOT winner-takes-all.
+    pot = buyIn * gamePlayerIds.length;
+    const teeIds = [...new Set([...teeByRp.values()])];
+    const { data: holeRows } = teeIds.length
+      ? await supabase
+          .from('holes')
+          .select('hole_number, par, handicap_index, yardage, tee_box_id')
+          .in('tee_box_id', teeIds)
+      : { data: [] };
+    const byTee: Record<string, any[]> = {};
+    for (const h of holeRows ?? []) {
+      (byTee[h.tee_box_id] ??= []).push({
+        holeNumber: h.hole_number,
+        par: h.par,
+        yardage: h.yardage ?? 0,
+        handicapIndex: h.handicap_index,
+      });
+    }
+    const holes = (Object.values(byTee)[0] ?? []).sort(
+      (a: any, b: any) => a.holeNumber - b.holeNumber
+    );
+
+    const gpSet = new Set(gamePlayerIds);
+    const cfg = (game.config as any) ?? {};
+    const result = gameFormatRegistry.getEngine('skins').calculateResults(
+      {
+        holes,
+        players: gamePlayerIds.map((rpId: string) => ({
+          playerId: rpId,
+          displayName: nameByRp.get(rpId) ?? 'Guest',
+          playingHandicap: phByRp.get(rpId) ?? 0,
+        })),
+        scores: (scoreRows ?? [])
+          .filter((s: any) => s.round_player_id && gpSet.has(s.round_player_id))
+          .map((s: any) => ({
+            playerId: s.round_player_id,
+            holeNumber: s.hole_number,
+            strokes: s.strokes,
+          })),
+        teams: [],
+      },
+      { useNet: cfg.useNet ?? true, carryOver: cfg.carryOver ?? true },
+      gameId
+    );
+
+    const skinVal = new Map<string, number>();
+    for (const st of result.playerStandings) {
+      skinVal.set(st.playerId, (st.metadata?.totalSkinsValue as number) ?? 0);
+    }
+    skinsTotal = [...skinVal.values()].reduce((a, b) => a + b, 0);
+    skinsPerSkin = skinsTotal > 0 ? pot / skinsTotal : 0;
+
+    skinsStandings = gamePlayerIds
+      .map((rpId: string) => {
+        const skins = skinVal.get(rpId) ?? 0;
+        return {
+          key: rpId,
+          name: nameByRp.get(rpId) ?? 'Guest',
+          skins,
+          payoutAmt: Math.round(skins * skinsPerSkin * 100) / 100,
+        };
+      })
+      .sort((a, b) => b.skins - a.skins)
+      .map((r, i) => ({ ...r, position: i + 1 }));
   } else {
     // Individual: rank by net total (gross − course handicap).
     pot = buyIn * gamePlayerIds.length;
@@ -378,6 +457,47 @@ export default async function GameResultsPage({ params }: GamePageProps) {
                 </div>
               )}
             </div>
+          ) : isSkins ? (
+            skinsStandings.length === 0 ? (
+              <p className="text-sm text-surface-300 py-4">No players in this game.</p>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+                  <span className="w-6" />
+                  <span className="flex-1">Player</span>
+                  <span className="w-16 text-right">Skins</span>
+                  <span className="w-14 text-right" />
+                </div>
+                {skinsStandings.map((p) => (
+                  <div
+                    key={p.key}
+                    className={`flex items-center gap-2 rounded-lg p-2.5 ${
+                      p.position === 1 && p.skins > 0
+                        ? 'bg-gold-500/10 border border-gold-500/30'
+                        : 'hover:bg-surface-700/40'
+                    }`}
+                  >
+                    <span className="w-6 text-sm font-bold text-surface-200">
+                      {p.skins > 0 ? p.position : '—'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-surface-50 truncate">{p.name}</p>
+                    </div>
+                    <span className="w-16 text-right text-sm font-bold tabular-nums text-surface-50">
+                      {p.skins}
+                    </span>
+                    <span className="w-14 text-right text-sm font-bold text-golf-500 tabular-nums">
+                      {p.payoutAmt > 0 ? `+$${p.payoutAmt}` : ''}
+                    </span>
+                  </div>
+                ))}
+                {skinsPerSkin > 0 && (
+                  <p className="pt-2 px-2 text-[11px] text-surface-400">
+                    Pot ${pot} ÷ {skinsTotal} skins = ${Math.round(skinsPerSkin * 100) / 100}/skin
+                  </p>
+                )}
+              </div>
+            )
           ) : indivStandings.length === 0 ? (
             <p className="text-sm text-surface-300 py-4">No players in this game.</p>
           ) : (
