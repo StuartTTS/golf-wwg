@@ -28,6 +28,17 @@ describe('calculateCourseHandicap', () => {
     // -2.4 * (130 / 113) = -2.76 -> -3
     expect(calculateCourseHandicap(-2.4, 130)).toBe(-3);
   });
+
+  it('applies the (course rating - par) term when rating and par are given', () => {
+    // Sam on Gold (M): 11.8 * (122/113) + (68.3 - 72) = 12.74 - 3.7 = 9.04 -> 9
+    expect(calculateCourseHandicap(11.8, 122, 68.3, 72)).toBe(9);
+  });
+
+  it('falls back to slope-only when rating or par is missing', () => {
+    // 11.8 * (122/113) = 12.74 -> 13
+    expect(calculateCourseHandicap(11.8, 122)).toBe(13);
+    expect(calculateCourseHandicap(11.8, 122, 68.3, null)).toBe(13);
+  });
 });
 
 describe('calculateCourseHandicapFull', () => {

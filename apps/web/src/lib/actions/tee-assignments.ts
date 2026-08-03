@@ -42,7 +42,7 @@ export async function updatePlayerTee(roundId: string, playerId: string, teeBoxI
 
   const { data: teeBox, error: teeBoxError } = await supabase
     .from('tee_boxes')
-    .select('id, slope_rating, course_rating')
+    .select('id, slope_rating, course_rating, par')
     .eq('id', teeBoxId)
     .eq('course_id', round.course_id)
     .single();
@@ -59,7 +59,12 @@ export async function updatePlayerTee(roundId: string, playerId: string, teeBoxI
   if (playerError || !player) return { error: 'Player not found in this round' };
 
   const handicapIndex = player.handicap_index_at_round ?? player.guest_handicap_index ?? 0;
-  const courseHandicap = calculateCourseHandicap(handicapIndex, teeBox.slope_rating);
+  const courseHandicap = calculateCourseHandicap(
+    handicapIndex,
+    teeBox.slope_rating,
+    teeBox.course_rating,
+    teeBox.par
+  );
 
   const { error: updateError } = await supabase
     .from('round_players')
@@ -128,10 +133,16 @@ export async function setRoundPlayerHandicap(
   if (handicapIndex != null && player.tee_box_id) {
     const { data: teeBox } = await supabase
       .from('tee_boxes')
-      .select('slope_rating')
+      .select('slope_rating, course_rating, par')
       .eq('id', player.tee_box_id)
       .single();
-    if (teeBox) courseHandicap = calculateCourseHandicap(handicapIndex, teeBox.slope_rating);
+    if (teeBox)
+      courseHandicap = calculateCourseHandicap(
+        handicapIndex,
+        teeBox.slope_rating,
+        teeBox.course_rating,
+        teeBox.par
+      );
   }
 
   const { error } = await supabase
@@ -179,7 +190,7 @@ export async function bulkUpdatePlayerTees(roundId: string, teeBoxId: string, pl
 
   const { data: teeBox, error: teeBoxError } = await supabase
     .from('tee_boxes')
-    .select('id, slope_rating, course_rating')
+    .select('id, slope_rating, course_rating, par')
     .eq('id', teeBoxId)
     .eq('course_id', round.course_id)
     .single();
@@ -201,7 +212,12 @@ export async function bulkUpdatePlayerTees(roundId: string, teeBoxId: string, pl
   let updatedCount = 0;
   for (const player of roundPlayers) {
     const handicapIndex = player.handicap_index_at_round ?? player.guest_handicap_index ?? 0;
-    const courseHandicap = calculateCourseHandicap(handicapIndex, teeBox.slope_rating);
+    const courseHandicap = calculateCourseHandicap(
+      handicapIndex,
+      teeBox.slope_rating,
+      teeBox.course_rating,
+      teeBox.par
+    );
 
     const { error: updateError } = await supabase
       .from('round_players')
