@@ -1,11 +1,18 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   updatePlayerTeeSchema,
   bulkUpdatePlayerTeesSchema,
   calculateCourseHandicap,
 } from '@golf/core';
+
+// Tee / handicap changes affect scoring on the round's game, play, and results
+// pages — invalidate the whole round subtree so those don't serve stale data.
+function revalidateRound(roundId: string) {
+  revalidatePath(`/rounds/${roundId}`, 'layout');
+}
 
 export async function updatePlayerTee(roundId: string, playerId: string, teeBoxId: string) {
   const supabase = await createServerSupabaseClient();
@@ -64,6 +71,7 @@ export async function updatePlayerTee(roundId: string, playerId: string, teeBoxI
     .eq('id', playerId);
 
   if (updateError) return { error: 'Failed to update tee assignment' };
+  revalidateRound(roundId);
   return { success: true, courseHandicap, playingHandicap: courseHandicap };
 }
 
@@ -139,6 +147,7 @@ export async function setRoundPlayerHandicap(
     console.error('Set handicap error:', error);
     return { error: 'Failed to update handicap' };
   }
+  revalidateRound(roundId);
   return { success: true, courseHandicap };
 }
 
@@ -211,5 +220,6 @@ export async function bulkUpdatePlayerTees(roundId: string, teeBoxId: string, pl
     .update({ tee_box_id: teeBoxId })
     .eq('id', roundId);
 
+  revalidateRound(roundId);
   return { success: true, updatedCount };
 }
