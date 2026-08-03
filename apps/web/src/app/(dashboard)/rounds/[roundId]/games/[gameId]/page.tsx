@@ -1,388 +1,393 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useSupabase } from '@/providers/supabase-provider';
-import { useGameResults } from '@golf/ui';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  computePayouts,
+  assembleBestBallScoreData,
+  gameFormatRegistry,
+  type PayoutConfig,
+} from '@golf/core';
 
-interface GameDetail {
-  id: string;
-  type: string;
-  name: string;
-  status: 'active' | 'completed' | 'pending';
-  buyIn: number;
-  roundId: string;
-  createdAt: string;
+const GAME_LABELS: Record<string, string> = {
+  nassau: 'Nassau',
+  skins: 'Skins',
+  wolf: 'Wolf',
+  best_ball: 'Best Ball',
+  best_ball_2: '2-Man Best Ball',
+  progressive_best_ball: 'Progressive Best Ball',
+  low_net: 'Low Net',
+  match_play: 'Match Play',
+  stroke_play_net: 'Stroke Play (Net)',
+  stroke_play_gross: 'Stroke Play (Gross)',
+};
+
+interface GamePageProps {
+  params: Promise<{ roundId: string; gameId: string }>;
 }
 
-interface Standing {
-  playerId: string;
-  displayName: string;
-  position: number;
-  score: string;
-  payout: number;
-  details: Record<string, any>;
-}
+export default async function GameResultsPage({ params }: GamePageProps) {
+  const { roundId, gameId } = await params;
+  const supabase = await createServerSupabaseClient();
 
-interface HoleResult {
-  holeNumber: number;
-  winnerId: string | null;
-  winnerName: string | null;
-  value: number;
-  carried: boolean;
-}
+  const { data: game } = await supabase
+    .from('games')
+    .select('id, format, name, config, money_per_unit, status, round_id')
+    .eq('id', gameId)
+    .single();
+  if (!game) notFound();
 
-export default function GameDetailPage() {
-  const params = useParams<{ roundId: string; gameId: string }>();
-  const router = useRouter();
-  const { supabase } = useSupabase();
-  const { roundId, gameId } = params;
+  const [{ data: rps }, { data: scoreRows }, { data: gps }, { data: teamRows }] =
+    await Promise.all([
+      supabase
+        .from('round_players')
+        .select(
+          'id, user_id, tee_box_id, course_handicap, playing_handicap, guest_name, profiles:profiles!round_players_user_id_fkey(display_name)'
+        )
+        .eq('round_id', game.round_id),
+      supabase
+        .from('scores')
+        .select('round_player_id, hole_number, strokes, pickup')
+        .eq('round_id', game.round_id),
+      supabase.from('game_players').select('round_player_id').eq('game_id', gameId),
+      supabase
+        .from('game_teams')
+        .select('id, team_name, team_order, game_players(round_player_id)')
+        .eq('game_id', gameId)
+        .order('team_order'),
+    ]);
 
-  const [game, setGame] = useState<GameDetail | null>(null);
-  const [standings, setStandings] = useState<Standing[]>([]);
-  const [loading, setLoading] = useState(true);
+  const nameByRp = new Map<string, string>();
+  const chByRp = new Map<string, number | null>();
+  const teeByRp = new Map<string, string>();
+  const phByRp = new Map<string, number>();
+  for (const rp of (rps ?? []) as any[]) {
+    nameByRp.set(rp.id, rp.profiles?.display_name ?? rp.guest_name ?? 'Guest');
+    chByRp.set(rp.id, rp.course_handicap ?? null);
+    if (rp.tee_box_id) teeByRp.set(rp.id, rp.tee_box_id);
+    phByRp.set(rp.id, rp.playing_handicap ?? rp.course_handicap ?? 0);
+  }
 
-  const gameResults = useGameResults({
-    gameId,
-    formatId: '',
-    scoreData: [],
-    config: {},
-  } as any);
+  // Gross + net (total) per round_player from posted scores.
+  const grossByRp = new Map<string, number>();
+  const playedByRp = new Map<string, number>();
+  for (const s of scoreRows ?? []) {
+    if (s.strokes == null || !s.round_player_id) continue;
+    const rpId = s.round_player_id;
+    grossByRp.set(rpId, (grossByRp.get(rpId) ?? 0) + s.strokes);
+    playedByRp.set(rpId, (playedByRp.get(rpId) ?? 0) + 1);
+  }
 
-  useEffect(() => {
-    async function fetchGame() {
-      if (!supabase || !gameId) return;
+  const gamePlayerIds = (gps ?? []).map((g: any) => g.round_player_id).filter(Boolean);
+  const payout = ((game.config as any)?.payout ?? null) as PayoutConfig | null;
+  const isTeam = game.format === 'best_ball_2' && (teamRows ?? []).length > 0;
 
-      try {
-        setLoading(true);
+  const buyIn = payout?.buyIn ?? game.money_per_unit ?? 0;
 
-        const { data: gameData, error: gameError } = await supabase
-          .from('games')
-          .select(`
-            id,
-            format,
-            name,
-            status,
-            money_per_unit,
-            round_id,
-            created_at,
-            game_players (
-              player_id,
-              round_player_id,
-              team_id,
-              playing_handicap,
-              profiles:profiles!game_players_player_id_fkey (
-                id,
-                display_name
-              ),
-              round_player:round_players!game_players_round_player_id_fkey (
-                id,
-                guest_name
-              )
-            )
-          `)
-          .eq('id', gameId)
-          .single();
+  // ---- Team standings (best ball) -------------------------------------
+  let teamStandings: {
+    key: string;
+    label: string;
+    members: string;
+    toPar: number | null;
+    payoutAmt: number;
+    position: number;
+  }[] = [];
 
-        if (gameError) throw gameError;
+  // ---- Individual standings -------------------------------------------
+  let indivStandings: {
+    key: string;
+    name: string;
+    hcp: number | null;
+    gross: number;
+    net: number | null;
+    position: number;
+    payoutAmt: number;
+  }[] = [];
 
-        setGame({
-          id: gameData.id,
-          type: gameData.format,
-          name: gameData.name ?? '',
-          status: gameData.status as GameDetail['status'],
-          buyIn: gameData.money_per_unit ?? 0,
-          roundId: gameData.round_id,
-          createdAt: gameData.created_at,
-        });
+  let pot = 0;
 
-        setStandings(
-          (gameData.game_players ?? [])
-            .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
-            .map((gp: any) => ({
-              playerId: gp.profiles?.id ?? gp.round_player_id ?? gp.player_id,
-              displayName: gp.profiles?.display_name ?? gp.round_player?.guest_name ?? 'Guest',
-              position: gp.position ?? 0,
-              score: gp.score ?? '-',
-              payout: gp.payout ?? 0,
-              details: gp.details ?? {},
-            }))
-        );
-      } catch (err) {
-        console.error('Failed to load game:', err);
-      } finally {
-        setLoading(false);
+  if (isTeam) {
+    // Load holes for the engine.
+    const teeIds = [...new Set([...teeByRp.values()])];
+    const { data: holeRows } = teeIds.length
+      ? await supabase
+          .from('holes')
+          .select('hole_number, par, handicap_index, yardage, tee_box_id')
+          .in('tee_box_id', teeIds)
+      : { data: [] };
+    const holesByTeeBox: Record<string, any[]> = {};
+    for (const h of holeRows ?? []) {
+      (holesByTeeBox[h.tee_box_id] ??= []).push({
+        number: h.hole_number,
+        par: h.par,
+        strokeIndex: h.handicap_index,
+        yardage: h.yardage ?? 0,
+      });
+    }
+    const defaultHoles = Object.values(holesByTeeBox)[0] ?? [];
+
+    const teams = (teamRows ?? []).map((t: any) => ({
+      teamId: t.id,
+      teamName: t.team_name,
+      teamOrder: t.team_order ?? 0,
+      playerIds: (t.game_players ?? []).map((gp: any) => gp.round_player_id),
+    }));
+    const antes = new Set(teams.flatMap((t) => t.playerIds)).size;
+    pot = buyIn * antes;
+
+    const scoreData = assembleBestBallScoreData({
+      players: (rps ?? []).map((rp: any) => ({
+        playerId: rp.id,
+        displayName: nameByRp.get(rp.id) ?? 'Guest',
+        playingHandicap: phByRp.get(rp.id) ?? 0,
+        teeBoxId: rp.tee_box_id ?? '',
+      })),
+      holesByTeeBox,
+      defaultHoles,
+      scores: (scoreRows ?? []).map((s: any) => ({
+        playerId: s.round_player_id,
+        holeNumber: s.hole_number,
+        strokes: s.strokes,
+        pickup: s.pickup ?? false,
+      })),
+      teams,
+      handicapAllowance:
+        typeof (game.config as any)?.handicapAllowance === 'number'
+          ? (game.config as any).handicapAllowance
+          : 0.9,
+    });
+
+    const result = gameFormatRegistry
+      .getEngine('best_ball_2')
+      .calculateResults(scoreData, { useNet: true, countBest: 1 }, gameId);
+
+    const paid = payout
+      ? computePayouts(
+          result.teamStandings.map((t) => ({ id: t.teamId, position: t.position })),
+          payout,
+          antes
+        )
+      : [];
+    const payByTeam = new Map(paid.map((p) => [p.id, p.amount]));
+
+    teamStandings = result.teamStandings.map((t) => ({
+      key: t.teamId,
+      label: t.teamName,
+      members: (teams.find((x) => x.teamId === t.teamId)?.playerIds ?? [])
+        .map((pid: string) => nameByRp.get(pid) ?? 'Player')
+        .join(' & '),
+      toPar: (t.metadata?.scoreToPar as number | undefined) ?? null,
+      payoutAmt: payByTeam.get(t.teamId) ?? 0,
+      position: t.position,
+    }));
+  } else {
+    // Individual: rank by net total (gross − course handicap).
+    pot = buyIn * gamePlayerIds.length;
+    const rows = gamePlayerIds.map((rpId: string) => {
+      const played = playedByRp.get(rpId) ?? 0;
+      const gross = grossByRp.get(rpId) ?? 0;
+      const ch = chByRp.get(rpId) ?? null;
+      return {
+        key: rpId,
+        name: nameByRp.get(rpId) ?? 'Guest',
+        hcp: ch,
+        gross,
+        played,
+        net: played > 0 ? gross - (ch ?? 0) : null,
+      };
+    });
+    // Started first (by net), then not-started.
+    rows.sort((a, b) => {
+      const as = a.played > 0 ? 0 : 1;
+      const bs = b.played > 0 ? 0 : 1;
+      if (as !== bs) return as - bs;
+      if (as === 0) return (a.net ?? 0) - (b.net ?? 0);
+      return a.name.localeCompare(b.name);
+    });
+    // Positions with ties on net (only among started).
+    const ranked = rows.map((r, i) => {
+      let position = i + 1;
+      if (r.played > 0 && i > 0 && rows[i - 1].played > 0 && rows[i - 1].net === r.net) {
+        // tie — same as previous (recompute below)
       }
+      return { ...r, position };
+    });
+    // Fix tie positions.
+    let pos = 1;
+    for (let i = 0; i < ranked.length; i++) {
+      if (ranked[i].played === 0) {
+        ranked[i].position = pos;
+      } else if (i > 0 && ranked[i - 1].played > 0 && ranked[i - 1].net === ranked[i].net) {
+        ranked[i].position = ranked[i - 1].position;
+      } else {
+        ranked[i].position = pos;
+      }
+      pos++;
     }
 
-    fetchGame();
-  }, [supabase, gameId]);
+    const paid = payout
+      ? computePayouts(
+          ranked
+            .filter((r) => r.played > 0)
+            .map((r) => ({ id: r.key, position: r.position })),
+          payout,
+          gamePlayerIds.length
+        )
+      : [];
+    const payByPlayer = new Map(paid.map((p) => [p.id, p.amount]));
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-8 h-8 border-2 border-golf-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    indivStandings = ranked.map((r) => ({
+      key: r.key,
+      name: r.name,
+      hcp: r.hcp,
+      gross: r.gross,
+      net: r.net,
+      position: r.position,
+      payoutAmt: payByPlayer.get(r.key) ?? 0,
+    }));
   }
 
-  if (!game) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <p className="text-surface-300">Game not found</p>
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={() => router.back()}
-        >
-          Go Back
-        </Button>
-      </div>
-    );
-  }
-
-  const totalPot = game.buyIn * standings.length;
+  const label = GAME_LABELS[game.format] ?? game.name ?? game.format;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <button
-            onClick={() => router.push(`/rounds/${roundId}/games`)}
-            className="text-sm text-surface-300 hover:text-surface-100 mb-1 flex items-center gap-1"
+          <Link
+            href={`/rounds/${roundId}/games`}
+            className="text-sm text-surface-300 hover:text-surface-100 mb-1 inline-flex items-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             All Games
-          </button>
-          <h1 className="text-2xl font-bold text-surface-50">{game.name}</h1>
+          </Link>
+          <h1 className="text-2xl font-bold text-surface-50">{game.name || label}</h1>
         </div>
-        <Badge variant={game.status === 'active' ? 'default' : 'secondary'}>
-          {game.status === 'active' ? 'Live' : game.status}
+        <Badge variant={game.status === 'finalized' ? 'default' : 'secondary'}>
+          {game.status === 'finalized' ? 'Final' : 'Live'}
         </Badge>
       </div>
 
-      {/* Game Info */}
-      <Card>
-        <div className="p-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
+      {(buyIn > 0 || payout) && (
+        <Card>
+          <div className="p-4 grid grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-surface-300 uppercase tracking-wide">Type</p>
-              <p className="text-sm font-semibold text-surface-50 mt-1">{game.name}</p>
+              <p className="text-sm font-semibold text-surface-50 mt-1">{label}</p>
             </div>
             <div>
               <p className="text-xs text-surface-300 uppercase tracking-wide">Buy-in</p>
               <p className="text-sm font-semibold text-surface-50 mt-1">
-                {game.buyIn > 0 ? `$${game.buyIn}` : 'Free'}
+                {buyIn > 0 ? `$${buyIn}` : 'Free'}
               </p>
             </div>
             <div>
               <p className="text-xs text-surface-300 uppercase tracking-wide">Pot</p>
-              <p className="text-sm font-semibold text-golf-600 mt-1">
-                {totalPot > 0 ? `$${totalPot}` : '-'}
+              <p className="text-sm font-semibold text-golf-500 mt-1">
+                {pot > 0 ? `$${pot}` : '-'}
               </p>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
-      {/* Standings */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Standings</CardTitle>
           <CardDescription>
-            {game.status === 'active'
-              ? 'Live standings - scores update in real time'
-              : 'Final results'}
+            {game.status === 'finalized' ? 'Final results' : 'Live — updates as scores come in'}
           </CardDescription>
         </CardHeader>
         <div className="px-4 pb-4">
-          <div className="space-y-1">
-            {standings.map((standing, idx) => (
-              <div
-                key={standing.playerId}
-                className={`
-                  flex items-center justify-between p-3 rounded-lg
-                  ${idx === 0 && game.status === 'completed' ? 'bg-gold-500/20 border border-gold-400' : 'hover:bg-surface-700'}
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                      ${
-                        standing.position === 1
-                          ? 'bg-gold-500/20 text-gold-500'
-                          : standing.position === 2
-                          ? 'bg-surface-600 text-surface-200'
-                          : standing.position === 3
-                          ? 'bg-amber-700/20 text-amber-700'
-                          : 'bg-surface-700 text-surface-300'
-                      }
-                    `}
+          {isTeam ? (
+            teamStandings.length === 0 ? (
+              <p className="text-sm text-surface-300 py-4">Teams haven&apos;t been drawn yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {teamStandings.map((t) => (
+                  <div
+                    key={t.key}
+                    className={`flex items-center gap-3 rounded-lg border p-2.5 ${
+                      t.position === 1
+                        ? 'bg-gold-500/10 border-gold-500/30'
+                        : 'bg-surface-900/40 border-surface-700'
+                    }`}
                   >
-                    {standing.position}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-surface-50">
-                      {standing.displayName}
-                    </p>
-                    <p className="text-xs text-surface-300">{standing.score}</p>
+                    <span className="w-6 text-sm font-bold text-surface-200">{t.position}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-surface-50 truncate">{t.members}</p>
+                      <p className="text-[11px] text-surface-400">{t.label}</p>
+                    </div>
+                    {t.toPar !== null && (
+                      <span className="text-sm font-bold tabular-nums text-surface-100">
+                        {t.toPar === 0 ? 'E' : t.toPar > 0 ? `+${t.toPar}` : t.toPar}
+                      </span>
+                    )}
+                    {t.payoutAmt > 0 && (
+                      <span className="w-14 text-right text-sm font-bold text-golf-500 tabular-nums">
+                        +${t.payoutAmt}
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="text-right">
-                  {standing.payout !== 0 && (
-                    <p
-                      className={`text-sm font-bold ${
-                        standing.payout > 0 ? 'text-golf-600' : 'text-red-400'
-                      }`}
-                    >
-                      {standing.payout > 0 ? '+' : ''}${Math.abs(standing.payout)}
-                    </p>
-                  )}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      {/* Game-specific details */}
-      {game.type === 'skins' && (gameResults as any).holeResults && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Skins</CardTitle>
-            <CardDescription>Hole-by-hole skin results</CardDescription>
-          </CardHeader>
-          <div className="px-4 pb-4">
-            <div className="grid grid-cols-1 gap-1">
-              {((gameResults as any).holeResults as HoleResult[]).map((hr) => (
+            )
+          ) : indivStandings.length === 0 ? (
+            <p className="text-sm text-surface-300 py-4">No players in this game.</p>
+          ) : (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+                <span className="w-6" />
+                <span className="flex-1">Player</span>
+                <span className="w-12 text-right">Gross</span>
+                <span className="w-12 text-right">Net</span>
+                <span className="w-14 text-right" />
+              </div>
+              {indivStandings.map((p) => (
                 <div
-                  key={hr.holeNumber}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-surface-700"
+                  key={p.key}
+                  className={`flex items-center gap-2 rounded-lg p-2.5 ${
+                    p.position === 1 && p.net !== null
+                      ? 'bg-gold-500/10 border border-gold-500/30'
+                      : 'hover:bg-surface-700/40'
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-surface-300 w-8">
-                      #{hr.holeNumber}
-                    </span>
-                    <span className="text-sm text-surface-50">
-                      {hr.winnerName ?? (hr.carried ? 'Carried over' : 'Push')}
-                    </span>
+                  <span className="w-6 text-sm font-bold text-surface-200">
+                    {p.net === null ? '—' : p.position}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-surface-50 truncate">{p.name}</p>
+                    {p.hcp !== null && (
+                      <p className="text-[11px] text-surface-400">CH {p.hcp}</p>
+                    )}
                   </div>
-                  {hr.value > 0 && (
-                    <span className="text-xs font-semibold text-golf-600">
-                      ${hr.value}
-                    </span>
-                  )}
-                  {hr.carried && (
-                    <Badge variant="secondary" className="text-xs">
-                      Carry
-                    </Badge>
-                  )}
+                  <span className="w-12 text-right text-sm tabular-nums text-surface-100">
+                    {p.gross || '-'}
+                  </span>
+                  <span className="w-12 text-right text-sm font-bold tabular-nums text-surface-50">
+                    {p.net ?? '-'}
+                  </span>
+                  <span className="w-14 text-right text-sm font-bold text-golf-500 tabular-nums">
+                    {p.payoutAmt > 0 ? `+$${p.payoutAmt}` : ''}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
-        </Card>
-      )}
+          )}
+        </div>
+      </Card>
 
-      {game.type === 'nassau' && (gameResults as any).nassauDetails && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Nassau Breakdown</CardTitle>
-          </CardHeader>
-          <div className="px-4 pb-4 space-y-4">
-            {['front', 'back', 'overall'].map((segment) => {
-              const segmentData = ((gameResults as any).nassauDetails as any)?.[segment];
-              if (!segmentData) return null;
-
-              return (
-                <div key={segment}>
-                  <h4 className="text-xs font-semibold text-surface-300 uppercase tracking-wide mb-2">
-                    {segment === 'front'
-                      ? 'Front 9'
-                      : segment === 'back'
-                      ? 'Back 9'
-                      : 'Overall'}
-                  </h4>
-                  <div className="space-y-1">
-                    {(segmentData.standings ?? []).map((s: any, i: number) => (
-                      <div
-                        key={s.playerId}
-                        className="flex justify-between text-sm py-1"
-                      >
-                        <span className="text-surface-100">{s.displayName}</span>
-                        <span className="font-medium">{s.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* Payouts summary */}
-      {game.status === 'completed' && standings.some((s) => s.payout !== 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Payouts</CardTitle>
-            <CardDescription>Settlement summary</CardDescription>
-          </CardHeader>
-          <div className="px-4 pb-4">
-            <div className="space-y-2">
-              {standings
-                .filter((s) => s.payout !== 0)
-                .sort((a, b) => b.payout - a.payout)
-                .map((s) => (
-                  <div
-                    key={s.playerId}
-                    className="flex items-center justify-between py-2 border-b border-surface-600 last:border-0"
-                  >
-                    <span className="text-sm text-surface-100">
-                      {s.displayName}
-                    </span>
-                    <span
-                      className={`text-sm font-bold ${
-                        s.payout > 0 ? 'text-golf-600' : 'text-red-400'
-                      }`}
-                    >
-                      {s.payout > 0 ? 'Wins' : 'Owes'} ${Math.abs(s.payout)}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Actions */}
       <div className="flex gap-3">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => router.push(`/rounds/${roundId}/scorecard`)}
-        >
-          Scorecard
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => router.push(`/rounds/${roundId}/games`)}
-        >
-          All Games
-        </Button>
+        <Link href={`/rounds/${roundId}`} className="flex-1">
+          <Button variant="outline" className="w-full">Round</Button>
+        </Link>
+        <Link href={`/rounds/${roundId}/games`} className="flex-1">
+          <Button variant="outline" className="w-full">All Games</Button>
+        </Link>
       </div>
     </div>
   );
