@@ -115,12 +115,17 @@ export default async function ScorecardPage({ params }: ScorecardPageProps) {
     date: roundData.round_date,
     players: roundData.round_players.map((rp: any) => {
       const isGuest = !rp.user_id;
+      // rp.profiles can be null even for a member: profiles RLS may hide a
+      // round-mate you don't share a group with (Game Time / roster rounds).
+      // Never deref it directly. id keys off user_id (== profiles.id) for
+      // members, round_players.id for guests.
+      const prof = rp.profiles;
       return {
-        id: isGuest ? rp.id : rp.profiles.id,
-        displayName: isGuest ? rp.guest_name : rp.profiles.display_name,
+        id: rp.user_id ?? rp.id,
+        displayName: (isGuest ? rp.guest_name : prof?.display_name) ?? rp.guest_name ?? 'Player',
         handicap: isGuest
           ? rp.guest_handicap_index
-          : rp.profiles.current_handicap_index,
+          : prof?.current_handicap_index ?? null,
         teeBoxId: rp.tee_box_id,
         teeTimeGroupId: rp.tee_time_group_id ?? null,
         playingHandicap: rp.playing_handicap ?? 0,
