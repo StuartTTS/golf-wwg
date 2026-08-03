@@ -4,8 +4,21 @@
 // game. Captures a per-player buy-in, how many places pay out, and the split
 // (percent of pot, or flat dollar amounts). The pot = buyIn × players.
 
-import { validatePayout, type PayoutConfig } from '@golf/core';
+import {
+  validatePayout,
+  type PayoutConfig,
+  type PayoutRounding,
+} from '@golf/core';
 import { Input } from '@/components/ui/input';
+
+/** Preview a single amount rounded the way computePayouts will (cash-friendly). */
+function roundCash(amount: number, r: PayoutRounding | null | undefined): number {
+  if (!r || !r.increment || r.increment <= 0 || amount === 0) return amount;
+  const q = amount / r.increment;
+  const n =
+    r.mode === 'up' ? Math.ceil(q) : r.mode === 'down' ? Math.floor(q) : Math.round(q);
+  return Math.round(n * r.increment * 100) / 100;
+}
 
 // Standard payout curves by number of paid places (percent of pot).
 const PERCENT_PRESETS: Record<number, number[]> = {
@@ -54,6 +67,16 @@ export function PayoutFields({
     const split = [...value.split];
     split[i] = Number.isNaN(n) ? 0 : n;
     onChange({ ...value, split });
+  };
+  const rounding = value.rounding ?? null;
+  const setRoundIncrement = (increment: number) => {
+    onChange({
+      ...value,
+      rounding: increment > 0 ? { increment, mode: rounding?.mode ?? 'nearest' } : null,
+    });
+  };
+  const setRoundMode = (mode: PayoutRounding['mode']) => {
+    onChange({ ...value, rounding: { increment: rounding?.increment ?? 5, mode } });
   };
 
   return (
@@ -124,10 +147,11 @@ export function PayoutFields({
         </div>
         <div className="space-y-1.5">
           {value.split.map((s, i) => {
-            const dollars =
+            const raw =
               value.splitMode === 'percent'
                 ? Math.round(((pot * s) / 100) * 100) / 100
                 : s;
+            const paid = roundCash(raw, rounding);
             return (
               <div key={i} className="flex items-center gap-2">
                 <span className="w-16 text-xs text-surface-300 shrink-0">
@@ -143,12 +167,65 @@ export function PayoutFields({
                   }
                 />
                 <span className="w-16 text-right text-xs text-surface-400 tabular-nums shrink-0">
-                  {value.splitMode === 'percent' ? `$${dollars}` : `${pctOfPot(s, pot)}%`}
+                  {value.splitMode === 'percent'
+                    ? rounding && paid !== raw
+                      ? `$${paid}`
+                      : `$${raw}`
+                    : `${pctOfPot(s, pot)}%`}
                 </span>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {/* Cash-friendly rounding: round each payout to a clean bill amount. */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-surface-100">
+            Round payouts
+          </label>
+          <div className="inline-flex rounded-lg bg-surface-700 p-0.5 text-xs">
+            {([0, 5, 10] as const).map((inc) => (
+              <button
+                key={inc}
+                type="button"
+                onClick={() => setRoundIncrement(inc)}
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  (rounding?.increment ?? 0) === inc
+                    ? 'bg-golf-600 text-white font-medium'
+                    : 'text-surface-300 hover:text-surface-100'
+                }`}
+              >
+                {inc === 0 ? 'Off' : `$${inc}`}
+              </button>
+            ))}
+          </div>
+        </div>
+        {rounding && (
+          <>
+            <div className="inline-flex rounded-lg bg-surface-700 p-0.5 text-xs">
+              {(['nearest', 'up', 'down'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setRoundMode(m)}
+                  className={`px-2.5 py-1 rounded-md capitalize transition-colors ${
+                    rounding.mode === m
+                      ? 'bg-golf-600 text-white font-medium'
+                      : 'text-surface-300 hover:text-surface-100'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-surface-400">
+              Each payout {rounding.mode === 'nearest' ? 'rounds to' : `rounds ${rounding.mode} to`}{' '}
+              the nearest ${rounding.increment} — the total paid may differ from the pot.
+            </p>
+          </>
+        )}
       </div>
 
       {error && <p className="text-xs text-red-400">{error}</p>}

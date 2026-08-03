@@ -1,4 +1,4 @@
-import type { PayoutConfig } from '../types/game-payout';
+import type { PayoutConfig, PayoutRounding } from '../types/game-payout';
 
 export interface PayoutEntry {
   id: string;
@@ -7,6 +7,18 @@ export interface PayoutEntry {
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Round a single payout to a cash-friendly multiple (e.g. up to the nearest $5).
+ * A zero payout stays zero. Off when no rounding is configured.
+ */
+function applyRounding(amount: number, r: PayoutRounding | null | undefined): number {
+  if (!r || !r.increment || r.increment <= 0 || amount === 0) return amount;
+  const q = amount / r.increment;
+  const n =
+    r.mode === 'up' ? Math.ceil(q) : r.mode === 'down' ? Math.floor(q) : Math.round(q);
+  return round2(n * r.increment);
 }
 
 /**
@@ -77,6 +89,14 @@ export function computePayouts(
       const e = byId.get(firstPaid.id)!;
       e.amount = round2(e.amount + drift);
     }
+  }
+
+  // Cash-friendly rounding (e.g. up to the nearest $5), applied last: it
+  // intentionally trades exact-pot distribution for round numbers, so the sum
+  // paid may differ from the pot. Tied entries share an equal amount, so they
+  // round identically.
+  if (payout.rounding && payout.rounding.increment > 0) {
+    for (const e of result) e.amount = applyRounding(e.amount, payout.rounding);
   }
 
   return result;

@@ -5,6 +5,16 @@
 
 export type PayoutSplitMode = 'percent' | 'amount';
 
+/** How to round each computed payout to a cash-friendly amount. */
+export type PayoutRoundingMode = 'nearest' | 'up' | 'down';
+
+export interface PayoutRounding {
+  /** Round each payout to a multiple of this many dollars (e.g. 5 or 10). */
+  increment: number;
+  /** Round to the nearest multiple, or always up / always down. */
+  mode: PayoutRoundingMode;
+}
+
 export interface PayoutConfig {
   /** Per-player entry fee. Pot = buyIn × number of players. */
   buyIn: number;
@@ -14,4 +24,10 @@ export interface PayoutConfig {
   splitMode: PayoutSplitMode;
   /** One entry per paid place. Percent entries sum to 100; amount entries ≤ pot. */
   split: number[];
+  /**
+   * Optional: round each computed payout to a cash-friendly increment (e.g. up
+   * to the nearest $5). Off when absent or `increment` ≤ 0. Rounding is applied
+   * after the pot is split, so the total paid may not exactly equal the pot.
+   */
+  rounding?: PayoutRounding | null;
 }
