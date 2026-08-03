@@ -59,6 +59,18 @@ export function ScoreEntryView({
     );
   }, [hasFlights, round.currentUserGroupId, round.players]);
 
+  // The person entering scores is (almost always) the current user, so surface
+  // their own card first — no hunting past the others to find yourself.
+  const orderedPlayers = useMemo<PlayPlayer[]>(() => {
+    const me = round.currentUserId;
+    const idx = me ? flightPlayers.findIndex((p) => p.id === me) : -1;
+    if (idx <= 0) return flightPlayers;
+    const copy = [...flightPlayers];
+    const [mine] = copy.splice(idx, 1);
+    copy.unshift(mine);
+    return copy;
+  }, [flightPlayers, round.currentUserId]);
+
   const holesFor = (teeBoxId: string): PlayHole[] =>
     round.holesByTeeBox[teeBoxId] ?? round.defaultHoles ?? [];
 
@@ -97,41 +109,25 @@ export function ScoreEntryView({
     holesFor(player.teeBoxId).find((h) => h.number === hole.number)
       ?.strokeIndex ?? hole.strokeIndex;
 
+  // On hole change, jump back to the top so the new hole's header and cards are
+  // in view — otherwise tapping Next from the bottom nav leaves you scrolled
+  // past the cards you're about to fill in.
+  const goToHole = (i: number) => {
+    setHoleIndex(i);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+  };
+  const goPrev = () => goToHole(Math.max(0, holeIndex - 1));
+  const goNext = () => goToHole(Math.min(layoutHoles.length - 1, holeIndex + 1));
+
   return (
     <div className="space-y-4">
-      {/* Hole navigation */}
-      <div className="flex items-center justify-between gap-2">
-        <button
-          onClick={() => setHoleIndex(Math.max(0, holeIndex - 1))}
-          disabled={holeIndex === 0}
-          className="flex items-center gap-1 h-10 pl-2 pr-3 rounded-full bg-surface-800 border border-surface-600 text-sm font-medium text-surface-100 hover:bg-surface-700 disabled:opacity-25 transition-colors"
-          aria-label="Previous hole"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Prev
-        </button>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-surface-50 leading-none">Hole {hole.number}</p>
-          <p className="text-xs text-surface-300 mt-0.5">
-            Par {hole.par} · {hole.yardage} yds · SI {hole.strokeIndex}
-          </p>
-        </div>
-        <button
-          onClick={() =>
-            setHoleIndex(Math.min(layoutHoles.length - 1, holeIndex + 1))
-          }
-          disabled={holeIndex === layoutHoles.length - 1}
-          className="flex items-center gap-1 h-10 pl-3 pr-2 rounded-full bg-golf-600 text-sm font-semibold text-white hover:bg-golf-500 disabled:opacity-25 disabled:bg-surface-700 disabled:text-surface-300 transition-colors"
-          aria-label="Next hole"
-        >
-          Next
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
+      {/* Hole navigation (top) */}
+      <HoleNav holeIndex={holeIndex} total={layoutHoles.length} onPrev={goPrev} onNext={goNext}>
+        <p className="text-2xl font-bold text-surface-50 leading-none">Hole {hole.number}</p>
+        <p className="text-xs text-surface-300 mt-0.5">
+          Par {hole.par} · {hole.yardage} yds · SI {hole.strokeIndex}
+        </p>
+      </HoleNav>
 
       {/* Progress dots */}
       <div className="flex justify-center gap-1 flex-wrap">
@@ -160,7 +156,7 @@ export function ScoreEntryView({
 
       {/* Player cards */}
       <div className="space-y-3">
-        {flightPlayers.map((player) => {
+        {orderedPlayers.map((player) => {
           const score = getScore(player.id, hole.number);
           const par = parFor(player);
           const isMe = player.id === round.currentUserId;
@@ -312,11 +308,62 @@ export function ScoreEntryView({
         })}
       </div>
 
+      {/* Hole navigation (bottom) — go to the next hole without scrolling back up */}
+      <HoleNav holeIndex={holeIndex} total={layoutHoles.length} onPrev={goPrev} onNext={goNext}>
+        <p className="text-sm font-semibold text-surface-200">
+          Hole {hole.number} of {layoutHoles.length}
+        </p>
+      </HoleNav>
+
       {holeIndex === layoutHoles.length - 1 && (
         <p className="text-center text-sm text-surface-400">
           Last hole — tap <span className="text-golf-400 font-medium">Confirm round</span> when you&apos;re done.
         </p>
       )}
+    </div>
+  );
+}
+
+/* ---------------- Hole navigation ---------------- */
+
+function HoleNav({
+  holeIndex,
+  total,
+  onPrev,
+  onNext,
+  children,
+}: {
+  holeIndex: number;
+  total: number;
+  onPrev: () => void;
+  onNext: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <button
+        onClick={onPrev}
+        disabled={holeIndex === 0}
+        className="flex items-center gap-1 h-10 pl-2 pr-3 rounded-full bg-surface-800 border border-surface-600 text-sm font-medium text-surface-100 hover:bg-surface-700 disabled:opacity-25 transition-colors"
+        aria-label="Previous hole"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Prev
+      </button>
+      <div className="text-center">{children}</div>
+      <button
+        onClick={onNext}
+        disabled={holeIndex === total - 1}
+        className="flex items-center gap-1 h-10 pl-3 pr-2 rounded-full bg-golf-600 text-sm font-semibold text-white hover:bg-golf-500 disabled:opacity-25 disabled:bg-surface-700 disabled:text-surface-300 transition-colors"
+        aria-label="Next hole"
+      >
+        Next
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   );
 }
