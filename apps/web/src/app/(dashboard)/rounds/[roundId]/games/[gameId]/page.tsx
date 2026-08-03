@@ -10,6 +10,7 @@ import {
   gameFormatRegistry,
   type PayoutConfig,
 } from '@golf/core';
+import { RandomTeamsControl } from '@/components/games/random-teams-control';
 
 const GAME_LABELS: Record<string, string> = {
   nassau: 'Nassau',
@@ -38,6 +39,31 @@ export default async function GameResultsPage({ params }: GamePageProps) {
     .eq('id', gameId)
     .single();
   if (!game) notFound();
+
+  // Who may draw/redraw teams: round creator, scorekeeper, or a group admin.
+  // (The RPC is the real gate; this just decides whether to show the button.)
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: gameRound } = await supabase
+    .from('rounds')
+    .select('created_by, group_id, scorekeeper_id')
+    .eq('id', game.round_id)
+    .single();
+  let canManage = false;
+  if (user && gameRound) {
+    canManage =
+      gameRound.created_by === user.id || gameRound.scorekeeper_id === user.id;
+    if (!canManage && gameRound.group_id) {
+      const { data: membership } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', gameRound.group_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      canManage = membership?.role === 'admin';
+    }
+  }
+  const isRandomTeams =
+    game.format === 'best_ball_2' && (game.config as any)?.randomTeams === true;
 
   const [{ data: rps }, { data: scoreRows }, { data: gps }, { data: teamRows }] =
     await Promise.all([
@@ -82,7 +108,10 @@ export default async function GameResultsPage({ params }: GamePageProps) {
 
   const gamePlayerIds = (gps ?? []).map((g: any) => g.round_player_id).filter(Boolean);
   const payout = ((game.config as any)?.payout ?? null) as PayoutConfig | null;
-  const isTeam = game.format === 'best_ball_2' && (teamRows ?? []).length > 0;
+  // A random-teams best-ball game is a team game even before teams are drawn
+  // (so we show the draw control, not an individual leaderboard).
+  const hasTeams = (teamRows ?? []).length > 0;
+  const isTeam = game.format === 'best_ball_2' && (hasTeams || isRandomTeams);
 
   const buyIn = payout?.buyIn ?? game.money_per_unit ?? 0;
 
@@ -304,10 +333,22 @@ export default async function GameResultsPage({ params }: GamePageProps) {
         </CardHeader>
         <div className="px-4 pb-4">
           {isTeam ? (
-            teamStandings.length === 0 ? (
-              <p className="text-sm text-surface-300 py-4">Teams haven&apos;t been drawn yet.</p>
-            ) : (
-              <div className="space-y-1.5">
+            <div className="space-y-3">
+              {isRandomTeams && (
+                <RandomTeamsControl
+                  gameId={gameId}
+                  playerCount={gamePlayerIds.length}
+                  hasTeams={hasTeams}
+                  canManage={canManage}
+                  finalized={game.status === 'finalized'}
+                />
+              )}
+              {teamStandings.length === 0 ? (
+                !isRandomTeams ? (
+                  <p className="text-sm text-surface-300 py-4">Teams haven&apos;t been drawn yet.</p>
+                ) : null
+              ) : (
+                <div className="space-y-1.5">
                 {teamStandings.map((t) => (
                   <div
                     key={t.key}
@@ -334,8 +375,9 @@ export default async function GameResultsPage({ params }: GamePageProps) {
                     )}
                   </div>
                 ))}
-              </div>
-            )
+                </div>
+              )}
+            </div>
           ) : indivStandings.length === 0 ? (
             <p className="text-sm text-surface-300 py-4">No players in this game.</p>
           ) : (
