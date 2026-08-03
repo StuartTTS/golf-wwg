@@ -1090,6 +1090,7 @@ export type Database = {
           course_rating: number
           id: string
           name: string
+          par: number | null
           slope_rating: number
           tier: number | null
           total_yardage: number | null
@@ -1100,6 +1101,7 @@ export type Database = {
           course_rating: number
           id?: string
           name: string
+          par?: number | null
           slope_rating: number
           tier?: number | null
           total_yardage?: number | null
@@ -1110,6 +1112,7 @@ export type Database = {
           course_rating?: number
           id?: string
           name?: string
+          par?: number | null
           slope_rating?: number
           tier?: number | null
           total_yardage?: number | null
