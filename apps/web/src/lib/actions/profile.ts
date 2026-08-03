@@ -108,6 +108,29 @@ export async function autoMatchRoster() {
  * — so the join flow can skip the pick-a-name list and go straight to a name
  * confirmation. Returns null when nothing matches (fall back to the list).
  */
+/**
+ * Has the organizer already put this caller in the round as themselves? True
+ * when they hold a round_player card with their user_id AND a roster_player_id
+ * (added from the organizer's roster as a linked member). Such a player is
+ * already in — they must NOT be offered a guest spot to claim (that spot is
+ * someone else). A fresh code-joiner's self card has no roster_player_id, so
+ * they still get the "claim your spot" step for name-only guests.
+ */
+async function callerAlreadyRostered(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  roundId: string,
+  userId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('round_players')
+    .select('id')
+    .eq('round_id', roundId)
+    .eq('user_id', userId)
+    .not('roster_player_id', 'is', null)
+    .limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
 export async function getMatchedSpot(roundId: string) {
   const supabase = await createServerSupabaseClient();
   const {
@@ -115,6 +138,9 @@ export async function getMatchedSpot(roundId: string) {
   } = await supabase.auth.getUser();
   type Spot = { id: string; name: string; handicap: number | null };
   if (!user) return { spot: null as Spot | null };
+  if (await callerAlreadyRostered(supabase, roundId, user.id)) {
+    return { spot: null as Spot | null };
+  }
 
   const { data, error } = await supabase.rpc('find_matched_guest_spot', {
     p_round_id: roundId,
@@ -148,6 +174,10 @@ export async function getUnclaimedSpots(roundId: string) {
   } = await supabase.auth.getUser();
   type Spot = { id: string; guest_name: string; handicap: number | null };
   if (!user) return { spots: [] as Spot[] };
+  // Already in the round as themselves (organizer-rostered) → nothing to claim.
+  if (await callerAlreadyRostered(supabase, roundId, user.id)) {
+    return { spots: [] as Spot[] };
+  }
 
   const { data, error } = await supabase
     .from('round_players')
