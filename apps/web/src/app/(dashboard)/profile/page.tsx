@@ -172,19 +172,19 @@ export default function ProfilePage() {
       <Card>
         <div className="p-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 text-2xl font-bold">
+            <div className="w-16 h-16 shrink-0 rounded-full bg-emerald-900/40 flex items-center justify-center text-golf-600 text-2xl font-bold">
               {profile.displayName.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-surface-50">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-surface-50 truncate">
                 {profile.displayName}
               </h1>
-              <p className="text-sm text-surface-300">{profile.email}</p>
+              <p className="text-sm text-surface-300 truncate">{profile.email}</p>
               <p className="text-xs text-surface-400 mt-1">
                 Member since {memberSince}
               </p>
             </div>
-            <Link href="/settings">
+            <Link href="/settings" className="shrink-0">
               <Button variant="outline" size="sm">
                 Edit
               </Button>
