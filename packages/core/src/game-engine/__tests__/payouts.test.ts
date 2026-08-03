@@ -121,4 +121,74 @@ describe('computePayouts', () => {
     const out = computePayouts([{ id: 'a', position: 1 }], cfg, 0);
     expect(sum(out)).toBe(0);
   });
+
+  describe('cash-friendly rounding', () => {
+    const ranked = [
+      { id: 'a', position: 1 },
+      { id: 'b', position: 2 },
+      { id: 'c', position: 3 },
+      { id: 'd', position: 4 },
+    ];
+
+    it('rounds each payout to the nearest $5', () => {
+      // pot = 90; 50/30/20 -> 45 / 27 / 18 -> nearest $5 -> 45 / 25 / 20
+      const cfg: PayoutConfig = {
+        buyIn: 30, places: 3, splitMode: 'percent', split: [50, 30, 20],
+        rounding: { increment: 5, mode: 'nearest' },
+      };
+      const out = computePayouts(ranked, cfg, 3);
+      expect(out.find((o) => o.id === 'a')!.amount).toBe(45);
+      expect(out.find((o) => o.id === 'b')!.amount).toBe(25);
+      expect(out.find((o) => o.id === 'c')!.amount).toBe(20);
+    });
+
+    it('rounds up to the nearest $10 (total may exceed the pot)', () => {
+      // pot = 90 -> 45 / 27 / 18 -> up to $10 -> 50 / 30 / 20 = 100
+      const cfg: PayoutConfig = {
+        buyIn: 30, places: 3, splitMode: 'percent', split: [50, 30, 20],
+        rounding: { increment: 10, mode: 'up' },
+      };
+      const out = computePayouts(ranked, cfg, 3);
+      expect(out.map((o) => o.amount)).toEqual([50, 30, 20, 0]);
+      expect(sum(out)).toBe(100);
+    });
+
+    it('rounds down to the nearest $10 (total may fall short)', () => {
+      // 45 / 27 / 18 -> down to $10 -> 40 / 20 / 10 = 70
+      const cfg: PayoutConfig = {
+        buyIn: 30, places: 3, splitMode: 'percent', split: [50, 30, 20],
+        rounding: { increment: 10, mode: 'down' },
+      };
+      const out = computePayouts(ranked, cfg, 3);
+      expect(out.map((o) => o.amount)).toEqual([40, 20, 10, 0]);
+    });
+
+    it('leaves amounts unchanged when rounding is off/absent', () => {
+      const cfg: PayoutConfig = {
+        buyIn: 30, places: 3, splitMode: 'percent', split: [50, 30, 20],
+      };
+      const out = computePayouts(ranked, cfg, 3);
+      expect(out.map((o) => o.amount)).toEqual([45, 27, 18, 0]);
+    });
+
+    it('tied entries round to the same amount', () => {
+      // pot 60; two-way tie for 1st over places [70,30] -> pooled 60 -> 30 each
+      // -> nearest $5 stays 30 each.
+      const cfg: PayoutConfig = {
+        buyIn: 20, places: 2, splitMode: 'percent', split: [70, 30],
+        rounding: { increment: 5, mode: 'nearest' },
+      };
+      const out = computePayouts(
+        [
+          { id: 'a', position: 1 },
+          { id: 'b', position: 1 },
+          { id: 'c', position: 3 },
+        ],
+        cfg,
+        3
+      );
+      expect(out.find((o) => o.id === 'a')!.amount).toBe(30);
+      expect(out.find((o) => o.id === 'b')!.amount).toBe(30);
+    });
+  });
 });
