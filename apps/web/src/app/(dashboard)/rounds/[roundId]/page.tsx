@@ -1,20 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Button,
-  Badge,
-} from '@/components/ui';
+import { Button, Badge } from '@/components/ui';
 import { featureFlags } from '@/lib/feature-flags';
-import { AddGuestForm } from '@/components/rounds/add-guest-form';
-import { AddFromRosterCard } from '@/components/rounds/add-from-roster-card';
-import { RegistrationCard } from '@/components/rounds/registration-card';
-import CourseTeeCard from '@/components/rounds/course-tee-card';
-import RoundLineupCard from '@/components/rounds/round-lineup-card';
 import { ShareGameButton } from '@/components/rounds/share-game-button';
 import { DeleteRoundButton } from '@/components/rounds/delete-round-button';
 
@@ -22,7 +10,12 @@ interface RoundPageProps {
   params: Promise<{ roundId: string }>;
 }
 
-export default async function RoundDashboardPage({ params }: RoundPageProps) {
+/**
+ * Round hub — a clean set of destinations, not a config dump. From here you
+ * review/confirm, check the leaderboard + game results, edit setup, or manage
+ * the round. Everything heavier lives on its own page.
+ */
+export default async function RoundHubPage({ params }: RoundPageProps) {
   const { roundId } = await params;
   const supabase = await createServerSupabaseClient();
 
@@ -30,73 +23,22 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch round with course, tee box, and group info
-  const { data: round, error: roundError } = await supabase
+  const { data: round, error } = await supabase
     .from('rounds')
-    .select(`
-      id,
-      round_date,
-      tee_time,
-      status,
-      scoring_mode,
-      created_by,
-      group_id,
-      course_id,
-      tee_box_id,
-      registration_status,
-      course:courses (id, name),
-      tee_box:tee_boxes (id, name, color, course_rating, slope_rating),
-      group:groups (id, name)
-    `)
+    .select(
+      'id, status, created_by, group_id, round_date, tee_time, course:courses (id, name)'
+    )
     .eq('id', roundId)
     .single();
+  if (error || !round) notFound();
 
-  if (roundError || !round) {
-    notFound();
-  }
-
-  // Fetch players with profiles and tee box info
   const { data: players } = await supabase
     .from('round_players')
-    .select(`
-      id,
-      user_id,
-      tee_box_id,
-      tee_time_group_id,
-      status,
-      handicap_index_at_round,
-      course_handicap,
-      guest_name,
-      guest_handicap_index,
-      roster_player_id,
-      profile:profiles!round_players_user_id_fkey (id, display_name, current_handicap_index),
-      tee_box:tee_boxes (id, name, color)
-    `)
-    .eq('round_id', roundId)
-    .order('status', { ascending: true });
+    .select(
+      'id, user_id, tee_box_id, status, profile:profiles!round_players_user_id_fkey (display_name)'
+    )
+    .eq('round_id', roundId);
 
-  // Fetch games for this round
-  const { data: games } = await supabase
-    .from('games')
-    .select(`
-      id,
-      format,
-      name,
-      status,
-      money_per_unit,
-      holes
-    `)
-    .eq('round_id', roundId)
-    .order('created_at', { ascending: true });
-
-  // Fetch tee time groups
-  const { data: teeTimeGroups } = await supabase
-    .from('tee_time_groups')
-    .select('id, name, tee_time, sort_order')
-    .eq('round_id', roundId)
-    .order('sort_order');
-
-  // Check if current user is group admin
   let isGroupAdmin = false;
   if (user && round.group_id) {
     const { data: adminCheck } = await supabase
@@ -107,745 +49,179 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       .single();
     isGroupAdmin = adminCheck?.role === 'admin';
   }
+  const isCommish = round.created_by === user?.id || isGroupAdmin;
+  const playEnabled = featureFlags.playExperience;
+  const ownerName =
+    (players ?? []).find((p: any) => p.user_id === round.created_by)?.profile
+      ?.display_name ?? null;
 
-  // Roster entries the viewer can add that aren't already in the round.
-  let availableRoster: { id: string; display_name: string; handicap_index: number | null }[] = [];
-  if (user && (isGroupAdmin || round.created_by === user.id)) {
-    const { data: roster } = await supabase
-      .from('roster_players')
-      .select('id, display_name, handicap_index, linked_user_id')
-      .eq('owner_id', user.id)
-      .order('display_name');
-    const inRoundRosterIds = new Set(
-      (players ?? []).map((p: any) => p.roster_player_id).filter(Boolean)
-    );
-    const inRoundUserIds = new Set(
-      (players ?? []).map((p: any) => p.user_id).filter(Boolean)
-    );
-    availableRoster = (roster ?? [])
-      .filter(
-        (r: any) =>
-          !inRoundRosterIds.has(r.id) &&
-          !(r.linked_user_id && inRoundUserIds.has(r.linked_user_id))
-      )
-      .map((r: any) => ({
-        id: r.id,
-        display_name: r.display_name,
-        handicap_index: r.handicap_index,
-      }));
-  }
-
-  // Account players already in the round — link targets for "Already here?".
-  const inRoundAccounts = (players ?? [])
-    .filter((p: any) => p.user_id)
-    .map((p: any) => ({
-      userId: p.user_id as string,
-      displayName: (p as any).profile?.display_name ?? 'Player',
-    }));
-
-  // Fetch round invitations
-  const { data: roundInvitations } = await supabase
-    .from('invitations')
-    .select('email, status')
-    .eq('round_id', roundId)
-    .eq('type', 'round');
-
-  const invitedEmails = (roundInvitations ?? []).map(inv => inv.email);
-  const { data: invitedProfiles } = invitedEmails.length > 0
-    ? await supabase
-        .from('profiles')
-        .select('id, display_name, email, current_handicap_index')
-        .in('email', invitedEmails)
-    : { data: [] as any[] };
-
-  // Fetch all group members for registration card
-  const { data: allGroupMembers } = await supabase
-    .from('group_members')
-    .select('user_id, profiles:profiles(id, display_name, email, current_handicap_index, default_tee_tier)')
-    .eq('group_id', round.group_id);
-
-  // Build available members list (not in round and not invited)
-  const roundPlayerUserIds = new Set(
-    (players ?? []).map(rp => rp.user_id).filter((id): id is string => id !== null)
-  );
-  const invitedEmailSet = new Set(invitedEmails);
-
-  const availableMembers = (allGroupMembers ?? [])
-    .filter(gm => {
-      if (roundPlayerUserIds.has(gm.user_id)) return false;
-      const profile = gm.profiles as any;
-      if (profile?.email && invitedEmailSet.has(profile.email)) return false;
-      return true;
-    })
-    .map(gm => {
-      const profile = gm.profiles as any;
-      return {
-        userId: gm.user_id,
-        displayName: profile?.display_name ?? 'Unknown',
-        handicapIndex: profile?.current_handicap_index ?? null,
-        defaultTeeTier: profile?.default_tee_tier ?? null,
-      };
-    });
-
-  // Fetch course tee boxes for tee assignment card
-  const { data: courseTeeBoxes } = await supabase
-    .from('tee_boxes')
-    .select('id, name, color, course_rating, slope_rating, tier')
-    .eq('course_id', round.course_id)
-    .order('tier', { ascending: true, nullsFirst: false });
-
-  // All courses (for the change-course picker) + which cards have scores yet.
-  const [{ data: allCourses }, { data: scoredRows }] = await Promise.all([
-    supabase.from('courses').select('id, name, city, state').is('deleted_at', null).order('name'),
-    supabase.from('scores').select('round_player_id').eq('round_id', roundId).not('strokes', 'is', null),
-  ]);
-  const scoredRpIds = new Set(
-    (scoredRows ?? []).map((s: any) => s.round_player_id).filter(Boolean)
-  );
-  const hasScores = scoredRpIds.size > 0;
-
-  // Build props for Registration Card
-  const registeredPlayersList = (players ?? [])
-    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
-    .map(rp => ({
-      id: rp.id,
-      displayName: rp.user_id
-        ? (rp as any).profile?.display_name ?? 'Unknown'
-        : rp.guest_name ?? 'Guest',
-      status: rp.status,
-      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
-      isGuest: !rp.user_id,
-    }));
-
-  const invitedPlayersList = (roundInvitations ?? [])
-    .filter(inv => ['pending', 'declined'].includes(inv.status))
-    .map(inv => {
-      const profile = (invitedProfiles ?? []).find((p: any) => p.email === inv.email);
-      return {
-        email: inv.email,
-        status: inv.status,
-        displayName: profile?.display_name ?? null,
-        handicapIndex: profile?.current_handicap_index ?? null,
-        userId: profile?.id ?? null,
-      };
-    });
-
-  // Unified lineup: each player once, with their tee + current group. Feeds the
-  // combined RoundLineupCard (replaces the separate tee + tee-time-group cards).
-  const lineupPlayers = (players ?? [])
-    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
-    .map(rp => ({
-      roundPlayerId: rp.id,
-      playerId: rp.user_id ?? rp.id,
-      displayName: rp.user_id
-        ? (rp as any).profile?.display_name ?? 'Unknown'
-        : rp.guest_name ?? 'Guest',
-      isGuest: !rp.user_id,
-      teeBoxId: rp.tee_box_id,
-      groupId: rp.tee_time_group_id ?? null,
-      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
-      courseHandicap: rp.course_handicap ?? null,
-      hasScores: scoredRpIds.has(rp.id),
-    }));
-
-  // Fetch scores for leaderboard (only if round has started)
-  let leaderboard: { userId: string; name: string; totalStrokes: number; holesPlayed: number; totalPar: number }[] = [];
-
-  // Confirmation readiness: has every active player got a score (or X) on every
-  // hole of their tee? Drives the "ready to confirm" hub on an in-progress round.
+  // "All scores in" drives the ready-to-confirm banner on an in-progress round.
   let allScoresIn = false;
   let scoresRecorded = 0;
   let scoreSlots = 0;
-
-  if (round.status === 'in_progress' || round.status === 'completed') {
-    const { data: scores } = await supabase
-      .from('scores')
-      .select('player_id, round_player_id, hole_number, strokes')
-      .eq('round_id', roundId)
-      .not('strokes', 'is', null);
-
-    // Fetch hole pars for ALL tee boxes used by players
-    const uniqueTeeBoxIds = [...new Set(players?.map(p => p.tee_box_id).filter(Boolean) ?? [])];
-
-    const { data: allHoles } = uniqueTeeBoxIds.length > 0
+  if (round.status === 'in_progress') {
+    const teeIds = [
+      ...new Set((players ?? []).map((p: any) => p.tee_box_id).filter(Boolean)),
+    ];
+    const { data: holeRows } = teeIds.length
       ? await supabase
           .from('holes')
-          .select('hole_number, par, tee_box_id')
-          .in('tee_box_id', uniqueTeeBoxIds)
-      : { data: null };
+          .select('tee_box_id, hole_number')
+          .in('tee_box_id', teeIds)
+      : { data: [] };
+    const holesByTee = new Map<string, number>();
+    for (const h of holeRows ?? [])
+      holesByTee.set(h.tee_box_id, (holesByTee.get(h.tee_box_id) ?? 0) + 1);
 
-    const parMaps = new Map<string, Map<number, number>>();
-    allHoles?.forEach((h) => {
-      if (!parMaps.has(h.tee_box_id)) parMaps.set(h.tee_box_id, new Map());
-      parMaps.get(h.tee_box_id)!.set(h.hole_number, h.par);
-    });
-
-    // Map each player to their tee box (user_id for members, id for guests)
-    const playerTeeMap = new Map<string, string>();
-    players?.forEach(p => {
-      const pid = p.user_id || p.id;
-      playerTeeMap.set(pid, p.tee_box_id);
-    });
-
-    // Recorded holes per player (a hole counts once it has a stroke OR an X),
-    // keyed by round_player_id — used for the "all scores in" hub state.
     const { data: recRows } = await supabase
       .from('scores')
       .select('round_player_id, hole_number, strokes, pickup')
       .eq('round_id', roundId);
-    const recordedHoles = new Map<string, Set<number>>();
+    const recorded = new Map<string, Set<number>>();
     for (const r of recRows ?? []) {
       if (!r.round_player_id || (r.strokes == null && !r.pickup)) continue;
-      const set = recordedHoles.get(r.round_player_id) ?? new Set<number>();
+      const set = recorded.get(r.round_player_id) ?? new Set<number>();
       set.add(r.hole_number);
-      recordedHoles.set(r.round_player_id, set);
+      recorded.set(r.round_player_id, set);
     }
-    const activePlaying = (players ?? []).filter((p) =>
+    const active = (players ?? []).filter((p: any) =>
       ['registered', 'confirmed', 'playing'].includes(p.status)
     );
-    let allIn = activePlaying.length > 0;
-    for (const p of activePlaying) {
-      const holes = parMaps.get(p.tee_box_id ?? '')?.size ?? 0;
-      const rec = recordedHoles.get(p.id)?.size ?? 0;
+    let allIn = active.length > 0;
+    for (const p of active as any[]) {
+      const holes = holesByTee.get(p.tee_box_id ?? '') ?? 0;
+      const rec = recorded.get(p.id)?.size ?? 0;
       scoreSlots += holes;
       scoresRecorded += Math.min(rec, holes);
       if (holes === 0 || rec < holes) allIn = false;
     }
     allScoresIn = allIn;
-
-    if (scores && scores.length > 0 && players) {
-      const playerScores = new Map<string, { strokes: number; holesPlayed: number; totalPar: number }>();
-
-      for (const score of scores) {
-        const pid = score.player_id ?? score.round_player_id ?? '';
-        const existing = playerScores.get(pid) ?? { strokes: 0, holesPlayed: 0, totalPar: 0 };
-        existing.strokes += score.strokes!;
-        existing.holesPlayed += 1;
-        const playerTeeBoxId = playerTeeMap.get(pid) ?? '';
-        existing.totalPar += parMaps.get(playerTeeBoxId)?.get(score.hole_number) ?? 0;
-        playerScores.set(pid, existing);
-      }
-
-      leaderboard = players
-        // Key players the same way scores are keyed (user_id for members, id
-        // for guests) so guest scores are not silently dropped.
-        .map((p) => ({ p, pid: p.user_id ?? p.id }))
-        .filter(({ pid }) => playerScores.has(pid))
-        .map(({ p, pid }) => {
-          const stats = playerScores.get(pid)!;
-          return {
-            userId: pid,
-            name: (p.profile as any)?.display_name ?? p.guest_name ?? 'Unknown',
-            totalStrokes: stats.strokes,
-            holesPlayed: stats.holesPlayed,
-            totalPar: stats.totalPar,
-          };
-        })
-        .sort((a, b) => (a.totalStrokes - a.totalPar) - (b.totalStrokes - b.totalPar));
-    }
   }
 
-  // Game owner (round creator) name for the share invite line.
-  const ownerName =
-    (players ?? []).find((p) => p.user_id === round.created_by)?.profile
-      ? ((players ?? []).find((p) => p.user_id === round.created_by)!.profile as any)
-          ?.display_name
-      : null;
-
-  // Permissions
-  const isCreator = round.created_by === user?.id;
-  const isPlayer = players?.some((p) => p.user_id === user?.id);
-  const isCommish = isCreator || isGroupAdmin;
-  const playEnabled = featureFlags.playExperience;
-
-  // Game type labels
-  const GAME_LABELS: Record<string, string> = {
-    nassau: 'Nassau',
-    skins: 'Skins',
-    wolf: 'Wolf',
-    best_ball: 'Best Ball',
-    progressive_best_ball: 'Progressive Best Ball',
-    stableford: 'Stableford',
-    match_play: 'Match Play',
-    bingo_bango_bongo: 'Bingo Bango Bongo',
-  };
-
-  const formatToPar = (strokes: number, par: number) => {
-    const diff = strokes - par;
-    if (diff === 0) return 'E';
-    return diff > 0 ? `+${diff}` : `${diff}`;
-  };
+  const status = round.status as string;
+  const courseName = (round.course as any)?.name ?? 'Round';
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="max-w-md mx-auto space-y-5">
       {/* Header */}
-      <div>
-        {round.group && (
-          <Link
-            href={`/groups/${(round.group as any).id}`}
-            className="text-sm text-surface-300 hover:text-surface-100 mb-2 inline-block"
-          >
-            &larr; Back to {(round.group as any).name}
-          </Link>
-        )}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-surface-50">
-              {(round.course as any)?.name ?? 'Unknown Course'}
-            </h1>
-            <p className="mt-1 text-sm text-surface-300">
-              {new Date(round.round_date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-              {round.tee_time && ` at ${round.tee_time}`}
-            </p>
-          </div>
-          <Badge
-            variant={
-              round.status === 'completed'
-                ? 'default'
-                : round.status === 'in_progress'
-                  ? 'secondary'
-                  : 'outline'
-            }
-            className="capitalize text-sm"
-          >
-            {round.status.replace('_', ' ')}
-          </Badge>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-surface-50 truncate">
+            {courseName}
+          </h1>
+          <p className="mt-1 text-sm text-surface-300">
+            {new Date(round.round_date).toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+            {round.tee_time && ` · ${round.tee_time}`}
+          </p>
         </div>
+        <Badge
+          variant={
+            status === 'completed'
+              ? 'default'
+              : status === 'in_progress'
+                ? 'secondary'
+                : 'outline'
+          }
+          className="capitalize text-sm shrink-0"
+        >
+          {status.replace('_', ' ')}
+        </Badge>
       </div>
 
-      {/* In-progress hub: one clear place to review/confirm, tweak setup, or
-          check the leaderboard — and a banner when the round is ready to close. */}
-      {round.status === 'in_progress' && playEnabled && (
-        <div className="space-y-3">
-          <div
-            className={`rounded-xl border p-4 ${
-              allScoresIn
-                ? 'border-golf-600/50 bg-golf-900/20'
-                : 'border-surface-600 bg-surface-800/60'
-            }`}
-          >
-            {allScoresIn ? (
-              <>
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-golf-300">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  All scores are in
-                </p>
-                <p className="mt-0.5 text-xs text-surface-300">
-                  {isCommish
-                    ? 'Review the scorecard, then confirm the round to post it and settle up.'
-                    : 'Review the scorecard — the Commish confirms the round to finish it.'}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-medium text-surface-100">Round in progress</p>
-                <p className="mt-0.5 text-xs text-surface-400">
-                  {scoreSlots > 0
-                    ? `${scoresRecorded} of ${scoreSlots} scores entered.`
-                    : 'Enter scores as you play.'}
-                </p>
-              </>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link href={`/rounds/${roundId}/play?tab=scorecard`} className="w-full">
-              <Button className="w-full">Review / Confirm Round</Button>
-            </Link>
-            <Link href="#round-setup" className="w-full">
-              <Button variant="outline" className="w-full">Round Setup</Button>
-            </Link>
-            <Link href={`/rounds/${roundId}/play?tab=leaderboard`} className="w-full">
-              <Button variant="outline" className="w-full">Leaderboard</Button>
-            </Link>
-          </div>
+      {/* Ready-to-confirm banner */}
+      {status === 'in_progress' && (
+        <div
+          className={`rounded-xl border p-4 ${
+            allScoresIn
+              ? 'border-golf-600/50 bg-golf-900/20'
+              : 'border-surface-600 bg-surface-800/60'
+          }`}
+        >
+          {allScoresIn ? (
+            <>
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-golf-300">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                All scores are in
+              </p>
+              <p className="mt-0.5 text-xs text-surface-300">
+                {isCommish
+                  ? 'Review the scorecard, then confirm the round to post it and settle up.'
+                  : 'Review the scorecard — the Commish confirms the round to finish it.'}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-surface-100">Round in progress</p>
+              <p className="mt-0.5 text-xs text-surface-400">
+                {scoreSlots > 0
+                  ? `${scoresRecorded} of ${scoreSlots} scores entered.`
+                  : 'Enter scores as you play.'}
+              </p>
+            </>
+          )}
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
-        {round.status === 'upcoming' && (
-          <>
-            {playEnabled ? (
-              <>
-                <Link href={`/rounds/${roundId}/play`}>
-                  <Button>Play Round</Button>
-                </Link>
-                <Link href={`/rounds/${roundId}/scorecard`}>
-                  <Button variant="outline">Classic Scorecard</Button>
-                </Link>
-              </>
-            ) : (
-              <Link href={`/rounds/${roundId}/scorecard`}>
-                <Button>Enter Scorecard</Button>
-              </Link>
-            )}
-            <Link href={`/rounds/${roundId}/games`}>
-              <Button variant="outline">Set Up Games</Button>
-            </Link>
-          </>
-        )}
-        {round.status === 'in_progress' && !playEnabled && (
-          <>
-            <Link href={`/rounds/${roundId}/scorecard`}>
-              <Button>Enter Scores</Button>
-            </Link>
-            <Link href={`/rounds/${roundId}/games`}>
-              <Button variant="outline">Games</Button>
-            </Link>
-          </>
-        )}
-        {round.status === 'completed' && (
-          <>
-            <Link href={`/rounds/${roundId}/results`}>
-              <Button>View Results</Button>
-            </Link>
-            {playEnabled && (
-              <Link href={`/rounds/${roundId}/play`}>
-                <Button variant="outline">Play View</Button>
-              </Link>
-            )}
-            <Link href={`/rounds/${roundId}/scorecard`}>
-              <Button variant="outline">
-                {playEnabled ? 'Classic Scorecard' : 'View Scorecard'}
-              </Button>
-            </Link>
-            <Link href={`/rounds/${roundId}/games`}>
-              <Button variant="outline">Games</Button>
-            </Link>
-          </>
-        )}
-        {playEnabled && isCommish && (
-          <Link href={`/rounds/${roundId}/setup`}>
-            <Button variant="outline">Commish Setup</Button>
+      {/* Destinations */}
+      <div className="space-y-3">
+        {status === 'completed' ? (
+          <Link href={`/rounds/${roundId}/results`} className="block">
+            <Button className="w-full">View Results</Button>
+          </Link>
+        ) : status === 'in_progress' ? (
+          <Link
+            href={
+              playEnabled
+                ? `/rounds/${roundId}/play?tab=scorecard`
+                : `/rounds/${roundId}/scorecard`
+            }
+            className="block"
+          >
+            <Button className="w-full">Review / Confirm Round</Button>
+          </Link>
+        ) : (
+          <Link
+            href={playEnabled ? `/rounds/${roundId}/play` : `/rounds/${roundId}/scorecard`}
+            className="block"
+          >
+            <Button className="w-full">
+              {playEnabled ? 'Play Round' : 'Enter Scorecard'}
+            </Button>
           </Link>
         )}
+
+        <Link href={`/rounds/${roundId}/leaderboard`} className="block">
+          <Button variant="outline" className="w-full">Leaderboard</Button>
+        </Link>
+
+        <Link href={`/rounds/${roundId}/round-setup`} className="block">
+          <Button variant="outline" className="w-full">Round Setup</Button>
+        </Link>
+
+        {playEnabled && isCommish && (
+          <Link href={`/rounds/${roundId}/setup`} className="block">
+            <Button variant="outline" className="w-full">Commish Setup</Button>
+          </Link>
+        )}
+
         {featureFlags.shareCode && isCommish && (
           <ShareGameButton roundId={roundId} ownerName={ownerName} />
         )}
+
         {isCommish && (
           <DeleteRoundButton
             roundId={roundId}
-            courseName={(round.course as any)?.name}
+            courseName={courseName}
             redirectTo="/rounds"
           />
         )}
       </div>
-
-      {/* Round Info */}
-      <div id="round-setup" className="scroll-mt-4" />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Round Details</CardTitle>
-        </CardHeader>
-        <div className="px-6 pb-6">
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            {(round.group as any)?.name && (
-              <>
-                <dt className="text-surface-400">Group</dt>
-                <dd className="text-surface-50 font-medium">{(round.group as any).name}</dd>
-              </>
-            )}
-            <dt className="text-surface-400">Course</dt>
-            <dd className="text-surface-50 font-medium">{(round.course as any)?.name}</dd>
-            {(round.tee_box as any)?.name && (
-              <>
-                <dt className="text-surface-400">Default Tees</dt>
-                <dd className="text-surface-50 font-medium flex items-center gap-2">
-                  {(round.tee_box as any).color && (
-                    <span
-                      className="w-3 h-3 rounded-full border border-surface-500 inline-block"
-                      style={{ backgroundColor: (round.tee_box as any).color }}
-                    />
-                  )}
-                  {(round.tee_box as any).name}
-                  <span className="text-surface-400 font-normal">
-                    ({(round.tee_box as any).course_rating} / {(round.tee_box as any).slope_rating})
-                  </span>
-                </dd>
-              </>
-            )}
-            <dt className="text-surface-400">Players</dt>
-            <dd className="text-surface-50 font-medium">{players?.length ?? 0}</dd>
-            {games && games.length > 0 && (
-              <>
-                <dt className="text-surface-400">Games</dt>
-                <dd className="text-surface-50 font-medium">{games.length}</dd>
-              </>
-            )}
-          </dl>
-        </div>
-      </Card>
-
-      {/* Admin Cards: Course & Tees, Registration, Tee Assignments, Tee Time Groups */}
-      {isGroupAdmin && (
-        <div className="space-y-4">
-          <CourseTeeCard
-            roundId={round.id}
-            roundStatus={round.status}
-            currentCourseId={round.course_id}
-            currentCourseName={(round.course as any)?.name ?? 'Unknown Course'}
-            currentTeeName={(round.tee_box as any)?.name ?? null}
-            courses={(allCourses as any[]) ?? []}
-            hasScores={hasScores}
-          />
-
-          <RegistrationCard
-            roundId={round.id}
-            registrationStatus={round.registration_status}
-            roundStatus={round.status}
-            defaultTeeBoxId={round.tee_box_id}
-            registeredPlayers={registeredPlayersList}
-            invitedPlayers={invitedPlayersList}
-            availableMembers={availableMembers}
-            courseTeeBoxes={(courseTeeBoxes ?? []).map(tb => ({ id: tb.id, tier: tb.tier }))}
-          />
-
-          <RoundLineupCard
-            roundId={round.id}
-            roundStatus={round.status}
-            teeBoxes={courseTeeBoxes ?? []}
-            defaultTeeBoxId={round.tee_box_id}
-            players={lineupPlayers}
-            existingGroups={teeTimeGroups ?? []}
-          />
-
-          {round.status !== 'completed' && availableRoster.length > 0 && (
-            <AddFromRosterCard
-              roundId={round.id}
-              roster={availableRoster}
-              inRoundAccounts={inRoundAccounts}
-            />
-          )}
-
-          {isCreator && round.status !== 'completed' && (
-            <Card>
-              <div className="px-6 py-4">
-                <AddGuestForm
-                  roundId={round.id}
-                  defaultTeeBoxId={round.tee_box_id ?? ''}
-                />
-              </div>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Leaderboard (in_progress or completed) */}
-      {leaderboard.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Leaderboard</CardTitle>
-          </CardHeader>
-          <div className="px-6 pb-6">
-            <div className="space-y-2">
-              {leaderboard.map((entry, index) => {
-                const toPar = entry.totalStrokes - entry.totalPar;
-                return (
-                  <div
-                    key={entry.userId}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
-                      index === 0 ? 'bg-gold-500/10 border border-gold-500/30' : 'bg-surface-700/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold ${
-                        index === 0
-                          ? 'bg-gold-500 text-surface-900'
-                          : index === 1
-                            ? 'bg-surface-400 text-surface-900'
-                            : index === 2
-                              ? 'bg-amber-700 text-white'
-                              : 'bg-surface-600 text-surface-200'
-                      }`}>
-                        {index + 1}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-surface-50">{entry.name}</p>
-                        <p className="text-xs text-surface-400">
-                          thru {entry.holesPlayed}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-lg font-bold tabular-nums text-surface-50">
-                        {entry.totalStrokes}
-                      </span>
-                      <span className={`text-sm font-semibold tabular-nums min-w-[3ch] text-right ${
-                        toPar < 0
-                          ? 'text-red-400'
-                          : toPar > 0
-                            ? 'text-blue-400'
-                            : 'text-surface-200'
-                      }`}>
-                        {formatToPar(entry.totalStrokes, entry.totalPar)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Players — hidden for group admins, who get the richer Lineup card above
-          (tees, foursomes, remove). Regular players still see the roster here. */}
-      {!isGroupAdmin && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Players ({players?.length ?? 0})
-          </CardTitle>
-        </CardHeader>
-        <div className="px-6 pb-6">
-          {!players || players.length === 0 ? (
-            <p className="text-sm text-surface-300">No players registered yet.</p>
-          ) : (
-            <ul className="space-y-3">
-              {players.map((player) => {
-                const isGuest = !player.user_id;
-                const displayName = isGuest
-                  ? (player as any).guest_name ?? 'Guest'
-                  : (player.profile as any)?.display_name ?? 'Unknown';
-
-                return (
-                  <li
-                    key={player.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-medium ${
-                        isGuest
-                          ? 'bg-surface-600 text-surface-300'
-                          : 'bg-emerald-900/40 text-golf-600'
-                      }`}>
-                        {displayName.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-surface-50 flex items-center gap-2">
-                          {displayName}
-                          {isGuest && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              Guest
-                            </Badge>
-                          )}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          {(player.tee_box as any)?.name && (
-                            <span className="flex items-center gap-1 text-xs text-surface-400">
-                              {(player.tee_box as any).color && (
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full border border-surface-500 inline-block"
-                                  style={{ backgroundColor: (player.tee_box as any).color }}
-                                />
-                              )}
-                              {(player.tee_box as any).name}
-                            </span>
-                          )}
-                          {player.course_handicap != null && (
-                            <span className="text-xs text-surface-400">
-                              {(player.tee_box as any)?.name ? '· ' : ''}HCP {player.course_handicap}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <Badge
-                      variant={
-                        player.status === 'playing'
-                          ? 'secondary'
-                          : player.status === 'completed'
-                            ? 'default'
-                            : 'outline'
-                      }
-                      className="capitalize text-xs"
-                    >
-                      {player.status}
-                    </Badge>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {/* Add Guest form - shown to round creator/admin when round is not completed */}
-          {isCreator && round.status !== 'completed' && (
-            <div className="mt-4">
-              <AddGuestForm
-                roundId={roundId}
-                defaultTeeBoxId={(round.tee_box as any)?.id ?? ''}
-              />
-            </div>
-          )}
-        </div>
-      </Card>
-      )}
-
-      {/* Games */}
-      {games && games.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Games</CardTitle>
-              <Link href={`/rounds/${roundId}/games`}>
-                <Button variant="outline" size="sm">Manage</Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <div className="px-6 pb-6">
-            <ul className="space-y-3">
-              {games.map((game) => (
-                <li key={game.id}>
-                  <Link
-                    href={`/rounds/${roundId}/games/${game.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-700 transition-colors"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-surface-50">
-                        {game.name || GAME_LABELS[game.format] || game.format}
-                      </p>
-                      <p className="text-xs text-surface-400">
-                        {GAME_LABELS[game.format] || game.format}
-                        {game.money_per_unit ? ` · $${game.money_per_unit}/unit` : ''}
-                        {game.holes !== 'all' ? ` · ${game.holes}` : ''}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={game.status === 'completed' ? 'default' : 'outline'}
-                      className="capitalize text-xs"
-                    >
-                      {game.status}
-                    </Badge>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Card>
-      )}
-
-      {/* No games prompt */}
-      {(!games || games.length === 0) && round.status !== 'completed' && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Games</CardTitle>
-              <CardDescription>
-                Add side games like Nassau, Skins, or Wolf.
-              </CardDescription>
-            </div>
-            <Link href={`/rounds/${roundId}/games`}>
-              <Button variant="outline" size="sm">Add Game</Button>
-            </Link>
-          </CardHeader>
-        </Card>
-      )}
     </div>
   );
 }
