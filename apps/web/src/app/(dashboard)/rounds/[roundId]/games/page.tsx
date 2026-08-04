@@ -10,15 +10,31 @@ export default async function GamesPage({ params }: GamesPageProps) {
   const { roundId } = await params;
   const supabase = await createServerSupabaseClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   // Verify round exists
   const { data: round, error: roundError } = await supabase
     .from('rounds')
-    .select('id')
+    .select('id, status, created_by, group_id')
     .eq('id', roundId)
     .single();
 
   if (roundError || !round) {
     notFound();
+  }
+
+  // Commish (creator or group admin) may edit game setup.
+  let isCommish = round.created_by === user?.id;
+  if (!isCommish && user && round.group_id) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    isCommish = membership?.role === 'admin';
   }
 
   // Fetch games
@@ -80,6 +96,8 @@ export default async function GamesPage({ params }: GamesPageProps) {
       roundId={roundId}
       initialGames={games}
       initialRoundPlayers={roundPlayers}
+      isCommish={isCommish}
+      roundStatus={round.status}
     />
   );
 }
