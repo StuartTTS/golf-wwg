@@ -53,15 +53,20 @@ interface RoundData {
   currentUserGroupId: string | null;
 }
 
-/** Tailwind classes for a score cell relative to par. */
-function scoreClasses(strokes: number | null, par: number): string {
-  if (strokes === null) return 'text-surface-500';
+/**
+ * PGA-style shape around a score: a red circle for a birdie (double for eagle+),
+ * a blue box for a bogey (double for double-bogey+), nothing for par. Applied to
+ * a fixed-size span that wraps the number. See the legend under the card.
+ */
+function scoreShape(strokes: number | null, par: number): string {
+  if (strokes === null) return '';
   const diff = strokes - par;
-  if (diff <= -2) return 'bg-score-eagle/25 text-score-eagle font-bold';
-  if (diff === -1) return 'bg-score-birdie/25 text-score-birdie font-semibold';
-  if (diff === 0) return 'text-surface-50';
-  if (diff === 1) return 'bg-score-bogey/20 text-score-bogey';
-  return 'bg-score-double/20 text-score-double';
+  if (diff <= -2)
+    return 'rounded-full border-2 border-red-400 outline outline-1 outline-offset-[3px] outline-red-400 text-red-300 font-bold'; // eagle: double circle
+  if (diff === -1) return 'rounded-full border-2 border-red-400 text-red-300 font-semibold'; // birdie: circle
+  if (diff === 0) return 'text-surface-50'; // par
+  if (diff === 1) return 'border-2 border-blue-400 text-blue-300'; // bogey: box
+  return 'border-2 border-blue-400 outline outline-1 outline-offset-[3px] outline-blue-400 text-blue-300'; // double+: double box
 }
 
 function ScoreInput({
@@ -383,12 +388,22 @@ export default function ScorecardView({ initialRound, initialScores = [] }: Scor
                           onClick={() =>
                             canScore && setActiveInput({ playerId: player.id, holeNumber: h.number })
                           }
-                          className={`${numCol} h-10 flex items-center justify-center mx-auto text-sm ${scoreClasses(
-                            strokes,
-                            par
-                          )} ${canScore ? 'hover:ring-1 hover:ring-golf-500 rounded' : 'cursor-default'}`}
+                          className={`${numCol} h-10 flex items-center justify-center mx-auto ${
+                            canScore ? 'hover:bg-surface-700/60' : 'cursor-default'
+                          }`}
                         >
-                          {strokes ?? '·'}
+                          {strokes === null ? (
+                            <span className="text-sm text-surface-500">·</span>
+                          ) : (
+                            <span
+                              className={`inline-flex h-7 w-7 items-center justify-center text-sm tabular-nums ${scoreShape(
+                                strokes,
+                                par
+                              )}`}
+                            >
+                              {strokes}
+                            </span>
+                          )}
                         </button>
                       </td>
                     );
@@ -422,7 +437,27 @@ export default function ScorecardView({ initialRound, initialScores = [] }: Scor
             </table>
           </div>
         </Card>
-        <p className="mt-2 px-1 text-[11px] text-surface-500">
+
+        {/* Legend */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 px-1 text-[11px] text-surface-400">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-4 w-4 rounded-full border-2 border-red-400 outline outline-1 outline-offset-[2px] outline-red-400" />
+            Eagle
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-4 w-4 rounded-full border-2 border-red-400" />
+            Birdie
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-4 w-4 border-2 border-blue-400" />
+            Bogey
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-4 w-4 border-2 border-blue-400 outline outline-1 outline-offset-[2px] outline-blue-400" />
+            Double+
+          </span>
+        </div>
+        <p className="mt-1.5 px-1 text-[11px] text-surface-500">
           Scroll sideways to see all 18 holes. Tap a score to edit it.
         </p>
       </div>
