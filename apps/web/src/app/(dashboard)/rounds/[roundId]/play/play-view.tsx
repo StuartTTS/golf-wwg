@@ -22,6 +22,8 @@ type Tab = 'leaderboard' | 'scorecard' | 'enter';
 interface PlayViewProps {
   round: PlayRound;
   initialScores: PlayScore[];
+  /** Which tab to open on first render (deep-link from the round hub). */
+  initialTab?: Tab;
 }
 
 /**
@@ -47,11 +49,11 @@ function resumeHoleIndex(round: PlayRound, scores: PlayScore[]): number {
   return idx === -1 ? holes.length - 1 : idx;
 }
 
-export default function PlayView({ round, initialScores }: PlayViewProps) {
+export default function PlayView({ round, initialScores, initialTab }: PlayViewProps) {
   const router = useRouter();
   const roundId = round.id;
 
-  const [tab, setTab] = useState<Tab>('enter');
+  const [tab, setTab] = useState<Tab>(initialTab ?? 'enter');
   const [scores, setScores] = useState<PlayScore[]>(initialScores);
   const [holeIndex, setHoleIndex] = useState(() =>
     resumeHoleIndex(round, initialScores)
