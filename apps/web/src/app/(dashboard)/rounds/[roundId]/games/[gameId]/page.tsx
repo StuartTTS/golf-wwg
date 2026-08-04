@@ -144,9 +144,11 @@ export default async function GameResultsPage({ params }: GamePageProps) {
     skins: number;
     payoutAmt: number;
     position: number;
+    holesLabel: string; // e.g. "birdie on 4, 9 · eagle on 5"
   }[] = [];
   let skinsPerSkin = 0;
   let skinsTotal = 0;
+  let skinsBirdiesOnly = false;
 
   let pot = 0;
 
@@ -251,6 +253,7 @@ export default async function GameResultsPage({ params }: GamePageProps) {
 
     const gpSet = new Set(gamePlayerIds);
     const cfg = (game.config as any) ?? {};
+    skinsBirdiesOnly = cfg.birdiesOnly === true;
     const result = gameFormatRegistry.getEngine('skins').calculateResults(
       {
         holes,
@@ -268,7 +271,12 @@ export default async function GameResultsPage({ params }: GamePageProps) {
           })),
         teams: [],
       },
-      { useNet: cfg.useNet ?? true, carryOver: cfg.carryOver ?? true },
+      {
+        // Accept both the canonical keys and the older UI keys.
+        useNet: cfg.useNet ?? cfg.useHandicaps ?? true,
+        carryOver: cfg.carryOver ?? cfg.carryover ?? true,
+        birdiesOnly: skinsBirdiesOnly,
+      },
       gameId
     );
 
@@ -279,6 +287,43 @@ export default async function GameResultsPage({ params }: GamePageProps) {
     skinsTotal = [...skinVal.values()].reduce((a, b) => a + b, 0);
     skinsPerSkin = skinsTotal > 0 ? pot / skinsTotal : 0;
 
+    // Which holes each player won, labelled by score type (birdie/eagle/…). The
+    // engine's skinDetails carries the (net or gross) winning score per hole.
+    const parByHole = new Map<number, number>(
+      (holes as any[]).map((h) => [h.holeNumber, h.par])
+    );
+    const wonByPlayer = new Map<string, { hole: number; diff: number }[]>();
+    for (const d of ((result.details as any)?.skinDetails ?? []) as any[]) {
+      if (!d.winnerId) continue;
+      const sc = d.scores?.[d.winnerId];
+      const par = parByHole.get(d.holeNumber) ?? 0;
+      const diff = typeof sc === 'number' && par ? sc - par : 0;
+      const arr = wonByPlayer.get(d.winnerId) ?? [];
+      arr.push({ hole: d.holeNumber, diff });
+      wonByPlayer.set(d.winnerId, arr);
+    }
+    const scoreTypeName = (diff: number) =>
+      diff <= -3 ? 'albatross'
+        : diff === -2 ? 'eagle'
+          : diff === -1 ? 'birdie'
+            : diff === 0 ? 'par'
+              : diff === 1 ? 'bogey'
+                : `+${diff}`;
+    const holesLabelFor = (rpId: string): string => {
+      const won = (wonByPlayer.get(rpId) ?? []).sort((a, b) => a.hole - b.hole);
+      if (!won.length) return '';
+      const groups = new Map<string, number[]>();
+      for (const w of won) {
+        const t = scoreTypeName(w.diff);
+        (groups.get(t) ?? groups.set(t, []).get(t)!).push(w.hole);
+      }
+      const order = ['albatross', 'eagle', 'birdie', 'par', 'bogey'];
+      const keys = [...groups.keys()].sort(
+        (a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)
+      );
+      return keys.map((t) => `${t} on ${groups.get(t)!.join(', ')}`).join(' · ');
+    };
+
     skinsStandings = gamePlayerIds
       .map((rpId: string) => {
         const skins = skinVal.get(rpId) ?? 0;
@@ -287,6 +332,7 @@ export default async function GameResultsPage({ params }: GamePageProps) {
           name: nameByRp.get(rpId) ?? 'Guest',
           skins,
           payoutAmt: Math.round(skins * skinsPerSkin * 100) / 100,
+          holesLabel: holesLabelFor(rpId),
         };
       })
       .sort((a, b) => b.skins - a.skins)
@@ -471,28 +517,38 @@ export default async function GameResultsPage({ params }: GamePageProps) {
                 {skinsStandings.map((p) => (
                   <div
                     key={p.key}
-                    className={`flex items-center gap-2 rounded-lg p-2.5 ${
+                    className={`rounded-lg p-2.5 ${
                       p.position === 1 && p.skins > 0
                         ? 'bg-gold-500/10 border border-gold-500/30'
                         : 'hover:bg-surface-700/40'
                     }`}
                   >
-                    <span className="w-6 text-sm font-bold text-surface-200">
-                      {p.skins > 0 ? p.position : '—'}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-surface-50 truncate">{p.name}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 text-sm font-bold text-surface-200">
+                        {p.skins > 0 ? p.position : '—'}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-surface-50 truncate">{p.name}</p>
+                      </div>
+                      <span className="w-16 text-right text-sm font-bold tabular-nums text-surface-50">
+                        {p.skins}
+                      </span>
+                      <span className="w-14 text-right text-sm font-bold text-golf-500 tabular-nums">
+                        {p.payoutAmt > 0 ? `+$${p.payoutAmt}` : ''}
+                      </span>
                     </div>
-                    <span className="w-16 text-right text-sm font-bold tabular-nums text-surface-50">
-                      {p.skins}
-                    </span>
-                    <span className="w-14 text-right text-sm font-bold text-golf-500 tabular-nums">
-                      {p.payoutAmt > 0 ? `+$${p.payoutAmt}` : ''}
-                    </span>
+                    {p.holesLabel && (
+                      <p className="mt-1 pl-8 text-[11px] text-surface-300">{p.holesLabel}</p>
+                    )}
                   </div>
                 ))}
-                {skinsPerSkin > 0 && (
+                {skinsBirdiesOnly && (
                   <p className="pt-2 px-2 text-[11px] text-surface-400">
+                    Skins awarded on a birdie or better only.
+                  </p>
+                )}
+                {skinsPerSkin > 0 && (
+                  <p className="px-2 text-[11px] text-surface-400">
                     Pot ${pot} ÷ {skinsTotal} skins = ${Math.round(skinsPerSkin * 100) / 100}/skin
                   </p>
                 )}
