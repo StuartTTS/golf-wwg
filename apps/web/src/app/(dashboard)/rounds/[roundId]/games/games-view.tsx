@@ -470,6 +470,17 @@ function AddGameModal({
     setStep('config');
   };
 
+  // Nassau: the buy-in per player IS the three bets combined (front + back +
+  // overall), so keep it in sync automatically instead of re-typing it (#103).
+  useEffect(() => {
+    if (gameType !== 'nassau') return;
+    const sum =
+      (Number(config.frontBet ?? 5) || 0) +
+      (Number(config.backBet ?? 5) || 0) +
+      (Number(config.overallBet ?? 5) || 0);
+    setPayout((prev) => (prev.buyIn === sum ? prev : { ...prev, buyIn: sum }));
+  }, [gameType, config.frontBet, config.backBet, config.overallBet]);
+
   const handleCreate = async () => {
     if (!gameType) return;
 
@@ -581,6 +592,8 @@ function AddGameModal({
                 value={payout}
                 onChange={setPayout}
                 playerCount={roundPlayers.length}
+                buyInReadOnly={gameType === 'nassau'}
+                buyInNote={gameType === 'nassau' ? 'Auto: front + back + overall bet' : undefined}
               />
 
               <div>
