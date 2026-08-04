@@ -48,10 +48,15 @@ export function PayoutFields({
   value,
   onChange,
   playerCount,
+  buyInReadOnly = false,
+  buyInNote,
 }: {
   value: PayoutConfig;
   onChange: (next: PayoutConfig) => void;
   playerCount: number;
+  /** When the buy-in is derived elsewhere (e.g. Nassau = sum of bets). */
+  buyInReadOnly?: boolean;
+  buyInNote?: string;
 }) {
   const pot = (value.buyIn || 0) * playerCount;
   const maxPlaces = Math.max(1, Math.min(playerCount || 1, 10));
@@ -91,11 +96,16 @@ export function PayoutFields({
             min="0"
             step="1"
             value={String(value.buyIn)}
+            disabled={buyInReadOnly}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               onChange({ ...value, buyIn: parseFloat(e.target.value) || 0 })
             }
             placeholder="0"
+            className={buyInReadOnly ? 'opacity-70' : undefined}
           />
+          {buyInNote && (
+            <p className="mt-1 text-[11px] text-surface-400">{buyInNote}</p>
+          )}
         </div>
         <div className="pb-2 text-right">
           <p className="text-[11px] uppercase tracking-wide text-surface-400">Pot</p>
