@@ -14,12 +14,18 @@ import type {
 
 interface PlayPageProps {
   params: Promise<{ roundId: string }>;
+  searchParams?: Promise<{ tab?: string }>;
 }
 
-export default async function PlayPage({ params }: PlayPageProps) {
+export default async function PlayPage({ params, searchParams }: PlayPageProps) {
   if (!featureFlags.playExperience) notFound();
 
   const { roundId } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const initialTab =
+    sp.tab === 'scorecard' || sp.tab === 'leaderboard' || sp.tab === 'enter'
+      ? sp.tab
+      : undefined;
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -259,5 +265,5 @@ export default async function PlayPage({ params }: PlayPageProps) {
     lowNet,
   };
 
-  return <PlayView round={round} initialScores={initialScores} />;
+  return <PlayView round={round} initialScores={initialScores} initialTab={initialTab} />;
 }

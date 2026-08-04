@@ -251,6 +251,12 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
   // Fetch scores for leaderboard (only if round has started)
   let leaderboard: { userId: string; name: string; totalStrokes: number; holesPlayed: number; totalPar: number }[] = [];
 
+  // Confirmation readiness: has every active player got a score (or X) on every
+  // hole of their tee? Drives the "ready to confirm" hub on an in-progress round.
+  let allScoresIn = false;
+  let scoresRecorded = 0;
+  let scoreSlots = 0;
+
   if (round.status === 'in_progress' || round.status === 'completed') {
     const { data: scores } = await supabase
       .from('scores')
@@ -280,6 +286,32 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       const pid = p.user_id || p.id;
       playerTeeMap.set(pid, p.tee_box_id);
     });
+
+    // Recorded holes per player (a hole counts once it has a stroke OR an X),
+    // keyed by round_player_id — used for the "all scores in" hub state.
+    const { data: recRows } = await supabase
+      .from('scores')
+      .select('round_player_id, hole_number, strokes, pickup')
+      .eq('round_id', roundId);
+    const recordedHoles = new Map<string, Set<number>>();
+    for (const r of recRows ?? []) {
+      if (!r.round_player_id || (r.strokes == null && !r.pickup)) continue;
+      const set = recordedHoles.get(r.round_player_id) ?? new Set<number>();
+      set.add(r.hole_number);
+      recordedHoles.set(r.round_player_id, set);
+    }
+    const activePlaying = (players ?? []).filter((p) =>
+      ['registered', 'confirmed', 'playing'].includes(p.status)
+    );
+    let allIn = activePlaying.length > 0;
+    for (const p of activePlaying) {
+      const holes = parMaps.get(p.tee_box_id ?? '')?.size ?? 0;
+      const rec = recordedHoles.get(p.id)?.size ?? 0;
+      scoreSlots += holes;
+      scoresRecorded += Math.min(rec, holes);
+      if (holes === 0 || rec < holes) allIn = false;
+    }
+    allScoresIn = allIn;
 
     if (scores && scores.length > 0 && players) {
       const playerScores = new Map<string, { strokes: number; holesPlayed: number; totalPar: number }>();
@@ -386,6 +418,56 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
         </div>
       </div>
 
+      {/* In-progress hub: one clear place to review/confirm, tweak setup, or
+          check the leaderboard — and a banner when the round is ready to close. */}
+      {round.status === 'in_progress' && playEnabled && (
+        <div className="space-y-3">
+          <div
+            className={`rounded-xl border p-4 ${
+              allScoresIn
+                ? 'border-golf-600/50 bg-golf-900/20'
+                : 'border-surface-600 bg-surface-800/60'
+            }`}
+          >
+            {allScoresIn ? (
+              <>
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-golf-300">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  All scores are in
+                </p>
+                <p className="mt-0.5 text-xs text-surface-300">
+                  {isCommish
+                    ? 'Review the scorecard, then confirm the round to post it and settle up.'
+                    : 'Review the scorecard — the Commish confirms the round to finish it.'}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-surface-100">Round in progress</p>
+                <p className="mt-0.5 text-xs text-surface-400">
+                  {scoreSlots > 0
+                    ? `${scoresRecorded} of ${scoreSlots} scores entered.`
+                    : 'Enter scores as you play.'}
+                </p>
+              </>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link href={`/rounds/${roundId}/play?tab=scorecard`} className="w-full">
+              <Button className="w-full">Review / Confirm Round</Button>
+            </Link>
+            <Link href="#round-setup" className="w-full">
+              <Button variant="outline" className="w-full">Round Setup</Button>
+            </Link>
+            <Link href={`/rounds/${roundId}/play?tab=leaderboard`} className="w-full">
+              <Button variant="outline" className="w-full">Leaderboard</Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
         {round.status === 'upcoming' && (
@@ -409,22 +491,11 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
             </Link>
           </>
         )}
-        {round.status === 'in_progress' && (
+        {round.status === 'in_progress' && !playEnabled && (
           <>
-            {playEnabled ? (
-              <>
-                <Link href={`/rounds/${roundId}/play`}>
-                  <Button>Play Round</Button>
-                </Link>
-                <Link href={`/rounds/${roundId}/scorecard`}>
-                  <Button variant="outline">Classic Scorecard</Button>
-                </Link>
-              </>
-            ) : (
-              <Link href={`/rounds/${roundId}/scorecard`}>
-                <Button>Enter Scores</Button>
-              </Link>
-            )}
+            <Link href={`/rounds/${roundId}/scorecard`}>
+              <Button>Enter Scores</Button>
+            </Link>
             <Link href={`/rounds/${roundId}/games`}>
               <Button variant="outline">Games</Button>
             </Link>
@@ -468,6 +539,7 @@ export default async function RoundDashboardPage({ params }: RoundPageProps) {
       </div>
 
       {/* Round Info */}
+      <div id="round-setup" className="scroll-mt-4" />
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Round Details</CardTitle>
