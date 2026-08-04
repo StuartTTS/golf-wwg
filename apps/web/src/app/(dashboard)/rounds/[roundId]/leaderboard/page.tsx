@@ -196,7 +196,11 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
           scores: scoreDataScores.filter((s) => ids.includes(s.playerId)),
           teams: [],
         } as any,
-        { useNet: g.config?.useNet ?? true, carryOver: g.config?.carryOver ?? true } as any,
+        {
+          useNet: g.config?.useNet ?? g.config?.useHandicaps ?? true,
+          carryOver: g.config?.carryOver ?? g.config?.carryover ?? true,
+          birdiesOnly: g.config?.birdiesOnly === true,
+        } as any,
         g.id
       );
       let best: { id: string; skins: number } | null = null;

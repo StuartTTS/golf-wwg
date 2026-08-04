@@ -148,8 +148,8 @@ function GameConfigFields({
           <label className="flex items-center gap-2 text-sm text-surface-100">
             <input
               type="checkbox"
-              checked={config.carryover !== false}
-              onChange={(e) => setConfig({ ...config, carryover: e.target.checked })}
+              checked={config.carryOver !== false}
+              onChange={(e) => setConfig({ ...config, carryOver: e.target.checked })}
               className="h-4 w-4 rounded border-surface-500 text-golf-600 focus:ring-golf-500"
             />
             Carry over ties to next hole
@@ -157,12 +157,24 @@ function GameConfigFields({
           <label className="flex items-center gap-2 text-sm text-surface-100">
             <input
               type="checkbox"
-              checked={config.useHandicaps !== false}
-              onChange={(e) => setConfig({ ...config, useHandicaps: e.target.checked })}
+              checked={config.useNet !== false}
+              onChange={(e) => setConfig({ ...config, useNet: e.target.checked })}
               className="h-4 w-4 rounded border-surface-500 text-golf-600 focus:ring-golf-500"
             />
             Use handicap strokes (net skins)
           </label>
+          <label className="flex items-center gap-2 text-sm text-surface-100">
+            <input
+              type="checkbox"
+              checked={config.birdiesOnly === true}
+              onChange={(e) => setConfig({ ...config, birdiesOnly: e.target.checked })}
+              className="h-4 w-4 rounded border-surface-500 text-golf-600 focus:ring-golf-500"
+            />
+            Birdies or better only
+          </label>
+          <p className="pl-6 -mt-1.5 text-[11px] text-surface-400">
+            Only award a skin when the winning {config.useNet !== false ? 'net ' : ''}score is a birdie or better.
+          </p>
         </div>
       );
 

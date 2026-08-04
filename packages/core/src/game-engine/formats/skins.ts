@@ -21,7 +21,7 @@ export class SkinsEngine extends BaseGameFormatEngine {
       maxPlayers: 8,
       requiresTeams: false,
       handicapAllowance: 1.0,
-      defaultConfig: { useNet: true, carryOver: true },
+      defaultConfig: { useNet: true, carryOver: true, birdiesOnly: false },
       configSchema: [
         {
           key: 'useNet',
@@ -36,6 +36,13 @@ export class SkinsEngine extends BaseGameFormatEngine {
           type: 'boolean',
           required: false,
           defaultValue: true,
+        },
+        {
+          key: 'birdiesOnly',
+          label: 'Birdies or better only',
+          type: 'boolean',
+          required: false,
+          defaultValue: false,
         },
       ],
     };
@@ -60,6 +67,9 @@ export class SkinsEngine extends BaseGameFormatEngine {
     const result = this.emptyResult(gameId);
     const useNet = (config.useNet as boolean) ?? true;
     const carryOver = (config.carryOver as boolean) ?? true;
+    // When on, a hole only produces a skin if the winning (net or gross) score
+    // is a birdie or better — otherwise it's treated like a tie and carries.
+    const birdiesOnly = (config.birdiesOnly as boolean) ?? false;
     const moneyPerSkin = (config.moneyPerUnit as number) ?? 0;
 
     const activeHoles = scoreData.holes
@@ -128,7 +138,12 @@ export class SkinsEngine extends BaseGameFormatEngine {
         holeScores.map((hs) => [hs.playerId, hs.score])
       );
 
-      if (winners.length === 1) {
+      // A skin is awarded only for a UNIQUE low score — and, when birdiesOnly is
+      // on, only if that score is a birdie or better (score ≤ par − 1).
+      const birdieOrBetter = minScore <= hole.par - 1;
+      const awarded = winners.length === 1 && (!birdiesOnly || birdieOrBetter);
+
+      if (awarded) {
         // One winner - takes the pot
         skinsWon[winners[0].playerId].push(holeNum);
         skinDetails.push({
@@ -139,7 +154,7 @@ export class SkinsEngine extends BaseGameFormatEngine {
         });
         pot = 1; // Reset pot
       } else {
-        // Tie - no winner
+        // Tie, or no qualifying birdie - no winner
         skinDetails.push({
           holeNumber: holeNum,
           winnerId: null,
