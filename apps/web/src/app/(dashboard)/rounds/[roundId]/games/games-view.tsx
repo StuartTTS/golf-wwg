@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createGame } from '@/lib/actions/games';
+import { createGame, updateGame } from '@/lib/actions/games';
 import { validatePayout, type PayoutConfig } from '@golf/core';
 import { PayoutFields, defaultPayout } from '@/components/games/payout-fields';
 import { Button } from '@/components/ui/button';
@@ -445,22 +445,37 @@ function GameConfigFields({
   }
 }
 
+function gameTypeFromGame(g: Game): string {
+  if (g.format === 'best_ball_2' && (g.config as any)?.randomTeams === true) {
+    return 'best_ball_2_random';
+  }
+  return g.format;
+}
+
 function AddGameModal({
   roundId,
   roundPlayers,
+  editGame,
   onClose,
   onCreated,
 }: {
   roundId: string;
   roundPlayers: RoundPlayer[];
+  /** When set, the modal edits this game's setup instead of creating one. */
+  editGame?: Game | null;
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [step, setStep] = useState<'type' | 'config'>('type');
-  const [gameType, setGameType] = useState('');
-  const [payout, setPayout] = useState<PayoutConfig>(defaultPayout());
-  const [config, setConfig] = useState<Record<string, unknown>>({});
-  const [holes, setHoles] = useState('all');
+  const isEdit = !!editGame;
+  const [step, setStep] = useState<'type' | 'config'>(isEdit ? 'config' : 'type');
+  const [gameType, setGameType] = useState(editGame ? gameTypeFromGame(editGame) : '');
+  const [payout, setPayout] = useState<PayoutConfig>(
+    ((editGame?.config as any)?.payout as PayoutConfig) ?? defaultPayout()
+  );
+  const [config, setConfig] = useState<Record<string, unknown>>(
+    editGame ? { ...(editGame.config as Record<string, unknown>) } : {}
+  );
+  const [holes, setHoles] = useState(editGame?.holes ?? 'all');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -504,15 +519,23 @@ function AddGameModal({
       setCreating(true);
       setError(null);
 
-      const result = await createGame({
-        roundId,
-        format,
-        name: GAME_TYPE_LABELS[gameType] ?? gameType,
-        config: gameConfig,
-        moneyPerUnit: payout.buyIn,
-        holes,
-        playerIds: roundPlayers.map((p) => p.userId),
-      });
+      const result = isEdit
+        ? await updateGame({
+            gameId: editGame!.id,
+            name: GAME_TYPE_LABELS[gameType] ?? gameType,
+            config: gameConfig,
+            moneyPerUnit: payout.buyIn,
+            holes,
+          })
+        : await createGame({
+            roundId,
+            format,
+            name: GAME_TYPE_LABELS[gameType] ?? gameType,
+            config: gameConfig,
+            moneyPerUnit: payout.buyIn,
+            holes,
+            playerIds: roundPlayers.map((p) => p.userId),
+          });
 
       if (result.error) {
         setError(result.error);
@@ -523,7 +546,7 @@ function AddGameModal({
       onCreated();
       onClose();
     } catch (err) {
-      setError('Failed to create game. Please try again.');
+      setError(isEdit ? 'Failed to save changes. Please try again.' : 'Failed to create game. Please try again.');
       setCreating(false);
     }
   };
@@ -534,7 +557,9 @@ function AddGameModal({
         <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <CardTitle>
-              {step === 'type' ? 'Choose Game Type' : GAME_TYPE_LABELS[gameType]}
+              {step === 'type'
+                ? 'Choose Game Type'
+                : `${isEdit ? 'Edit ' : ''}${GAME_TYPE_LABELS[gameType] ?? gameType}`}
             </CardTitle>
             <button
               onClick={onClose}
@@ -622,9 +647,11 @@ function AddGameModal({
                 </div>
               </div>
 
-              <p className="text-xs text-surface-400">
-                All {roundPlayers.length} round players will be added to this game.
-              </p>
+              {!isEdit && (
+                <p className="text-xs text-surface-400">
+                  All {roundPlayers.length} round players will be added to this game.
+                </p>
+              )}
 
               {gameType === 'best_ball_2_random' && (
                 <p className="rounded-md bg-golf-900/20 border border-golf-600/30 p-2.5 text-xs text-surface-300">
@@ -640,15 +667,21 @@ function AddGameModal({
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setStep('type')}>
-                  Back
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => (isEdit ? onClose() : setStep('type'))}
+                >
+                  {isEdit ? 'Cancel' : 'Back'}
                 </Button>
                 <Button
                   className="flex-1"
                   disabled={creating}
                   onClick={handleCreate}
                 >
-                  {creating ? 'Creating...' : 'Create Game'}
+                  {creating
+                    ? isEdit ? 'Saving...' : 'Creating...'
+                    : isEdit ? 'Save Changes' : 'Create Game'}
                 </Button>
               </div>
             </>
@@ -659,9 +692,17 @@ function AddGameModal({
   );
 }
 
-function GameCard({ game, roundId }: { game: Game; roundId: string }) {
-  const leader = game.players[0];
-
+function GameCard({
+  game,
+  roundId,
+  canEdit,
+  onEdit,
+}: {
+  game: Game;
+  roundId: string;
+  canEdit?: boolean;
+  onEdit?: (game: Game) => void;
+}) {
   return (
     <Link href={`/rounds/${roundId}/games/${game.id}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
@@ -675,11 +716,29 @@ function GameCard({ game, roundId }: { game: Game; roundId: string }) {
                 {game.status === 'active' ? 'Live' : game.status}
               </Badge>
             </div>
-            {game.moneyPerUnit > 0 && (
-              <span className="text-sm font-medium text-surface-50">
-                ${game.moneyPerUnit}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {game.moneyPerUnit > 0 && (
+                <span className="text-sm font-medium text-surface-50">
+                  ${game.moneyPerUnit}
+                </span>
+              )}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onEdit?.(game);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border border-surface-500 px-2 py-1 text-xs font-medium text-surface-200 hover:bg-surface-700"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-surface-300 mb-3">
@@ -744,13 +803,25 @@ interface GamesViewProps {
   roundId: string;
   initialGames: Game[];
   initialRoundPlayers: RoundPlayer[];
+  isCommish?: boolean;
+  roundStatus?: string;
 }
 
-export default function GamesView({ roundId, initialGames, initialRoundPlayers }: GamesViewProps) {
+export default function GamesView({
+  roundId,
+  initialGames,
+  initialRoundPlayers,
+  isCommish = false,
+  roundStatus,
+}: GamesViewProps) {
   const router = useRouter();
 
   const [games, setGames] = useState<Game[]>(initialGames);
   const [showAddGame, setShowAddGame] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+
+  // The Commish can tweak a game's setup until it (or the round) is done.
+  const canManageGames = isCommish && roundStatus !== 'completed';
 
   // Sync local state when server re-renders with updated props (after router.refresh)
   useEffect(() => { setGames(initialGames); }, [initialGames]);
@@ -797,16 +868,26 @@ export default function GamesView({ roundId, initialGames, initialRoundPlayers }
       ) : (
         <div className="space-y-3">
           {games.map((game) => (
-            <GameCard key={game.id} game={game} roundId={roundId} />
+            <GameCard
+              key={game.id}
+              game={game}
+              roundId={roundId}
+              canEdit={canManageGames && game.status !== 'finalized'}
+              onEdit={setEditingGame}
+            />
           ))}
         </div>
       )}
 
-      {showAddGame && (
+      {(showAddGame || editingGame) && (
         <AddGameModal
           roundId={roundId}
           roundPlayers={initialRoundPlayers}
-          onClose={() => setShowAddGame(false)}
+          editGame={editingGame}
+          onClose={() => {
+            setShowAddGame(false);
+            setEditingGame(null);
+          }}
           onCreated={() => router.refresh()}
         />
       )}

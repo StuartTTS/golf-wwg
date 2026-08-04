@@ -228,6 +228,63 @@ export async function updateGameScoring(
   return { success: true };
 }
 
+/**
+ * Edit a game's setup (name, config/bets, buy-in, holes) before it's finalized —
+ * players/teams are left alone. Commish (creator / group admin) only.
+ */
+export async function updateGame(input: {
+  gameId: string;
+  name?: string;
+  config: Record<string, unknown>;
+  moneyPerUnit?: number;
+  holes?: string;
+}) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: game } = await supabase
+    .from('games')
+    .select('status, round_id, rounds(created_by, group_id, status)')
+    .eq('id', input.gameId)
+    .single();
+  if (!game) return { error: 'Game not found' };
+  if ((game as any).status === 'finalized') {
+    return { error: 'This game is finalized and can no longer be edited' };
+  }
+  const round = (game as any).rounds;
+  if (round?.status === 'completed') {
+    return { error: 'The round is complete — this game can no longer be edited' };
+  }
+
+  let authorized = round.created_by === user.id;
+  if (!authorized) {
+    const { data: membership } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    authorized = membership?.role === 'admin';
+  }
+  if (!authorized) return { error: 'Only the Commish can edit a game' };
+
+  const { error } = await supabase
+    .from('games')
+    .update({
+      name: input.name ?? null,
+      config: input.config as Json,
+      money_per_unit: input.moneyPerUnit ?? null,
+      holes: input.holes ?? 'all',
+    })
+    .eq('id', input.gameId);
+  if (error) {
+    console.error('Action error:', error);
+    return { error: 'An error occurred. Please try again.' };
+  }
+  return { success: true };
+}
+
 export async function deleteGame(gameId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
