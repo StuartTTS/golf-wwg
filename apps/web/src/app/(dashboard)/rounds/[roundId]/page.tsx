@@ -210,16 +210,25 @@ export default async function RoundHubPage({ params }: RoundPageProps) {
           </Link>
         )}
 
-        {featureFlags.shareCode && isCommish && (
-          <ShareGameButton roundId={roundId} ownerName={ownerName} />
-        )}
-
+        {/* Secondary commish actions — half-width, side by side, matched height */}
         {isCommish && (
-          <DeleteRoundButton
-            roundId={roundId}
-            courseName={courseName}
-            redirectTo="/rounds"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            {featureFlags.shareCode ? (
+              <ShareGameButton
+                roundId={roundId}
+                ownerName={ownerName}
+                className="w-full"
+              />
+            ) : (
+              <span />
+            )}
+            <DeleteRoundButton
+              roundId={roundId}
+              courseName={courseName}
+              redirectTo="/rounds"
+              className="w-full"
+            />
+          </div>
         )}
       </div>
     </div>

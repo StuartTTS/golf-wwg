@@ -12,9 +12,11 @@ import { Button } from '@/components/ui';
 export function ShareGameButton({
   roundId,
   ownerName,
+  className,
 }: {
   roundId: string;
   ownerName?: string | null;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export function ShareGameButton({
 
   return (
     <>
-      <Button variant="outline" onClick={handleOpen}>
+      <Button variant="outline" onClick={handleOpen} className={className}>
         Share
       </Button>
 
