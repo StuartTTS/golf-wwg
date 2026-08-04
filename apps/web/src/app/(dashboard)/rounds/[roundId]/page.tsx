@@ -55,11 +55,12 @@ export default async function RoundHubPage({ params }: RoundPageProps) {
     (players ?? []).find((p: any) => p.user_id === round.created_by)?.profile
       ?.display_name ?? null;
 
-  // "All scores in" drives the ready-to-confirm banner on an in-progress round.
+  // "All scores in" drives the ready-to-confirm banner and whether we still
+  // offer an "Enter scores" button. Computed for any not-yet-completed round.
   let allScoresIn = false;
   let scoresRecorded = 0;
   let scoreSlots = 0;
-  if (round.status === 'in_progress') {
+  if (round.status !== 'completed') {
     const teeIds = [
       ...new Set((players ?? []).map((p: any) => p.tee_box_id).filter(Boolean)),
     ];
@@ -174,26 +175,31 @@ export default async function RoundHubPage({ params }: RoundPageProps) {
           <Link href={`/rounds/${roundId}/results`} className="block">
             <Button className="w-full">View Results</Button>
           </Link>
-        ) : status === 'in_progress' ? (
-          <Link
-            href={
-              playEnabled
-                ? `/rounds/${roundId}/play?tab=scorecard`
-                : `/rounds/${roundId}/scorecard`
-            }
-            className="block"
-          >
-            <Button className="w-full">Review / Confirm Round</Button>
-          </Link>
         ) : (
-          <Link
-            href={playEnabled ? `/rounds/${roundId}/play` : `/rounds/${roundId}/scorecard`}
-            className="block"
-          >
-            <Button className="w-full">
-              {playEnabled ? 'Play Round' : 'Enter Scorecard'}
-            </Button>
-          </Link>
+          <>
+            {/* Enter scores — the way in until every score is posted. Hidden once
+                the card's full (edits then happen via Review / Confirm). */}
+            {!allScoresIn && (
+              <Link
+                href={playEnabled ? `/rounds/${roundId}/play?tab=enter` : `/rounds/${roundId}/scorecard`}
+                className="block"
+              >
+                <Button className="w-full">
+                  {scoresRecorded === 0 ? 'Start Round' : 'Enter Scores'}
+                </Button>
+              </Link>
+            )}
+            {status === 'in_progress' && (
+              <Link
+                href={playEnabled ? `/rounds/${roundId}/play?tab=scorecard` : `/rounds/${roundId}/scorecard`}
+                className="block"
+              >
+                <Button variant={allScoresIn ? 'primary' : 'outline'} className="w-full">
+                  Review / Confirm Round
+                </Button>
+              </Link>
+            )}
+          </>
         )}
 
         <Link href={`/rounds/${roundId}/leaderboard`} className="block">
