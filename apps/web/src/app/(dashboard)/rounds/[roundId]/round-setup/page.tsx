@@ -1,0 +1,558 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Badge,
+} from '@/components/ui';
+import { featureFlags } from '@/lib/feature-flags';
+import { AddGuestForm } from '@/components/rounds/add-guest-form';
+import { AddFromRosterCard } from '@/components/rounds/add-from-roster-card';
+import { RegistrationCard } from '@/components/rounds/registration-card';
+import CourseTeeCard from '@/components/rounds/course-tee-card';
+import RoundLineupCard from '@/components/rounds/round-lineup-card';
+interface RoundPageProps {
+  params: Promise<{ roundId: string }>;
+}
+
+export default async function RoundSetupPage({ params }: RoundPageProps) {
+  const { roundId } = await params;
+  const supabase = await createServerSupabaseClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Fetch round with course, tee box, and group info
+  const { data: round, error: roundError } = await supabase
+    .from('rounds')
+    .select(`
+      id,
+      round_date,
+      tee_time,
+      status,
+      scoring_mode,
+      created_by,
+      group_id,
+      course_id,
+      tee_box_id,
+      registration_status,
+      course:courses (id, name),
+      tee_box:tee_boxes (id, name, color, course_rating, slope_rating),
+      group:groups (id, name)
+    `)
+    .eq('id', roundId)
+    .single();
+
+  if (roundError || !round) {
+    notFound();
+  }
+
+  // Fetch players with profiles and tee box info
+  const { data: players } = await supabase
+    .from('round_players')
+    .select(`
+      id,
+      user_id,
+      tee_box_id,
+      tee_time_group_id,
+      status,
+      handicap_index_at_round,
+      course_handicap,
+      guest_name,
+      guest_handicap_index,
+      roster_player_id,
+      profile:profiles!round_players_user_id_fkey (id, display_name, current_handicap_index),
+      tee_box:tee_boxes (id, name, color)
+    `)
+    .eq('round_id', roundId)
+    .order('status', { ascending: true });
+
+  // Fetch games for this round
+  const { data: games } = await supabase
+    .from('games')
+    .select(`
+      id,
+      format,
+      name,
+      status,
+      money_per_unit,
+      holes
+    `)
+    .eq('round_id', roundId)
+    .order('created_at', { ascending: true });
+
+  // Fetch tee time groups
+  const { data: teeTimeGroups } = await supabase
+    .from('tee_time_groups')
+    .select('id, name, tee_time, sort_order')
+    .eq('round_id', roundId)
+    .order('sort_order');
+
+  // Check if current user is group admin
+  let isGroupAdmin = false;
+  if (user && round.group_id) {
+    const { data: adminCheck } = await supabase
+      .from('group_members')
+      .select('role')
+      .eq('group_id', round.group_id)
+      .eq('user_id', user.id)
+      .single();
+    isGroupAdmin = adminCheck?.role === 'admin';
+  }
+
+  // Roster entries the viewer can add that aren't already in the round.
+  let availableRoster: { id: string; display_name: string; handicap_index: number | null }[] = [];
+  if (user && (isGroupAdmin || round.created_by === user.id)) {
+    const { data: roster } = await supabase
+      .from('roster_players')
+      .select('id, display_name, handicap_index, linked_user_id')
+      .eq('owner_id', user.id)
+      .order('display_name');
+    const inRoundRosterIds = new Set(
+      (players ?? []).map((p: any) => p.roster_player_id).filter(Boolean)
+    );
+    const inRoundUserIds = new Set(
+      (players ?? []).map((p: any) => p.user_id).filter(Boolean)
+    );
+    availableRoster = (roster ?? [])
+      .filter(
+        (r: any) =>
+          !inRoundRosterIds.has(r.id) &&
+          !(r.linked_user_id && inRoundUserIds.has(r.linked_user_id))
+      )
+      .map((r: any) => ({
+        id: r.id,
+        display_name: r.display_name,
+        handicap_index: r.handicap_index,
+      }));
+  }
+
+  // Account players already in the round — link targets for "Already here?".
+  const inRoundAccounts = (players ?? [])
+    .filter((p: any) => p.user_id)
+    .map((p: any) => ({
+      userId: p.user_id as string,
+      displayName: (p as any).profile?.display_name ?? 'Player',
+    }));
+
+  // Fetch round invitations
+  const { data: roundInvitations } = await supabase
+    .from('invitations')
+    .select('email, status')
+    .eq('round_id', roundId)
+    .eq('type', 'round');
+
+  const invitedEmails = (roundInvitations ?? []).map(inv => inv.email);
+  const { data: invitedProfiles } = invitedEmails.length > 0
+    ? await supabase
+        .from('profiles')
+        .select('id, display_name, email, current_handicap_index')
+        .in('email', invitedEmails)
+    : { data: [] as any[] };
+
+  // Fetch all group members for registration card
+  const { data: allGroupMembers } = await supabase
+    .from('group_members')
+    .select('user_id, profiles:profiles(id, display_name, email, current_handicap_index, default_tee_tier)')
+    .eq('group_id', round.group_id);
+
+  // Build available members list (not in round and not invited)
+  const roundPlayerUserIds = new Set(
+    (players ?? []).map(rp => rp.user_id).filter((id): id is string => id !== null)
+  );
+  const invitedEmailSet = new Set(invitedEmails);
+
+  const availableMembers = (allGroupMembers ?? [])
+    .filter(gm => {
+      if (roundPlayerUserIds.has(gm.user_id)) return false;
+      const profile = gm.profiles as any;
+      if (profile?.email && invitedEmailSet.has(profile.email)) return false;
+      return true;
+    })
+    .map(gm => {
+      const profile = gm.profiles as any;
+      return {
+        userId: gm.user_id,
+        displayName: profile?.display_name ?? 'Unknown',
+        handicapIndex: profile?.current_handicap_index ?? null,
+        defaultTeeTier: profile?.default_tee_tier ?? null,
+      };
+    });
+
+  // Fetch course tee boxes for tee assignment card
+  const { data: courseTeeBoxes } = await supabase
+    .from('tee_boxes')
+    .select('id, name, color, course_rating, slope_rating, tier')
+    .eq('course_id', round.course_id)
+    .order('tier', { ascending: true, nullsFirst: false });
+
+  // All courses (for the change-course picker) + which cards have scores yet.
+  const [{ data: allCourses }, { data: scoredRows }] = await Promise.all([
+    supabase.from('courses').select('id, name, city, state').is('deleted_at', null).order('name'),
+    supabase.from('scores').select('round_player_id').eq('round_id', roundId).not('strokes', 'is', null),
+  ]);
+  const scoredRpIds = new Set(
+    (scoredRows ?? []).map((s: any) => s.round_player_id).filter(Boolean)
+  );
+  const hasScores = scoredRpIds.size > 0;
+
+  // Build props for Registration Card
+  const registeredPlayersList = (players ?? [])
+    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
+    .map(rp => ({
+      id: rp.id,
+      displayName: rp.user_id
+        ? (rp as any).profile?.display_name ?? 'Unknown'
+        : rp.guest_name ?? 'Guest',
+      status: rp.status,
+      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
+      isGuest: !rp.user_id,
+    }));
+
+  const invitedPlayersList = (roundInvitations ?? [])
+    .filter(inv => ['pending', 'declined'].includes(inv.status))
+    .map(inv => {
+      const profile = (invitedProfiles ?? []).find((p: any) => p.email === inv.email);
+      return {
+        email: inv.email,
+        status: inv.status,
+        displayName: profile?.display_name ?? null,
+        handicapIndex: profile?.current_handicap_index ?? null,
+        userId: profile?.id ?? null,
+      };
+    });
+
+  // Unified lineup: each player once, with their tee + current group. Feeds the
+  // combined RoundLineupCard (replaces the separate tee + tee-time-group cards).
+  const lineupPlayers = (players ?? [])
+    .filter(rp => ['registered', 'confirmed', 'playing'].includes(rp.status))
+    .map(rp => ({
+      roundPlayerId: rp.id,
+      playerId: rp.user_id ?? rp.id,
+      displayName: rp.user_id
+        ? (rp as any).profile?.display_name ?? 'Unknown'
+        : rp.guest_name ?? 'Guest',
+      isGuest: !rp.user_id,
+      teeBoxId: rp.tee_box_id,
+      groupId: rp.tee_time_group_id ?? null,
+      handicapIndex: rp.handicap_index_at_round ?? rp.guest_handicap_index ?? null,
+      courseHandicap: rp.course_handicap ?? null,
+      hasScores: scoredRpIds.has(rp.id),
+    }));
+
+  // Permissions
+  const isCreator = round.created_by === user?.id;
+  const isCommish = isCreator || isGroupAdmin;
+  const playEnabled = featureFlags.playExperience;
+
+  // Game type labels
+  const GAME_LABELS: Record<string, string> = {
+    nassau: 'Nassau',
+    skins: 'Skins',
+    wolf: 'Wolf',
+    best_ball: 'Best Ball',
+    progressive_best_ball: 'Progressive Best Ball',
+    stableford: 'Stableford',
+    match_play: 'Match Play',
+    bingo_bango_bongo: 'Bingo Bango Bongo',
+  };
+
+
+  return (
+    <div className="space-y-6 max-w-3xl mx-auto">
+      {/* Header */}
+      <div>
+        <Link
+          href={`/rounds/${roundId}`}
+          className="text-sm text-surface-300 hover:text-surface-100 mb-2 inline-block"
+        >
+          &larr; Back to round
+        </Link>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-golf-500">Round Setup</p>
+            <h1 className="text-2xl font-bold tracking-tight text-surface-50">
+              {(round.course as any)?.name ?? 'Unknown Course'}
+            </h1>
+            <p className="mt-1 text-sm text-surface-300">
+              {new Date(round.round_date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+              {round.tee_time && ` at ${round.tee_time}`}
+            </p>
+          </div>
+          <Badge
+            variant={
+              round.status === 'completed'
+                ? 'default'
+                : round.status === 'in_progress'
+                  ? 'secondary'
+                  : 'outline'
+            }
+            className="capitalize text-sm"
+          >
+            {round.status.replace('_', ' ')}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Round Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Round Details</CardTitle>
+        </CardHeader>
+        <div className="px-6 pb-6">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            {(round.group as any)?.name && (
+              <>
+                <dt className="text-surface-400">Group</dt>
+                <dd className="text-surface-50 font-medium">{(round.group as any).name}</dd>
+              </>
+            )}
+            <dt className="text-surface-400">Course</dt>
+            <dd className="text-surface-50 font-medium">{(round.course as any)?.name}</dd>
+            {(round.tee_box as any)?.name && (
+              <>
+                <dt className="text-surface-400">Default Tees</dt>
+                <dd className="text-surface-50 font-medium flex items-center gap-2">
+                  {(round.tee_box as any).color && (
+                    <span
+                      className="w-3 h-3 rounded-full border border-surface-500 inline-block"
+                      style={{ backgroundColor: (round.tee_box as any).color }}
+                    />
+                  )}
+                  {(round.tee_box as any).name}
+                  <span className="text-surface-400 font-normal">
+                    ({(round.tee_box as any).course_rating} / {(round.tee_box as any).slope_rating})
+                  </span>
+                </dd>
+              </>
+            )}
+            <dt className="text-surface-400">Players</dt>
+            <dd className="text-surface-50 font-medium">{players?.length ?? 0}</dd>
+            {games && games.length > 0 && (
+              <>
+                <dt className="text-surface-400">Games</dt>
+                <dd className="text-surface-50 font-medium">{games.length}</dd>
+              </>
+            )}
+          </dl>
+        </div>
+      </Card>
+
+      {/* Admin Cards: Course & Tees, Registration, Tee Assignments, Tee Time Groups */}
+      {isGroupAdmin && (
+        <div className="space-y-4">
+          <CourseTeeCard
+            roundId={round.id}
+            roundStatus={round.status}
+            currentCourseId={round.course_id}
+            currentCourseName={(round.course as any)?.name ?? 'Unknown Course'}
+            currentTeeName={(round.tee_box as any)?.name ?? null}
+            courses={(allCourses as any[]) ?? []}
+            hasScores={hasScores}
+          />
+
+          <RegistrationCard
+            roundId={round.id}
+            registrationStatus={round.registration_status}
+            roundStatus={round.status}
+            defaultTeeBoxId={round.tee_box_id}
+            registeredPlayers={registeredPlayersList}
+            invitedPlayers={invitedPlayersList}
+            availableMembers={availableMembers}
+            courseTeeBoxes={(courseTeeBoxes ?? []).map(tb => ({ id: tb.id, tier: tb.tier }))}
+          />
+
+          <RoundLineupCard
+            roundId={round.id}
+            roundStatus={round.status}
+            teeBoxes={courseTeeBoxes ?? []}
+            defaultTeeBoxId={round.tee_box_id}
+            players={lineupPlayers}
+            existingGroups={teeTimeGroups ?? []}
+          />
+
+          {round.status !== 'completed' && availableRoster.length > 0 && (
+            <AddFromRosterCard
+              roundId={round.id}
+              roster={availableRoster}
+              inRoundAccounts={inRoundAccounts}
+            />
+          )}
+
+          {isCreator && round.status !== 'completed' && (
+            <Card>
+              <div className="px-6 py-4">
+                <AddGuestForm
+                  roundId={round.id}
+                  defaultTeeBoxId={round.tee_box_id ?? ''}
+                />
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Players — hidden for group admins, who get the richer Lineup card above
+          (tees, foursomes, remove). Regular players still see the roster here. */}
+      {!isGroupAdmin && (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            Players ({players?.length ?? 0})
+          </CardTitle>
+        </CardHeader>
+        <div className="px-6 pb-6">
+          {!players || players.length === 0 ? (
+            <p className="text-sm text-surface-300">No players registered yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {players.map((player) => {
+                const isGuest = !player.user_id;
+                const displayName = isGuest
+                  ? (player as any).guest_name ?? 'Guest'
+                  : (player.profile as any)?.display_name ?? 'Unknown';
+
+                return (
+                  <li
+                    key={player.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-medium ${
+                        isGuest
+                          ? 'bg-surface-600 text-surface-300'
+                          : 'bg-emerald-900/40 text-golf-600'
+                      }`}>
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-surface-50 flex items-center gap-2">
+                          {displayName}
+                          {isGuest && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              Guest
+                            </Badge>
+                          )}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {(player.tee_box as any)?.name && (
+                            <span className="flex items-center gap-1 text-xs text-surface-400">
+                              {(player.tee_box as any).color && (
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full border border-surface-500 inline-block"
+                                  style={{ backgroundColor: (player.tee_box as any).color }}
+                                />
+                              )}
+                              {(player.tee_box as any).name}
+                            </span>
+                          )}
+                          {player.course_handicap != null && (
+                            <span className="text-xs text-surface-400">
+                              {(player.tee_box as any)?.name ? '· ' : ''}HCP {player.course_handicap}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge
+                      variant={
+                        player.status === 'playing'
+                          ? 'secondary'
+                          : player.status === 'completed'
+                            ? 'default'
+                            : 'outline'
+                      }
+                      className="capitalize text-xs"
+                    >
+                      {player.status}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {/* Add Guest form - shown to round creator/admin when round is not completed */}
+          {isCreator && round.status !== 'completed' && (
+            <div className="mt-4">
+              <AddGuestForm
+                roundId={roundId}
+                defaultTeeBoxId={(round.tee_box as any)?.id ?? ''}
+              />
+            </div>
+          )}
+        </div>
+      </Card>
+      )}
+
+      {/* Games */}
+      {games && games.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Games</CardTitle>
+              <Link href={`/rounds/${roundId}/games`}>
+                <Button variant="outline" size="sm">Manage</Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <div className="px-6 pb-6">
+            <ul className="space-y-3">
+              {games.map((game) => (
+                <li key={game.id}>
+                  <Link
+                    href={`/rounds/${roundId}/games/${game.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-700 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-surface-50">
+                        {game.name || GAME_LABELS[game.format] || game.format}
+                      </p>
+                      <p className="text-xs text-surface-400">
+                        {GAME_LABELS[game.format] || game.format}
+                        {game.money_per_unit ? ` · $${game.money_per_unit}/unit` : ''}
+                        {game.holes !== 'all' ? ` · ${game.holes}` : ''}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={game.status === 'completed' ? 'default' : 'outline'}
+                      className="capitalize text-xs"
+                    >
+                      {game.status}
+                    </Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Card>
+      )}
+
+      {/* No games prompt */}
+      {(!games || games.length === 0) && round.status !== 'completed' && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Games</CardTitle>
+              <CardDescription>
+                Add side games like Nassau, Skins, or Wolf.
+              </CardDescription>
+            </div>
+            <Link href={`/rounds/${roundId}/games`}>
+              <Button variant="outline" size="sm">Add Game</Button>
+            </Link>
+          </CardHeader>
+        </Card>
+      )}
+    </div>
+  );
+}
