@@ -113,6 +113,7 @@ export default async function GameResultsPage({ params }: GamePageProps) {
   const hasTeams = (teamRows ?? []).length > 0;
   const isTeam = game.format === 'best_ball_2' && (hasTeams || isRandomTeams);
   const isSkins = game.format === 'skins';
+  const isNassau = game.format === 'nassau';
 
   const buyIn = payout?.buyIn ?? game.money_per_unit ?? 0;
 
@@ -149,6 +150,24 @@ export default async function GameResultsPage({ params }: GamePageProps) {
   let skinsPerSkin = 0;
   let skinsTotal = 0;
   let skinsBirdiesOnly = false;
+
+  // ---- Nassau (front 9 / back 9 / overall, each a separate bet) --------
+  let nassauStandings: {
+    key: string;
+    name: string;
+    front: number | null;
+    back: number | null;
+    overall: number | null;
+    money: number;
+  }[] = [];
+  let nassauSegments: {
+    label: string;
+    key: 'front' | 'back' | 'overall';
+    bet: number;
+    winnerId: string | null;
+    winnerName: string | null;
+  }[] = [];
+  let nassauNet = true;
 
   let pot = 0;
 
@@ -337,6 +356,103 @@ export default async function GameResultsPage({ params }: GamePageProps) {
       })
       .sort((a, b) => b.skins - a.skins)
       .map((r, i) => ({ ...r, position: i + 1 }));
+  } else if (isNassau) {
+    // Nassau: three separate bets (front 9 / back 9 / overall), each won by the
+    // lowest net (or gross) total for those holes. Show each segment + winner.
+    const cfg = (game.config as any) ?? {};
+    nassauNet = cfg.useNet ?? cfg.useHandicaps ?? true;
+    pot = buyIn * gamePlayerIds.length;
+
+    const teeIds = [...new Set([...teeByRp.values()])];
+    const { data: holeRows } = teeIds.length
+      ? await supabase
+          .from('holes')
+          .select('hole_number, par, handicap_index, yardage, tee_box_id')
+          .in('tee_box_id', teeIds)
+      : { data: [] };
+    const byTee: Record<string, any[]> = {};
+    for (const h of holeRows ?? []) {
+      (byTee[h.tee_box_id] ??= []).push({
+        holeNumber: h.hole_number,
+        par: h.par,
+        yardage: h.yardage ?? 0,
+        handicapIndex: h.handicap_index,
+      });
+    }
+    const holes = (Object.values(byTee)[0] ?? []).sort(
+      (a: any, b: any) => a.holeNumber - b.holeNumber
+    );
+
+    const gpSet = new Set(gamePlayerIds);
+    const result = gameFormatRegistry.getEngine('nassau').calculateResults(
+      {
+        holes,
+        players: gamePlayerIds.map((rpId: string) => ({
+          playerId: rpId,
+          displayName: nameByRp.get(rpId) ?? 'Guest',
+          playingHandicap: phByRp.get(rpId) ?? 0,
+        })),
+        scores: (scoreRows ?? [])
+          .filter((s: any) => s.round_player_id && gpSet.has(s.round_player_id))
+          .map((s: any) => ({
+            playerId: s.round_player_id,
+            holeNumber: s.hole_number,
+            strokes: s.strokes,
+          })),
+        teams: [],
+      } as any,
+      { useNet: nassauNet } as any,
+      gameId
+    );
+
+    const bets = ((result.details as any)?.nassauBets ?? {}) as any;
+    const nPlayers = gamePlayerIds.length;
+    const segBet = (v: unknown) => Number(v ?? 5) || 0;
+    nassauSegments = (
+      [
+        ['Front 9', 'front', segBet(cfg.frontBet)],
+        ['Back 9', 'back', segBet(cfg.backBet)],
+        ['Overall', 'overall', segBet(cfg.overallBet)],
+      ] as const
+    ).map(([label, key, bet]) => {
+      const winnerId = bets[key]?.winnerId ?? null;
+      return {
+        label,
+        key,
+        bet,
+        winnerId,
+        winnerName: winnerId ? nameByRp.get(winnerId) ?? null : null,
+      };
+    });
+
+    // Settlement: each segment winner collects that bet from every other player.
+    const moneyByPlayer = new Map<string, number>();
+    for (const seg of nassauSegments) {
+      if (!seg.winnerId || seg.bet <= 0) continue;
+      for (const id of gamePlayerIds as string[]) {
+        moneyByPlayer.set(
+          id,
+          (moneyByPlayer.get(id) ?? 0) +
+            (id === seg.winnerId ? seg.bet * (nPlayers - 1) : -seg.bet)
+        );
+      }
+    }
+
+    const metaById = new Map<string, any>();
+    for (const st of result.playerStandings) metaById.set(st.playerId, st.metadata);
+
+    nassauStandings = gamePlayerIds.map((rpId: string) => {
+      const m = metaById.get(rpId) ?? {};
+      const played = playedByRp.get(rpId) ?? 0;
+      return {
+        key: rpId,
+        name: nameByRp.get(rpId) ?? 'Guest',
+        front: played > 0 ? (m.frontNet ?? null) : null,
+        back: played > 0 ? (m.backNet ?? null) : null,
+        overall: played > 0 ? (m.overallNet ?? null) : null,
+        money: moneyByPlayer.get(rpId) ?? 0,
+      };
+    });
   } else {
     // Individual: rank by net total (gross − course handicap).
     pot = buyIn * gamePlayerIds.length;
@@ -552,6 +668,94 @@ export default async function GameResultsPage({ params }: GamePageProps) {
                     Pot ${pot} ÷ {skinsTotal} skins = ${Math.round(skinsPerSkin * 100) / 100}/skin
                   </p>
                 )}
+              </div>
+            )
+          ) : isNassau ? (
+            nassauStandings.length === 0 ? (
+              <p className="text-sm text-surface-300 py-4">No players in this game.</p>
+            ) : (
+              <div className="space-y-3">
+                {/* Segment winners */}
+                <div className="grid grid-cols-3 gap-2">
+                  {nassauSegments.map((seg) => (
+                    <div
+                      key={seg.key}
+                      className="rounded-lg border border-surface-700 bg-surface-900/40 p-2 text-center"
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+                        {seg.label}
+                      </p>
+                      <p className="text-sm font-medium text-surface-50 truncate">
+                        {seg.winnerName ?? 'Tied'}
+                      </p>
+                      {seg.bet > 0 && (
+                        <p className="text-[11px] text-golf-500">${seg.bet}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {/* Per-player segment scores */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+                    <span className="flex-1">Player ({nassauNet ? 'net' : 'gross'})</span>
+                    <span className="w-12 text-right">Front</span>
+                    <span className="w-12 text-right">Back</span>
+                    <span className="w-12 text-right">Total</span>
+                    <span className="w-14 text-right" />
+                  </div>
+                  {nassauStandings.map((p) => (
+                    <div
+                      key={p.key}
+                      className="flex items-center gap-2 rounded-lg p-2.5 hover:bg-surface-700/40"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-surface-50 truncate">{p.name}</p>
+                      </div>
+                      <span
+                        className={`w-12 text-right text-sm tabular-nums ${
+                          nassauSegments[0]?.winnerId === p.key
+                            ? 'font-bold text-gold-400'
+                            : 'text-surface-100'
+                        }`}
+                      >
+                        {p.front ?? '-'}
+                      </span>
+                      <span
+                        className={`w-12 text-right text-sm tabular-nums ${
+                          nassauSegments[1]?.winnerId === p.key
+                            ? 'font-bold text-gold-400'
+                            : 'text-surface-100'
+                        }`}
+                      >
+                        {p.back ?? '-'}
+                      </span>
+                      <span
+                        className={`w-12 text-right text-sm font-semibold tabular-nums ${
+                          nassauSegments[2]?.winnerId === p.key
+                            ? 'font-bold text-gold-400'
+                            : 'text-surface-50'
+                        }`}
+                      >
+                        {p.overall ?? '-'}
+                      </span>
+                      <span
+                        className={`w-14 text-right text-sm font-bold tabular-nums ${
+                          p.money > 0
+                            ? 'text-golf-500'
+                            : p.money < 0
+                              ? 'text-red-400'
+                              : 'text-surface-400'
+                        }`}
+                      >
+                        {p.money > 0
+                          ? `+$${p.money}`
+                          : p.money < 0
+                            ? `-$${Math.abs(p.money)}`
+                            : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )
           ) : indivStandings.length === 0 ? (
