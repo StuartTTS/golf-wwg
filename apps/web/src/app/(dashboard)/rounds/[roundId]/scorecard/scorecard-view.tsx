@@ -53,6 +53,21 @@ interface RoundData {
   currentUserGroupId: string | null;
 }
 
+/** Handicap strokes a player gets on a hole, by their playing handicap + SI. */
+function strokesReceivedOnHole(playingHandicap: number, holeStrokeIndex: number): number {
+  if (playingHandicap >= 0) {
+    let strokes = Math.floor(playingHandicap / 18);
+    const remainder = playingHandicap % 18;
+    if (holeStrokeIndex <= remainder) strokes += 1;
+    return strokes;
+  }
+  const abs = Math.abs(playingHandicap);
+  let strokes = -Math.floor(abs / 18);
+  const remainder = abs % 18;
+  if (holeStrokeIndex > 18 - remainder) strokes -= 1;
+  return strokes;
+}
+
 /**
  * PGA-style shape around a score: a red circle for a birdie (double for eagle+),
  * a blue box for a bogey (double for double-bogey+), nothing for par. Applied to
@@ -240,6 +255,28 @@ export default function ScorecardView({ initialRound, initialScores = [] }: Scor
     [scores]
   );
 
+  // Gross (default) vs net view. Net subtracts the player's handicap strokes on
+  // each hole from the gross score — a view-only toggle; entry is always gross.
+  const [view, setView] = useState<'gross' | 'net'>('gross');
+  const receivedOn = useCallback(
+    (playerId: string, holeNumber: number): number => {
+      const player = round.players.find((p) => p.id === playerId);
+      if (!player) return 0;
+      const si =
+        holesFor(playerId).find((h) => h.number === holeNumber)?.strokeIndex ?? holeNumber;
+      return strokesReceivedOnHole(player.playingHandicap ?? 0, si);
+    },
+    [round.players, holesFor]
+  );
+  const dispScore = useCallback(
+    (playerId: string, holeNumber: number): number | null => {
+      const g = scoreOf(playerId, holeNumber);
+      if (g === null) return null;
+      return view === 'net' ? g - receivedOn(playerId, holeNumber) : g;
+    },
+    [scoreOf, view, receivedOn]
+  );
+
   const updateScore = useCallback(
     async (playerId: string, holeNumber: number, strokes: number) => {
       setSaving(true);
@@ -279,7 +316,7 @@ export default function ScorecardView({ initialRound, initialScores = [] }: Scor
     let total = 0;
     let any = false;
     for (const n of holeNums) {
-      const s = scoreOf(playerId, n);
+      const s = dispScore(playerId, n);
       if (s !== null) {
         total += s;
         any = true;
@@ -319,6 +356,26 @@ export default function ScorecardView({ initialRound, initialScores = [] }: Scor
           <Badge variant={round.status === 'in_progress' ? 'default' : 'secondary'}>
             {round.status === 'in_progress' ? 'Live' : round.status}
           </Badge>
+        </div>
+      </div>
+
+      {/* Gross / Net toggle — view only, entry is always gross */}
+      <div className="px-4">
+        <div className="inline-flex rounded-lg bg-surface-700 p-0.5 text-sm">
+          {(['gross', 'net'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className={`px-3 py-1 rounded-md capitalize transition-colors ${
+                view === v
+                  ? 'bg-golf-600 text-white font-medium'
+                  : 'text-surface-300 hover:text-surface-100'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -379,7 +436,7 @@ export default function ScorecardView({ initialRound, initialScores = [] }: Scor
                   const total = sumFor(player.id, allNums);
 
                   const cell = (h: HoleInfo) => {
-                    const strokes = scoreOf(player.id, h.number);
+                    const strokes = dispScore(player.id, h.number);
                     const par = parFor(player.id, h.number);
                     return (
                       <td key={h.number} className="p-0 border-b border-surface-700">
