@@ -300,6 +300,7 @@ export default function PlayView({ round, initialScores, initialTab }: PlayViewP
           onFinalize={handleFinalize}
           onReopen={handleReopen}
           onViewStats={() => router.push('/profile/stats')}
+          onViewResults={() => router.push(`/rounds/${roundId}/leaderboard`)}
         />
       </div>
 

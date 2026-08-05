@@ -32,6 +32,7 @@ interface ConfirmPanelProps {
   onFinalize: () => void;
   onReopen: () => void;
   onViewStats: () => void;
+  onViewResults: () => void;
 }
 
 const Check = () => (
@@ -53,6 +54,7 @@ export function ConfirmPanel({
   onFinalize,
   onReopen,
   onViewStats,
+  onViewResults,
 }: ConfirmPanelProps) {
   const [open, setOpen] = useState(false);
   const canFinalize = canFinalizeRound(round);
@@ -116,7 +118,7 @@ export function ConfirmPanel({
   // ---- Finalized (done) state -------------------------------------------
   if (finalized) {
     return (
-      <div className="mt-3">
+      <div className="mt-3 space-y-2">
         <div className="flex items-center justify-between gap-3 rounded-lg border border-golf-600/40 bg-golf-900/20 px-3 py-2">
           <span className="flex items-center gap-1.5 text-sm font-medium text-golf-400">
             <Check />
@@ -140,7 +142,14 @@ export function ConfirmPanel({
             )}
           </div>
         </div>
-        {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+        {/* Straight to the results the moment the round's confirmed. */}
+        <button
+          onClick={onViewResults}
+          className="w-full rounded-lg bg-golf-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-golf-500"
+        >
+          View leaderboard &amp; game results
+        </button>
+        {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
       </div>
     );
   }
