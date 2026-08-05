@@ -111,10 +111,18 @@ export function ScoreEntryView({
 
   // On hole change, jump back to the top so the new hole's header and cards are
   // in view — otherwise tapping Next from the bottom nav leaves you scrolled
-  // past the cards you're about to fill in.
+  // past the cards you're about to fill in. The dashboard shell scrolls its
+  // <main>, not the window, so scroll that (with window as a fallback); rAF
+  // re-runs it after the new hole renders in case layout shifts.
   const goToHole = (i: number) => {
     setHoleIndex(i);
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+    if (typeof document === 'undefined') return;
+    const toTop = () => {
+      document.querySelector('main')?.scrollTo({ top: 0 });
+      window.scrollTo({ top: 0 });
+    };
+    toTop();
+    requestAnimationFrame(toTop);
   };
   const goPrev = () => goToHole(Math.max(0, holeIndex - 1));
   const goNext = () => goToHole(Math.min(layoutHoles.length - 1, holeIndex + 1));
